@@ -18,7 +18,7 @@
   <img src="https://img.shields.io/badge/Material_for_MkDocs-526CFE?style=flat&logo=MaterialForMkDocs&logoColor=white&color=%23F79431" alt="Built with Material for MkDocs">
   <br>
   <br>
-  <img src="https://img.shields.io/badge/License-Proprietary-black" alt="License">
+  <img src="https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-black" alt="License">
 </p>
 
 
