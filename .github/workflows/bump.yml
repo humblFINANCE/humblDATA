@@ -1,7 +1,7 @@
 name: Bump Package Version
 
 on:
-  push: 
+  push:
     branches:
       - main
       - master
@@ -25,6 +25,7 @@ jobs:
         with:
           github_token: "${{ secrets.GH_PAT }}"
           changelog_increment_filename: body.md
+          extra_requirements: "cz-conventional-gitmoji"
       - name: Generate Release
         uses: softprops/action-gh-release@v1
         with:
