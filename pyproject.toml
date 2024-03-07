@@ -21,10 +21,7 @@ tag_format = "v$version"
 update_changelog_on_bump = true
 annotated_tag = true
 bump_message = "🔖 bump(release): v$current_version → v$new_version"
-major_version_zero = true
-version_files = [
-    "pyproject.toml:^version",
-]
+version_files = ["pyproject.toml:^version"]
 path = ".cz-config.js"
 
 [tool.commitizen.customize]
@@ -39,16 +36,16 @@ schema = """
 (ISSUES: )<footer>
 """
 schema_pattern = "(?s)(✨ feat|🐛 fix|🚑 hotfix|🔧 chore|♻️ refactor|🚧 WIP|📚 docs|⚡️ perf|💄 style|🏗️ build|👷 ci|✅ test|⏪ revert|➕ add_dep|➖ rem_dep)(\\(\\S+\\))?!?:( [^\\n\\r]+)((\\n\\n.*)|(\\s*))?$"
-bump_pattern = "^(✨ feat|🐛 fix|🚑 hotfix|⚡️ perf|♻️ refactor|⏪ revert|➕ add_dep)"
+bump_pattern = "^(✨ feat|🐛 fix|🚑 hotfix|⚡️ perf|♻️ refactor|⏪ revert|➕ dep-add|➖ dep-rm)"
 bump_map = {"BREAKING CHANGE" = "MAJOR", "✨ feat" = "MINOR", "🐛 fix" = "PATCH", "🚑 hotfix" = "PATCH", "⚡️ perf" = "PATCH", "♻️ refactor" = "PATCH"}
-change_type_order = ["BREAKING CHANGE", "✨ feat", "🐛 fix", "🚑 hotfix", "♻️ refactor", "⚡️ perf", "🏗️ build", "💄 style", "📚 docs", "➕ add_dep", "➖ rem_dep"]
+change_type_order = ["BREAKING CHANGE", "✨ feat", "🐛 fix", "🚑 hotfix", "♻️ refactor", "⚡️ perf", "🏗️ build", "💄 style", "📚 docs", "➕ dep-add", "➖ dep-rm"]
 info_path = "cz_customize_info.txt"
 info = """
 This is customized commitizen info
 """
-commit_parser = "^(?P<change_type>✨ feat|🐛 fix|🚑 hotfix|🔧 chore|♻️ refactor|🚧 WIP|📚 docs|⚡️ perf|💄 style|🏗️ build|👷 ci|✅ test|⏪ revert|➕ add_dep|➖ rem_dep):\\s(?P<message>.*)?"
-changelog_pattern = "^(✨ feat|🐛 fix|🚑 hotfix|🔧 chore|♻️ refactor|🚧 WIP|📚 docs|⚡️ perf|💄 style|🏗️ build|👷 ci|✅ test|⏪ revert|➕ add_dep|➖ rem_dep)?(!)?"
-change_type_map = {"🏗️ build" = "Build", "👷 ci" = "CI", "📚 docs" = "Docs", "✨ feat" = "Feat", "🐛 fix" = "Fix", "🚑 hotfix" = "Hotfix", "⚡️ perf" = "Perf", "♻️ refactor" = "Refactor", "💄 style" = "Style", "✅ test" = "Test", "🔧 chore" = "Chore", "⏪ revert" = "Revert", "➕ add_dep" = "Added Dependency", "➖ rem_dep" = "Removed Dependency"}
+commit_parser = "^(?P<change_type>✨ feat|🐛 fix|🚑 hotfix|🔧 chore|♻️ refactor|🚧 WIP|📚 docs|⚡️ perf|💄 style|🏗️ build|👷 ci|✅ test|⏪ revert|➕ add_dep|➖ rem_dep|🚚 resource):\\s(?P<message>.*)?"
+changelog_pattern = "^(✨ feat|🐛 fix|🚑 hotfix|🔧 chore|♻️ refactor|🚧 WIP|📚 docs|⚡️ perf|💄 style|🏗️ build|👷 ci|✅ test|⏪ revert|➕ dep-add|➖ dep-rm)?(!)?"
+change_type_map = {"🏗️ build" = "Build", "👷 ci" = "CI", "📚 docs" = "Docs", "✨ feat" = "Feat", "🐛 fix" = "Fix", "🚑 hotfix" = "Hotfix", "⚡️ perf" = "Perf", "♻️ refactor" = "Refactor", "💄 style" = "Style", "✅ test" = "Test", "🔧 chore" = "Chore", "⏪ revert" = "Revert", "➕ dep-add" = "Added Dependency", "➖ dep-rm" = "Removed Dependency"}
 
 [tool.poetry.dependencies]  # https://python-poetry.org/docs/dependency-specification/
 uuid7 = ">=0.1.0"
