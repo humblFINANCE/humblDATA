@@ -72,6 +72,9 @@ typeguard = ">=3.0.2"
 [tool.poetry.group.dev.dependencies]  # https://python-poetry.org/docs/master/managing-dependencies/
 cruft = ">=2.14.0"
 jupyterlab = ">=3.6.3"
+mkdocs = "^1.5.3"
+mkdocs-material = "^9.5.13"
+mkdocstrings = {extras = ["python"], version = "^0.24.1"}
 
 [tool.coverage.report]  # https://coverage.readthedocs.io/en/latest/config.html#report
 fail_under = 50
@@ -134,61 +137,64 @@ convention = "numpy"
 
 [tool.poe.tasks]  # https://github.com/nat-n/poethepoet
 
-  [tool.poe.tasks.docs]
-  help = "Generate this package's docs"
-  cmd = """
-    pdoc
-      --docformat $docformat
-      --output-directory $outputdirectory
-      humbldata
-    """
+[tool.poe.tasks.docs]
+help = "Generate this package's docs using mkdocs"
+cmd = """
+  mkdocs build
+    --clean
+    --config-file mkdocs.yml
+    --site-dir $outputdirectory
+    --theme $theme
+    --verbose
+"""
 
-    [[tool.poe.tasks.docs.args]]
-    help = "The docstring style (default: numpy)"
-    name = "docformat"
-    options = ["--docformat"]
-    default = "numpy"
+[[tool.poe.tasks.docs.args]]
+help = "The output directory for the documentation (default: site)"
+name = "outputdirectory"
+options = ["--site-dir"]
+default = "site"
 
-    [[tool.poe.tasks.docs.args]]
-    help = "The output directory (default: docs)"
-    name = "outputdirectory"
-    options = ["--output-directory"]
-    default = "docs"
+[[tool.poe.tasks.docs.args]]
+help = "The theme for the documentation (choose from: material, readthedocs, mkdocs; default: material)"
+name = "theme"
+options = ["--theme"]
+default = "material"
 
-  [tool.poe.tasks.lab]
-  help = "Run Jupyter Lab"
+[tool.poe.tasks.lab]
+help = "Run Jupyter Lab"
 
-    [[tool.poe.tasks.lab.sequence]]
-    cmd = "mkdir -p notebooks"
+[[tool.poe.tasks.lab.sequence]]
+cmd = "mkdir -p notebooks"
 
-    [[tool.poe.tasks.lab.sequence]]
-    cmd = """
-      jupyter lab
-        --allow-root
-        --notebook-dir notebooks
-      """
+[[tool.poe.tasks.lab.sequence]]
+cmd = """
+  jupyter lab
+    --allow-root
+    --notebook-dir notebooks
+"""
 
-  [tool.poe.tasks.lint]
-  help = "Lint this package"
+[tool.poe.tasks.lint]
+help = "Lint this package"
 
-    [[tool.poe.tasks.lint.sequence]]
-    cmd = """
-      pre-commit run
-        --all-files
-        --color always
-      """
+[[tool.poe.tasks.lint.sequence]]
+cmd = """
+  pre-commit run
+    --all-files
+    --color always
+"""
 
-    [[tool.poe.tasks.lint.sequence]]
-    shell = "safety check --continue-on-error --full-report"
+[[tool.poe.tasks.lint.sequence]]
+shell = "safety check --continue-on-error --full-report"
 
-  [tool.poe.tasks.test]
-  help = "Test this package"
+[tool.poe.tasks.test]
+help = "Test this package"
 
-    [[tool.poe.tasks.test.sequence]]
-    cmd = "coverage run"
+[[tool.poe.tasks.test.sequence]]
+cmd = "coverage run"
 
-    [[tool.poe.tasks.test.sequence]]
-    cmd = "coverage report"
+[[tool.poe.tasks.test.sequence]]
+cmd = "coverage report"
 
-    [[tool.poe.tasks.test.sequence]]
-    cmd = "coverage xml"
+[[tool.poe.tasks.test.sequence]]
+cmd = "coverage xml"
+

@@ -2,7 +2,7 @@
 
 ## Rules
 
-1. All Python docstrings NEEDS to follow the numpy/scipy documentation style EXACTLY. (described in NumPy Format Example below)
+1. All Python docstrings NEED to follow the numpy documentation style EXACTLY. (described in NumPy Format Example below)
 2. Include all standard sections: description, details, parameters, return values, exceptions, examples.
 3. The description should provide a high-level summary and overview of the code.
 4. The details section should offer a more in-depth look at the functionality and procedure of the function.
@@ -12,7 +12,8 @@
 
 ## Tasks
 
-1. Ensure that all Python code includes a docstring that follows these rules.
+1. Ensure that the Python function's docstring is updated to match the functions
+parameters, return values, and exceptions.
 2. Regularly review and update docstrings to ensure they accurately represent the code.
 3. Use the provided format example as a guide when creating new docstrings.
 
