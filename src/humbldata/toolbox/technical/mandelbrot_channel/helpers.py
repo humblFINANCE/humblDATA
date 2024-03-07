@@ -10,7 +10,9 @@ import polars as pl
 
 from humbldata.core.standard_models.abstract.errors import HumblDataError
 from humbldata.toolbox.toolbox_helpers import (
+    _check_required_columns,
     _set_over_cols,
+    _set_sort_cols,
     _window_format,
     _window_format_monthly,
 )
@@ -97,75 +99,17 @@ def add_window_index(
     return data
 
 
-def _vol_buckets_engine(
-    grouped_data: pl.DataFrame | pl.LazyFrame,
-    lo_quantile: float,
-    hi_quantile: float,
-    _column_name_volatility: str,
-) -> pl.LazyFrame:
-    """
-    Context: Toolbox || Category: MandelBrot Channel || Sub-Category: Helpers || Command: **calculate_vol_buckets**.
-
-    This function is an internal utility designed for the `vol_buckets()` function and is not intended for direct invocation. It segments the input data into three volatility categories based on the specified quantiles of the volatility column.
-
-    Parameters
-    ----------
-    grouped_data : pl.DataFrame | pl.LazyFrame
-        The input data, either as a DataFrame or a LazyFrame, grouped by a
-        certain criterion.
-    lo_quantile : float
-        The lower quantile threshold used to define the 'low' volatility
-        category.
-    hi_quantile : float
-        The higher quantile threshold used to define the 'high' volatility
-        category, with values between the low and high thresholds categorized
-        as 'mid'.
-    _column_name_volatility : str
-        The name of the column in `grouped_data` that contains volatility
-        measurements.
-
-    Returns
-    -------
-    pl.LazyFrame
-        The input data with an additional column named 'vol_bucket' indicating
-        the volatility category ('low', 'mid', 'high') for each row based on
-        the specified quantiles of the volatility column.
-    """
-    # Calculate low and high quantiles for the group
-    low_vol = (
-        grouped_data.lazy()
-        .select(pl.col(_column_name_volatility).quantile(lo_quantile))
-        .collect()
-        .to_series()[0]
-    )
-    mid_vol = (
-        grouped_data.lazy()
-        .select(pl.col(_column_name_volatility).quantile(hi_quantile))
-        .collect()
-        .to_series()[0]
-    )
-
-    # Determine the volatility bucket for each row
-    vol_bucket = (
-        pl.when(pl.col(_column_name_volatility) <= low_vol)
-        .then(pl.lit("low"))
-        .when(pl.col(_column_name_volatility) <= mid_vol)
-        .then(pl.lit("mid"))
-        .otherwise(pl.lit("high"))
-        .alias("vol_bucket")
-    )
-
-    return grouped_data.lazy().with_columns(vol_bucket)
-
-
 def vol_buckets(
     data: pl.DataFrame | pl.LazyFrame,
     lo_quantile: float = 0.4,
     hi_quantile: float = 0.8,
     _column_name_volatility: str = "realized_volatility",
-) -> pl.DataFrame:
+) -> pl.LazyFrame:
     """
     Context: Toolbox || Category: MandelBrot Channel || Sub-Category: Helpers || Command: **vol_buckets**.
+
+    Splitting data observations into 3 volatility buckets: low, mid and high.
+    The function does this for each `symbol` present in the data.
 
     Parameters
     ----------
@@ -175,25 +119,28 @@ def vol_buckets(
         The lower quantile for bucketing. Default is 0.4.
     hi_quantile : float
         The higher quantile for bucketing. Default is 0.8.
-    window : str
-        The window for bucketing. Default is "1m".
+    _column_name_volatility : str
+        The name of the column to apply volatility bucketing. Default is "realized_volatility".
 
     Returns
     -------
-    pl.DataFrame
-        The output dataframe or lazy frame with the bucketed volatility.
+    pl.LazyFrame
+        The `data` with an additional column: `vol_bucket`
     """
-    # Group by 'symbol' and apply 'calculate_vol_buckets' to each group
-    if isinstance(data, pl.LazyFrame):
-        data = data.collect()
+    _check_required_columns(data, _column_name_volatility, "symbol")
 
-    result = data.group_by("symbol").map_groups(
-        lambda group_df: _vol_buckets_engine(
-            group_df, lo_quantile, hi_quantile, _column_name_volatility
-        ),
+    result = data.lazy().with_columns(
+        pl.col(_column_name_volatility)
+        .qcut(
+            [lo_quantile, hi_quantile],
+            labels=["low", "mid", "high"],
+            left_closed=False,
+        )
+        .over("symbol")
+        .alias("vol_bucket")
     )
 
-    return result.lazy()
+    return result
 
 
 def vol_filter(
@@ -205,7 +152,7 @@ def vol_filter(
     If `_rv_adjustment` is True, then filter the data to only include rows
     that are in the same vol_bucket as the latest row for each symbol.
     """
-    data = data.with_columns(
+    data = data.lazy().with_columns(
         pl.col("vol_bucket").last().over("symbol").alias("last_vol_bucket")
     )
 

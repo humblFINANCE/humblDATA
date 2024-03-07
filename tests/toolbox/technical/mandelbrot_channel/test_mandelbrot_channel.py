@@ -7,7 +7,7 @@ from humbldata.toolbox.technical.mandelbrot_channel.helpers import (
 )
 
 
-# add_window_index() TEST ======================================================
+# FIXTURES =====================================================================
 @pytest.fixture(
     params=[
         "dataframe_single_symbol",
@@ -32,6 +32,9 @@ def equity_historical(request: type[FixtureRequest]):
     elif request.param == "lazyframe_multiple_symbols":
         return pl.LazyFrame(data)
     return None
+
+
+# add_window_index() TEST ======================================================
 
 
 @pytest.mark.parametrize(
