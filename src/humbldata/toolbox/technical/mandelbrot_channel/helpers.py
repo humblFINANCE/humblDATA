@@ -151,6 +151,18 @@ def vol_filter(
 
     If `_rv_adjustment` is True, then filter the data to only include rows
     that are in the same vol_bucket as the latest row for each symbol.
+
+    Parameters
+    ----------
+    data : pl.DataFrame | pl.LazyFrame
+        The input dataframe or lazy frame. This should be the output of
+        `vol_buckets()` function in `calc_mandelbrot_channel()`.
+
+    Returns
+    -------
+    pl.LazyFrame
+        The data with only observations in the same volatility bucket as the
+        most recent data observation
     """
     _check_required_columns(data, "vol_bucket", "symbol")
 
