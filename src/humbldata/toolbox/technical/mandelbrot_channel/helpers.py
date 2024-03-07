@@ -145,7 +145,7 @@ def vol_buckets(
 
 def vol_filter(
     data: pl.DataFrame | pl.LazyFrame,
-) -> pl.DataFrame | pl.LazyFrame:
+) -> pl.LazyFrame:
     """
     Context: Toolbox || Category: MandelBrot Channel || Sub-Category: Helpers || Command: **vol_filter**.
 
