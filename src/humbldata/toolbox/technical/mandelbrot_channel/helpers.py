@@ -97,28 +97,53 @@ def add_window_index(
     return data
 
 
-def _calculate_vol_buckets(
+def _vol_buckets_engine(
     grouped_data: pl.DataFrame | pl.LazyFrame,
     lo_quantile: float,
     hi_quantile: float,
     _column_name_volatility: str,
-) -> pl.DataFrame | pl.LazyFrame:
+) -> pl.LazyFrame:
     """
     Context: Toolbox || Category: MandelBrot Channel || Sub-Category: Helpers || Command: **calculate_vol_buckets**.
 
-    This function is used internally for `vol_buckets()` and should not be
-    called directly.
-    """
-    if isinstance(grouped_data, pl.LazyFrame):
-        grouped_data = grouped_data.collect()
+    This function is an internal utility designed for the `vol_buckets()` function and is not intended for direct invocation. It segments the input data into three volatility categories based on the specified quantiles of the volatility column.
 
+    Parameters
+    ----------
+    grouped_data : pl.DataFrame | pl.LazyFrame
+        The input data, either as a DataFrame or a LazyFrame, grouped by a
+        certain criterion.
+    lo_quantile : float
+        The lower quantile threshold used to define the 'low' volatility
+        category.
+    hi_quantile : float
+        The higher quantile threshold used to define the 'high' volatility
+        category, with values between the low and high thresholds categorized
+        as 'mid'.
+    _column_name_volatility : str
+        The name of the column in `grouped_data` that contains volatility
+        measurements.
+
+    Returns
+    -------
+    pl.LazyFrame
+        The input data with an additional column named 'vol_bucket' indicating
+        the volatility category ('low', 'mid', 'high') for each row based on
+        the specified quantiles of the volatility column.
+    """
     # Calculate low and high quantiles for the group
-    low_vol = grouped_data.select(
-        pl.col(_column_name_volatility).quantile(lo_quantile)
-    ).to_series()[0]
-    mid_vol = grouped_data.select(
-        pl.col(_column_name_volatility).quantile(hi_quantile)
-    ).to_series()[0]
+    low_vol = (
+        grouped_data.lazy()
+        .select(pl.col(_column_name_volatility).quantile(lo_quantile))
+        .collect()
+        .to_series()[0]
+    )
+    mid_vol = (
+        grouped_data.lazy()
+        .select(pl.col(_column_name_volatility).quantile(hi_quantile))
+        .collect()
+        .to_series()[0]
+    )
 
     # Determine the volatility bucket for each row
     vol_bucket = (
@@ -130,7 +155,7 @@ def _calculate_vol_buckets(
         .alias("vol_bucket")
     )
 
-    return grouped_data.with_columns(vol_bucket)
+    return grouped_data.lazy().with_columns(vol_bucket)
 
 
 def vol_buckets(
@@ -163,7 +188,7 @@ def vol_buckets(
         data = data.collect()
 
     result = data.group_by("symbol").map_groups(
-        lambda group_df: _calculate_vol_buckets(
+        lambda group_df: _vol_buckets_engine(
             group_df, lo_quantile, hi_quantile, _column_name_volatility
         ),
     )
