@@ -1,0 +1,32 @@
+{
+    "recommendations": [
+        "knisterpeter.vscode-commitizen",
+        "mightbesimon.emoji-icons",
+        "ms-python.black-formatter",
+        "streetsidesoftware.code-spell-checker",
+        "donjayamanne.githistory",
+        "github.codespaces",
+        "github.vscode-pull-request-github",
+        "eamodio.gitlens",
+        "oderwat.indent-rainbow",
+        "visualstudioexptteam.vscodeintellicode",
+        "visualstudioexptteam.intellicode-api-usage-examples",
+        "ms-toolsai.jupyter",
+        "ms-toolsai.vscode-jupyter-cell-tags",
+        "ms-toolsai.jupyter-renderers",
+        "ms-toolsai.vscode-jupyter-slideshow",
+        "ziyasal.vscode-open-in-github",
+        "christian-kohler.path-intellisense",
+        "ms-python.vscode-pylance",
+        "ms-python.python",
+        "kevinrose.vsc-python-indent",
+        "charliermarsh.ruff",
+        "jock.svg",
+        "ms-vscode-remote.remote-wsl",
+        "huggingface.huggingface-vscode",
+        "ms-vscode-remote.remote-containers",
+        "github.vscode-github-actions",
+        "ms-azuretools.vscode-docker"
+    ]
+}
+

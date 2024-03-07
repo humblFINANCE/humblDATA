@@ -1,0 +1,19 @@
+// Place your key bindings in this file to override the defaultsauto[]
+[
+    {
+        "key": "f15",
+        "command": "vscode-commitizen.commit"
+    },
+    {
+        "key": "f14",
+        "command": "git.sync"
+    },
+    {
+        "key": "ctrl+f14",
+        "command": "git.syncRebase"
+    },
+    {
+        "key" : "f13",
+        "command" : "pr.create"
+    }
+]

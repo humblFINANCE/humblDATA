@@ -1,0 +1,36 @@
+{
+  "template": "https://github.com/humblFINANCE/cookiecutter-python",
+  "commit": "499ae76e85099b43a2aaaab92c2c26adeee53e58",
+  "checkout": null,
+  "context": {
+    "cookiecutter": {
+      "package_name": "humbldata",
+      "package_description": "connects humblfinance to its data",
+      "package_url": "https://github.com/humblFINANCE/humbldata.git",
+      "author_name": "Jennings Fantini",
+      "author_email": "jjman2811@gmail.com",
+      "github_username": "jjfantini",
+      "python_version": "3.11.7",
+      "docker_image": "python:3.11.7-slim",
+      "development_environment": "strict",
+      "with_conventional_commits": "1",
+      "with_micromamba": "0",
+      "with_fastapi_api": "0",
+      "with_streamlit_app": "0",
+      "with_typer_cli": "0",
+      "with_jupyter_lab": "1",
+      "with_pydantic_typing": "1",
+      "with_pandera_models": "0",
+      "with_sentry_logging": "0",
+      "continuous_integration": "GitHub",
+      "documentation_tool": "pdoc",
+      "docstring_style": "NumPy",
+      "private_package_repository_name": "",
+      "private_package_repository_url": "",
+      "__package_name_kebab_case": "humbldata",
+      "__package_name_snake_case": "humbldata",
+      "_template": "https://github.com/humblFINANCE/cookiecutter-python"
+    }
+  },
+  "directory": null
+}
