@@ -1,16 +1,25 @@
-<!-- ![Project logo](https://i.imgur.com/6wj0hh6.jpg) -->
+<p align="center"><img src="assets/humbldata_logo.png" width="200" alt="Project logo"></p>
 
 <h1 align="center">humbldata</h1>
 
-[![Open in Dev Containers](https://img.shields.io/static/v1?label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/jjfantini/humbldata)
-[![Open in GitHub Codespaces](https://img.shields.io/static/v1?label=GitHub%20Codespaces&message=Open&color=blue&logo=github)](https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=450509735)
-![Status](https://img.shields.io/badge/status-active-success.svg)
-[![GitHub Issues](https://img.shields.io/github/issues/jjfantini/humbldata.svg)](https://github.com/jjfantini/humbldata/issues)
-[![GitHub Pull Requests](https://img.shields.io/github/issues-pr/jjfantini/humbldata.svg)](https://github.com/jjfantini/humbldata/pulls)
-[![Python](https://img.shields.io/badge/Python-3.11.7-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org)
-![License](https://img.shields.io/badge/License-Proprietary-black)
-[![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brighgreen.svg)](http://commitizen.github.io/cz-cli/)
-[![PyPI Downloads](https://img.shields.io/pypi/dw/humbldata)](https://pypi.org/project/humbldata/)
+<p align="center">
+  <a href="https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/jjfantini/humbldata"><img src="https://img.shields.io/static/v1?label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode" alt="Open in Dev Containers"></a>
+  <a href="https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=450509735"><img src="https://img.shields.io/static/v1?label=GitHub%20Codespaces&message=Open&color=blue&logo=github" alt="Open in GitHub Codespaces"></a>
+  <img src="https://img.shields.io/badge/status-active-success.svg" alt="Status">
+  <a href="https://github.com/jjfantini/humbldata/issues"><img src="https://img.shields.io/github/issues/jjfantini/humbldata.svg" alt="GitHub Issues"></a>
+  <a href="https://github.com/jjfantini/humbldata/pulls"><img src="https://img.shields.io/github/issues-pr/jjfantini/humbldata.svg" alt="GitHub Pull Requests"></a>
+  <a href="https://pypi.org/project/humbldata/"><img src="https://img.shields.io/pypi/dw/humbldata" alt="PyPI Downloads"></a>
+  <br>
+  <br>
+  <a href="https://github.com/astral-sh/ruff"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json" alt="Ruff"></a>
+  <a href="https://python-poetry.org/"><img src="https://img.shields.io/endpoint?url=https://python-poetry.org/badge/v0.json" alt="Poetry"></a>
+  <a href="https://www.python.org"><img src="https://img.shields.io/badge/Python-3.11.7-3776AB.svg?style=flat&logo=python&logoColor=white" alt="Python"></a>
+  <a href="http://commitizen.github.io/cz-cli/"><img src="https://img.shields.io/badge/commitizen-friendly-brighgreen.svg" alt="Commitizen friendly"></a>
+  <img src="https://img.shields.io/badge/Material_for_MkDocs-526CFE?style=flat&logo=MaterialForMkDocs&logoColor=white&color=%23F79431" alt="Built with Material for MkDocs">
+  <br>
+  <br>
+  <img src="https://img.shields.io/badge/License-Proprietary-black" alt="License">
+</p>
 
 
 ---

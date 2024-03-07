@@ -1,0 +1,125 @@
+site_name: humbldata
+repo_url: https://github.com/jjfantini/humbldata/
+repo_name: Github
+site_author: Jennings Fantini
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - getting_started/index.md
+    - Installation: getting_started/installation.md
+    - Configuration: getting_started/configuration.md
+    - Usage: getting_started/usage.md
+    - Development Setup: getting_started/development_setup.md
+  - Code Design:
+    - code_design/index.md
+    - CCCC Organization: code_design/cccc_method.md
+    - M-V-C-DB: code_design/mvcdb.md
+    - Standardization Framework: code_design/standardization_framework.md
+  - Code Documentation:
+    - code_documentation/index.md
+    - API Reference: code_documentation/api_reference.md
+    - Core: code_documentation/core.md
+    - Context:
+      - code_documentation/context/index.md
+      - Toolbox: code_documentation/context/toolbox.md
+    - Category: code_documentation/category.md
+    - Command: code_documentation/command.md
+  - Contributing: contributing.md
+  - Roadmap: roadmap.md
+
+
+theme:
+  name: material
+  features:
+  - navigation.instant
+  - navigation.instant.prefetch
+  - navigation.instant.progress
+  - navigation.instant.preview
+  - navigation.tracking
+  - navigation.tabs
+  - navigation.expand
+  - navigation.path
+  - navigation.indexes
+  - navigation.top
+  - navigation.footer
+  - search.suggest
+  - search.highlight
+  - content.code.copy # add copy to clipboard button to code blocks
+  palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: green
+      accent: green
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: green
+      accent: green
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+  font:
+    text: Fira Code
+
+plugins:
+  - search
+  - mkdocstrings:
+      enabled: !ENV [ENABLE_MKDOCSTRINGS, true]
+      # custom_templates: templates
+      default_handler: python
+      handlers:
+        python:
+          options:
+            show_source: true
+            show_root_heading: true
+            show_root_members_full_path: true
+            show_root_full_path: true
+            show_object_full_path: true
+            show_signature_annotations: true
+            show_submodules: true
+            docstring_style: numpy
+            docstring_section_style: table
+            show_symbol_type_toc: true
+            show_symbol_type_heading: true
+            members_order: source
+            group_by_category: false
+            show_signature_annotations: true
+            separate_signature: true
+            signature_crossrefs: true
+
+markdown_extensions:
+  - tables
+  - admonition
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.details
+  - def_list
+  - attr_list
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - toc:
+      permalink: "#"
+  - pymdownx.tasklist:
+      custom_checkbox: true
+
+
+watch:
+  - src/
+
+
+
+extra:
+  version:
+    provider: mike
+    default: latest

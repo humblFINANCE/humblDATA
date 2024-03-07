@@ -23,9 +23,8 @@ data/
 .hypothesis/
 
 # Jupyter
-*.ipynb
 .ipynb_checkpoints/
-notebooks/
+notebooks/dev_base.ipynb
 
 # macOS
 .DS_Store
