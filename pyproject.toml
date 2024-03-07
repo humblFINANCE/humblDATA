@@ -50,8 +50,10 @@ change_type_map = {"🏗️ build" = "Build", "👷 ci" = "CI", "📚 docs" = "D
 [tool.poetry.dependencies]  # https://python-poetry.org/docs/dependency-specification/
 uuid7 = ">=0.1.0"
 pydantic = ">=2.5"
-
-python = ">=3.11.7,<4.0"
+python = ">=3.11.7,<3.12"
+polars = "^0.20.14"
+pyarrow = "^15.0.0"
+openbb = {extras = ["all"], version = "^4.1.4"}
 
 [tool.poetry.group.test.dependencies]  # https://python-poetry.org/docs/master/managing-dependencies/
 commitizen = ">=3.2.1"

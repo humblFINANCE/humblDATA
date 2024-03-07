@@ -1,4 +1,4 @@
-<p align="center"><img src="assets/humbldata_logo.png" width="200" alt="Project logo"></p>
+<p align="center"><img src="assets/temp_humbldata_logo.png" width="200" alt="Project logo"></p>
 
 <h1 align="center">humbldata</h1>
 

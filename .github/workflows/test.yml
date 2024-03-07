@@ -32,7 +32,7 @@ jobs:
 
       - name: Start Dev Container
         run: |
-          git config --global init.defaultBranch main
+          git config --global init.defaultBranch master
           PYTHON_VERSION=${{ matrix.python-version }} devcontainer up --workspace-folder .
 
       - name: Lint package
