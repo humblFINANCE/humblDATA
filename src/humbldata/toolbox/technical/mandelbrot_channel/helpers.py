@@ -152,6 +152,8 @@ def vol_filter(
     If `_rv_adjustment` is True, then filter the data to only include rows
     that are in the same vol_bucket as the latest row for each symbol.
     """
+    _check_required_columns(data, "vol_bucket", "symbol")
+
     data = data.lazy().with_columns(
         pl.col("vol_bucket").last().over("symbol").alias("last_vol_bucket")
     )
