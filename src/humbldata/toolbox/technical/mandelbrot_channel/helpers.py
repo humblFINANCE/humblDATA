@@ -138,6 +138,7 @@ def vol_buckets(
         )
         .over("symbol")
         .alias("vol_bucket")
+        .cast(pl.Utf8)
     )
 
     return result
