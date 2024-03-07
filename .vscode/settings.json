@@ -1,7 +1,7 @@
 {
     "[python]": {
         "editor.defaultFormatter": "charliermarsh.ruff",
-        "editor.formatOnSave": true,
+        "editor.formatOnSave": true
     },
     "python.autoComplete.extraPaths": [
         "./src"
@@ -81,5 +81,16 @@
         "zoomout"
     ],
     "python.analysis.typeCheckingMode": "basic",
-    "workbench.activityBar.orientation": "horizontal"
+    "workbench.activityBar.orientation": "horizontal",
+    "yaml.schemas": {
+        "https://squidfunk.github.io/mkdocs-material/schema.json": "mkdocs.yml"
+    },
+    "yaml.customTags": [
+        "!ENV scalar",
+        "!ENV sequence",
+        "!relative scalar",
+        "tag:yaml.org,2002:python/name:material.extensions.emoji.to_svg",
+        "tag:yaml.org,2002:python/name:material.extensions.emoji.twemoji",
+        "tag:yaml.org,2002:python/name:pymdownx.superfences.fence_code_format"
+    ]
 }
