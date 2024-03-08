@@ -218,7 +218,6 @@ def test_vol_buckets(
         .to_series()[0]
     )
     current_param = request.node.callspec.params.get("equity_historical_rv")
-    print(current_param)
 
     # Assert
     if not _boundary_group_down:
