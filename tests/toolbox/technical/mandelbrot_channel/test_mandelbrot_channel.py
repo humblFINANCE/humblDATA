@@ -4,10 +4,11 @@ from _pytest.fixtures import FixtureRequest
 
 from humbldata.toolbox.technical.mandelbrot_channel.helpers import (
     add_window_index,
+    vol_buckets,
 )
 
 
-# add_window_index() TEST ======================================================
+# FIXTURES =====================================================================
 @pytest.fixture(
     params=[
         "dataframe_single_symbol",
@@ -16,7 +17,7 @@ from humbldata.toolbox.technical.mandelbrot_channel.helpers import (
         "lazyframe_multiple_symbols",
     ]
 )
-def equity_historical(request: type[FixtureRequest]):
+def equity_historical(request: FixtureRequest):
     data = pl.read_csv(
         "tests\\toolbox\\custom_data\\equity_historical_multiple_1y.csv",
         try_parse_dates=True,
@@ -32,6 +33,35 @@ def equity_historical(request: type[FixtureRequest]):
     elif request.param == "lazyframe_multiple_symbols":
         return pl.LazyFrame(data)
     return None
+
+
+@pytest.fixture(
+    params=[
+        "dataframe_single_symbol",
+        "lazyframe_single_symbol",
+        "dataframe_multiple_symbols",
+        "lazyframe_multiple_symbols",
+    ]
+)
+def equity_historical_rv(request: FixtureRequest):
+    data = pl.read_csv(
+        "tests\\toolbox\\custom_data\\equity_historical_multiple_rv_1m.csv",
+        try_parse_dates=True,
+    )
+    if request.param == "dataframe_single_symbol":
+        data = data.filter(pl.col("symbol") == "AAPL")
+        return data
+    elif request.param == "lazyframe_single_symbol":
+        data = data.filter(pl.col("symbol") == "AAPL")
+        return pl.LazyFrame(data)
+    elif request.param == "dataframe_multiple_symbols":
+        return data
+    elif request.param == "lazyframe_multiple_symbols":
+        return pl.LazyFrame(data)
+    return None
+
+
+# add_window_index() TEST ======================================================
 
 
 @pytest.mark.parametrize(
@@ -149,4 +179,59 @@ def test_add_window_index_edge_cases(
         ), f"Failed for {symbol} with window_str {window_str}"
 
 
-# _vol_buckets_engine() TEST ================================================
+# vol_buckets TEST =============================================================
+
+
+@pytest.mark.parametrize("_boundary_group_down", [False, True])
+def test_vol_buckets(
+    equity_historical_rv: pl.DataFrame | pl.LazyFrame,
+    request: FixtureRequest,
+    *,
+    _boundary_group_down: bool,
+):
+    """Test the `vol_buckets` function."""
+    result = vol_buckets(
+        equity_historical_rv,
+        lo_quantile=0.4,
+        hi_quantile=0.8,
+        _column_name_volatility="realized_volatility",
+        _boundary_group_down=_boundary_group_down,
+    )
+
+    # Collect result for Assert
+    if isinstance(result, pl.LazyFrame):
+        result = result.collect()
+    result = result.group_by("vol_bucket").agg(pl.len())
+    high_bucket_count = (
+        result.filter(pl.col("vol_bucket") == "high")
+        .select(pl.col("len"))
+        .to_series()[0]
+    )
+    mid_bucket_count = (
+        result.filter(pl.col("vol_bucket") == "mid")
+        .select(pl.col("len"))
+        .to_series()[0]
+    )
+    low_bucket_count = (
+        result.filter(pl.col("vol_bucket") == "low")
+        .select(pl.col("len"))
+        .to_series()[0]
+    )
+    current_param = request.node.callspec.params.get("equity_historical_rv")
+    print(current_param)
+
+    # Assert
+    if not _boundary_group_down:
+        expected_result_high = 9 if "multiple" in current_param else 4
+        assert high_bucket_count == expected_result_high
+        expected_result = 16 if "multiple" in current_param else 8
+        assert mid_bucket_count == expected_result
+        expected_result = 17 if "multiple" in current_param else 8
+        assert low_bucket_count == expected_result
+    else:
+        expected_result_high = 8 if "multiple" in current_param else 4
+        assert high_bucket_count == expected_result_high
+        expected_result = 16 if "multiple" in current_param else 7
+        assert mid_bucket_count == expected_result
+        expected_result = 18 if "multiple" in current_param else 9
+        assert low_bucket_count == expected_result
