@@ -147,9 +147,7 @@ def calc_mandelbrot_channel(
 
     # Step X: Collect Recent Prices ----------------------------------------
     if _live_price:
-        symbols = (
-            data.select("symbol").unique().to_pandas().sort_values("symbol")
-        )
+        symbols = data.select("symbol").unique().sort("symbol").collect()
         recent_prices = get_latest_price(symbols)
     else:
         recent_prices = (
