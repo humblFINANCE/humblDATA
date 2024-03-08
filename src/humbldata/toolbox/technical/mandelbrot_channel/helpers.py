@@ -104,10 +104,73 @@ def vol_buckets(
     lo_quantile: float = 0.4,
     hi_quantile: float = 0.8,
     _column_name_volatility: str = "realized_volatility",
+    *,
+    _boundary_group_down: bool = False,
 ) -> pl.LazyFrame:
     """
     Context: Toolbox || Category: MandelBrot Channel || Sub-Category: Helpers || Command: **vol_buckets**.
 
+    Splitting data observations into 3 volatility buckets: low, mid and high.
+    The function does this for each `symbol` present in the data.
+
+    Parameters
+    ----------
+    data : pl.LazyFrame | pl.DataFrame
+        The input dataframe or lazy frame.
+    lo_quantile : float
+        The lower quantile for bucketing. Default is 0.4.
+    hi_quantile : float
+        The higher quantile for bucketing. Default is 0.8.
+    _column_name_volatility : str
+        The name of the column to apply volatility bucketing. Default is
+        "realized_volatility".
+    _boundary_group_down: bool = False
+        If True, then group boundary values down to the lower bucket, using
+        `vol_buckets_alt()` If False, then group boundary values up to the
+        higher bucket, using the Polars `.qcut()` method.
+        Default is False.
+
+    Returns
+    -------
+    pl.LazyFrame
+        The `data` with an additional column: `vol_bucket`
+    """
+    _check_required_columns(data, _column_name_volatility, "symbol")
+
+    if not _boundary_group_down:
+        # Grouping Boundary Values in Higher Bucket
+        out = data.lazy().with_columns(
+            pl.col(_column_name_volatility)
+            .qcut(
+                [lo_quantile, hi_quantile],
+                labels=["low", "mid", "high"],
+                left_closed=False,
+            )
+            .over("symbol")
+            .alias("vol_bucket")
+            .cast(pl.Utf8)
+        )
+    else:
+        out = vol_buckets_alt(
+            data, lo_quantile, hi_quantile, _column_name_volatility
+        )
+
+    return out
+
+
+def vol_buckets_alt(
+    data: pl.DataFrame | pl.LazyFrame,
+    lo_quantile: float = 0.4,
+    hi_quantile: float = 0.8,
+    _column_name_volatility: str = "realized_volatility",
+) -> pl.LazyFrame:
+    """
+    Context: Toolbox || Category: MandelBrot Channel || Sub-Category: Helpers || Command: **vol_buckets_alt**.
+
+    This is an alternative implementation of `vol_buckets()` using expressions,
+    and not using `.qcut()`.
+    The biggest difference is how the function groups values on the boundaries
+    of quantiles. This function groups boundary values down
     Splitting data observations into 3 volatility buckets: low, mid and high.
     The function does this for each `symbol` present in the data.
 
@@ -126,22 +189,34 @@ def vol_buckets(
     -------
     pl.LazyFrame
         The `data` with an additional column: `vol_bucket`
-    """
-    _check_required_columns(data, _column_name_volatility, "symbol")
 
-    result = data.lazy().with_columns(
-        pl.col(_column_name_volatility)
-        .qcut(
-            [lo_quantile, hi_quantile],
-            labels=["low", "mid", "high"],
-            left_closed=False,
-        )
-        .over("symbol")
+    Notes
+    -----
+    The biggest difference is how the function groups values on the boundaries
+    of quantiles. This function __groups boundary values down__ to the lower bucket.
+    So, if there is a value that lies on the mid/low border, this function will
+    group it with `low`, whereas `vol_buckets()` will group it with `mid`
+
+    This function is also slightly less performant.
+    """
+    # Calculate low and high quantiles for each symbol
+    low_vol = pl.col(_column_name_volatility).quantile(lo_quantile)
+    high_vol = pl.col(_column_name_volatility).quantile(hi_quantile)
+
+    # Determine the volatility bucket for each row using expressions
+    vol_bucket = (
+        pl.when(pl.col(_column_name_volatility) <= low_vol)
+        .then(pl.lit("low"))
+        .when(pl.col(_column_name_volatility) <= high_vol)
+        .then(pl.lit("mid"))
+        .otherwise(pl.lit("high"))
         .alias("vol_bucket")
-        .cast(pl.Utf8)
     )
 
-    return result
+    # Add the volatility bucket column to the data
+    out = data.lazy().with_columns(vol_bucket.over("symbol"))
+
+    return out
 
 
 def vol_filter(
