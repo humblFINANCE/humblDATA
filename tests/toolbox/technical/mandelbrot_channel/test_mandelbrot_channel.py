@@ -2,9 +2,11 @@ import polars as pl
 import pytest
 from _pytest.fixtures import FixtureRequest
 
+from humbldata.core.standard_models.abstract.errors import HumblDataError
 from humbldata.toolbox.technical.mandelbrot_channel.helpers import (
     add_window_index,
     vol_buckets,
+    vol_filter,
 )
 
 
@@ -18,6 +20,7 @@ from humbldata.toolbox.technical.mandelbrot_channel.helpers import (
     ]
 )
 def equity_historical(request: FixtureRequest):
+    """One year of equity data, AAPL & AMZN symbols."""
     data = pl.read_csv(
         "tests\\toolbox\\custom_data\\equity_historical_multiple_1y.csv",
         try_parse_dates=True,
@@ -44,8 +47,36 @@ def equity_historical(request: FixtureRequest):
     ]
 )
 def equity_historical_rv(request: FixtureRequest):
+    """One year of equity data, AAPL & AMZN symbols & `realized_volatiliity` column."""
     data = pl.read_csv(
         "tests\\toolbox\\custom_data\\equity_historical_multiple_rv_1m.csv",
+        try_parse_dates=True,
+    )
+    if request.param == "dataframe_single_symbol":
+        data = data.filter(pl.col("symbol") == "AAPL")
+        return data
+    elif request.param == "lazyframe_single_symbol":
+        data = data.filter(pl.col("symbol") == "AAPL")
+        return pl.LazyFrame(data)
+    elif request.param == "dataframe_multiple_symbols":
+        return data
+    elif request.param == "lazyframe_multiple_symbols":
+        return pl.LazyFrame(data)
+    return None
+
+
+@pytest.fixture(
+    params=[
+        "dataframe_single_symbol",
+        "lazyframe_single_symbol",
+        "dataframe_multiple_symbols",
+        "lazyframe_multiple_symbols",
+    ]
+)
+def equity_historical_rv_volb(request: FixtureRequest):
+    """One year of equity data, AAPL & AMZN symbols & `realized_volatiliity` + `vol_bucket` columns."""
+    data = pl.read_csv(
+        "tests\\toolbox\\custom_data\\equity_historical_multiple_rv_volb_1m.csv",
         try_parse_dates=True,
     )
     if request.param == "dataframe_single_symbol":
@@ -112,6 +143,7 @@ def equity_historical_edge_cases(request: type[FixtureRequest]):
 
 # Define a dictionary mapping window_str to another dictionary of expected values for each stock
 expected_values = {
+    # Function doesnt support `d` and `w`
     # "1d": {
     #     "AAPL": 2515,
     #     "PCT": 872,
@@ -234,3 +266,39 @@ def test_vol_buckets(
         assert mid_bucket_count == expected_result
         expected_result = 18 if "multiple" in current_param else 9
         assert low_bucket_count == expected_result
+
+
+@pytest.mark.parametrize("_drop_col", ["symbol", "realized_volatility"])
+def test_vol_buckets_error(
+    equity_historical_rv: pl.DataFrame | pl.LazyFrame,
+    request: FixtureRequest,
+    _drop_col: str,
+):
+    """Testing an error condition when necessary columns arent available."""
+    equity_historical_rv = equity_historical_rv.drop(_drop_col)
+
+    with pytest.raises(HumblDataError):
+        vol_buckets(equity_historical_rv)
+
+
+# vol_filter TEST =============================================================
+def test_vol_filter(
+    equity_historical_rv_volb: pl.DataFrame | pl.LazyFrame,
+):
+    """Test the `vol_filter` function."""
+    result = vol_filter(equity_historical_rv_volb)
+    if isinstance(result, pl.LazyFrame):
+        result = result.collect()
+
+
+@pytest.mark.parametrize("_drop_col", ["symbol", "vol_bucket"])
+def test_vol_filter_error(
+    equity_historical_rv_volb: pl.DataFrame | pl.LazyFrame,
+    request: FixtureRequest,
+    _drop_col: str,
+):
+    """Testing an error condition when necessary columns arent available."""
+    equity_historical_rv_volb = equity_historical_rv_volb.drop(_drop_col)
+
+    with pytest.raises(HumblDataError):
+        vol_buckets(equity_historical_rv_volb)
