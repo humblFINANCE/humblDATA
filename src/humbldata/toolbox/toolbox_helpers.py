@@ -7,7 +7,6 @@ functions should be **DUMB** functions.
 """
 
 from datetime import UTC, datetime, timedelta, timezone
-from typing import Optional
 
 import polars as pl
 from dateutil.relativedelta import relativedelta

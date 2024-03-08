@@ -369,40 +369,30 @@ def price_range(
 
     Parameters
     ----------
-    data : Union[pl.LazyFrame, pl.DataFrame]
+    data : pl.LazyFrame | pl.DataFrame
         The DataFrame to calculate the price range from.
+    rs_data : pl.DataFrame | pl.LazyFrame
+        The DataFrame containing RS statistics.
+    recent_price_data : pl.DataFrame | pl.LazyFrame
+        The DataFrame containing the most recent price data.
     _rs_method : str, optional
-        Whether to use the fast method, by default True.
-    RS : Optional[pl.Series], optional
-        The RS series, by default None.
-    RS_mean : Optional[float], optional
-        The mean of the RS series, by default None.
-    RS_max : Optional[float], optional
-        The maximum of the RS series, by default None.
-    RS_min : Optional[float], optional
-        The minimum of the RS series, by default None.
-    recent_price : Optional[float], optional
-        The recent price, by default None.
-    cumdev_max : Optional[pl.DataFrame], optional
-        The maximum range, by default None.
-    cumdev_min : Optional[pl.DataFrame], optional
-        The minimum range, by default None.
-    RS_method : str, optional
         The method to calculate the RS, by default "RS".
-    _detrended_returns: str, optional
+    _detrended_returns : str, optional
         The column name for detrended returns, by default "detrended_log_returns".
+    _rv_adjustment : bool, optional
+        Flag to indicate if RV adjustment should be applied, by default False.
     **kwargs
         Arbitrary keyword arguments.
 
     Returns
     -------
-    Tuple[float, float]
-        The top and bottom price.
+    pl.DataFrame | pl.LazyFrame
+        A DataFrame or LazyFrame with the calculated top and bottom price.
 
     Raises
     ------
-    ValueError
-        If the RS_method is not one of 'RS', 'RS_mean', 'RS_max', 'RS_min'.
+    HumblDataError
+        If the _rs_method is not one of 'RS', 'RS_mean', 'RS_max', 'RS_min'.
     """
     # Check if RS_method is one of the allowed values
     if _rs_method not in RS_METHODS:

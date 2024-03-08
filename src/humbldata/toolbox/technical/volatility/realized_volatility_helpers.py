@@ -140,6 +140,7 @@ def parkinson(
     window: str = "1m",
     _column_name_high: str = "high",
     _column_name_low: str = "low",
+    *,
     _drop_nulls: bool = True,
     _avg_trading_days: bool = False,
     _sort: bool = True,
