@@ -271,8 +271,6 @@ def _check_required_columns(data: pl.DataFrame | pl.LazyFrame, *columns: str):
     --------
     >>> check_required_columns(data, "open", "close", "high", "low")
     """
-    if isinstance(data, pl.LazyFrame):
-        data = data.collect()
     missing_columns = [col for col in columns if col not in data.columns]
     if missing_columns:
         msg = f"Missing required columns: {', '.join(missing_columns)}"
