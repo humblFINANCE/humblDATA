@@ -5,6 +5,7 @@ from _pytest.fixtures import FixtureRequest
 from humbldata.core.standard_models.abstract.errors import HumblDataError
 from humbldata.toolbox.technical.mandelbrot_channel.helpers import (
     add_window_index,
+    price_range,
     vol_buckets,
     vol_filter,
 )
@@ -339,3 +340,17 @@ def test_vol_filter_error(
 
     with pytest.raises(HumblDataError):
         vol_filter(equity_historical_rv_volb)
+
+
+# price_range TEST =============================================================
+
+
+def test_price_range_missing_rs_method():
+    """Test the `price_range` function with missing `rs_method`."""
+    with pytest.raises(HumblDataError):
+        price_range(
+            equity_historical,
+            equity_historical,
+            equity_historical,
+            _rs_method="nonexistent",
+        )
