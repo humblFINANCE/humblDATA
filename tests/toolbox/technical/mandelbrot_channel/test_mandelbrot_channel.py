@@ -284,11 +284,48 @@ def test_vol_buckets_error(
 # vol_filter TEST =============================================================
 def test_vol_filter(
     equity_historical_rv_volb: pl.DataFrame | pl.LazyFrame,
+    request: FixtureRequest,
 ):
-    """Test the `vol_filter` function."""
+    """Test the `vol_filter` function.
+
+    Running the `vol_filter()` function on `equity_historical_rv_volb` with
+    `vol_bucket` column results in a only a `mid` bucket for AAPL and only
+    a low bucket for AMZN.
+    """
+    current_param = request.node.callspec.params.get(
+        "equity_historical_rv_volb"
+    )
+
     result = vol_filter(equity_historical_rv_volb)
     if isinstance(result, pl.LazyFrame):
         result = result.collect()
+
+    if "multiple" in current_param:
+        mid_bucket_filtered_count = (
+            result.group_by("vol_bucket")
+            .agg(pl.len())
+            .filter(pl.col("vol_bucket") == "mid")
+            .select(pl.col("len"))
+            .to_series()[0]
+        )
+        low_bucket_filtered_count = (
+            result.group_by("vol_bucket")
+            .agg(pl.len())
+            .filter(pl.col("vol_bucket") == "low")
+            .select(pl.col("len"))
+            .to_series()[0]
+        )
+        assert mid_bucket_filtered_count == 8
+        assert low_bucket_filtered_count == 9
+    else:
+        mid_bucket_filtered_count = (
+            result.group_by("vol_bucket")
+            .agg(pl.len())
+            .filter(pl.col("vol_bucket") == "mid")
+            .select(pl.col("len"))
+            .to_series()[0]
+        )
+        assert mid_bucket_filtered_count == 8
 
 
 @pytest.mark.parametrize("_drop_col", ["symbol", "vol_bucket"])
@@ -301,4 +338,4 @@ def test_vol_filter_error(
     equity_historical_rv_volb = equity_historical_rv_volb.drop(_drop_col)
 
     with pytest.raises(HumblDataError):
-        vol_buckets(equity_historical_rv_volb)
+        vol_filter(equity_historical_rv_volb)
