@@ -1,3 +1,17 @@
+## v0.1.3 (2024-03-08)
+
+### 🐛🚑️ Fixes
+
+- **vol_filter**: added column checks
+
+### ⚡️ Performance
+
+- **vol_buckets**: using `_boundary_group_down` to use alternative vol function
+
+### ✅🤡🧪 Tests
+
+- **vol_buckets**: parametrized tet to show difference in boundary grouping logic
+
 ## v0.1.2 (2024-03-07)
 
 ### ci
