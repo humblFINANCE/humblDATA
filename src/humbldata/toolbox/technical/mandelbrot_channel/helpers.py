@@ -370,8 +370,6 @@ def price_range(
     ----------
     data : pl.LazyFrame | pl.DataFrame
         The DataFrame to calculate the price range from.
-    rs_data : pl.DataFrame | pl.LazyFrame
-        The DataFrame containing RS statistics.
     recent_price_data : pl.DataFrame | pl.LazyFrame
         The DataFrame containing the most recent price data.
     _rs_method : str, optional
