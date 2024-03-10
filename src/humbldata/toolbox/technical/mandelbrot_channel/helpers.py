@@ -356,7 +356,6 @@ def _modify_mandelbrot_prices(
 
 def price_range(
     data: pl.LazyFrame | pl.DataFrame,
-    rs_data: pl.DataFrame | pl.LazyFrame,
     recent_price_data: pl.DataFrame | pl.LazyFrame,
     _rs_method: str = "RS",
     _detrended_returns: str = "detrended_log_returns",  # Parameterized detrended_returns column
@@ -435,6 +434,20 @@ def price_range(
             .select(pl.col(["symbol", f"std_{_detrended_returns}"]))
         )
     # Merge RS stats with STD of detrended returns and recent price
+
+    rs_data = (
+        data.group_by("symbol")
+        .agg(
+            [
+                pl.col("RS").last().alias("RS"),
+                pl.col("RS").mean().alias("RS_mean"),
+                pl.col("RS").min().alias("RS_min"),
+                pl.col("RS").max().alias("RS_max"),
+            ]
+        )
+        .sort("symbol")
+    )
+
     price_range = rs_data.join(std_detrended_returns, on="symbol").join(
         recent_price_data.lazy(), on="symbol"
     )

@@ -132,18 +132,6 @@ def calc_mandelbrot_channel(
     )
     # Calculate mean, min, and max of 'RS' for each 'symbol' group
     # do i need to collect only the last window for RS or do i want the calcs over the whole data
-    rs_data = (
-        data8.group_by("symbol")
-        .agg(
-            [
-                pl.col("RS").last().alias("RS"),
-                pl.col("RS").mean().alias("RS_mean"),
-                pl.col("RS").min().alias("RS_min"),
-                pl.col("RS").max().alias("RS_max"),
-            ]
-        )
-        .sort("symbol")
-    )
 
     # Step X: Collect Recent Prices ----------------------------------------
     if _live_price:
@@ -159,7 +147,6 @@ def calc_mandelbrot_channel(
     # Step X: Calculate Rescaled Price Range ------------------------------
     out = price_range(
         data=data8,
-        rs_data=rs_data,
         recent_price_data=recent_prices,
         _rs_method=_rs_method,
         _rv_adjustment=rv_adjustment,
