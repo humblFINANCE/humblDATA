@@ -4,6 +4,8 @@ Context: Toolbox || Category: Technical || **Command: calc_mandelbrot_channel**.
 A command to generate a Mandelbrot Channel for any time series.
 """
 
+from typing import Literal
+
 import polars as pl
 
 from humbldata.core.standard_models.abstract.errors import (
@@ -40,9 +42,10 @@ def calc_mandelbrot_channel(
     data: pl.DataFrame | pl.LazyFrame,
     window: str = "1m",
     rv_adjustment: bool = True,
-    _rv_grouped_mean: bool = True,
     _rv_method: str = "std",
-    _rs_method: str = "RS",
+    _rs_method: Literal["RS", "RS_mean", "RS_max", "RS_min"] = "RS",
+    *,
+    _rv_grouped_mean: bool = True,
     _live_price: bool = True,
 ) -> pl.DataFrame | pl.LazyFrame:
     """
@@ -136,17 +139,18 @@ def calc_mandelbrot_channel(
         symbols = data.select("symbol").unique().sort("symbol").collect()
         recent_prices = get_latest_price(symbols)
     else:
-        recent_prices = (
-            data1.group_by("symbol")
-            .agg(pl.col("close").last().alias("recent_price"))
-            .sort("symbol")
-        )
+        recent_prices = None
+        # recent_prices = (
+        #     data1.group_by("symbol")
+        #     .agg(pl.col("close").last().alias("recent_price"))
+        #     .sort("symbol")
+        # )
 
     # Step X: Calculate Rescaled Price Range ------------------------------
     out = price_range(
         data=data8,
         recent_price_data=recent_prices,
-        _rs_method=_rs_method,
+        rs_method=_rs_method,
         _rv_adjustment=rv_adjustment,
     )
 
