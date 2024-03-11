@@ -101,10 +101,10 @@ def equity_historical_rv_volb(request: FixtureRequest):
         "lazyframe_multiple_symbols",
     ]
 )
-def equity_historical_mandelbrot_pre_price_range(request: FixtureRequest):
-    """1 month of data, ran through `calc_mandelbrot_channel()`"""
+def equity_historical_mandelbrot_pre_price_range_1m(request: FixtureRequest):
+    """1 month of data, ran through `calc_mandelbrot_channel()` right before last `price_range()`"""
     data = pl.read_csv(
-        "tests\\toolbox\\custom_data\\equity_historical_mandelbrot_pre_price_range_1m.csv",
+        "tests\\toolbox\\custom_data\\equity_historical_mandelbrot_channel_pre_price_range_1m.csv",
         try_parse_dates=True,
     )
     if request.param == "dataframe_single_symbol":
@@ -369,10 +369,10 @@ def test_vol_filter_error(
         vol_filter(equity_historical_rv_volb)
 
 
-# price_range TEST =============================================================
+# price_range() TEST =============================================================
 
 
-def test_price_range_missing_rs_method():
+def test_price_range_missing_rs_method(equity_historical):
     """Test the `price_range` function with missing `rs_method`."""
     with pytest.raises(HumblDataError):
         price_range(
@@ -380,3 +380,56 @@ def test_price_range_missing_rs_method():
             recent_price_data=None,
             rs_method="nonexistent",
         )
+
+
+@pytest.mark.parametrize(
+    "recent_price_data",
+    [
+        None,
+        pl.LazyFrame(
+            {
+                "symbol": ["AAPL", "GOOGL"],
+                "recent_price": [172.52, 138.445],
+            }
+        ),
+    ],
+)
+def test_price_range(
+    equity_historical_mandelbrot_pre_price_range_1m,
+    recent_price_data,
+    request: FixtureRequest,
+):
+    """Test the `price_range` function."""
+    current_param = request.node.callspec.params.get(
+        "equity_historical_mandelbrot_pre_price_range_1m"
+    )
+
+    recent_price_param = request.node.callspec.params.get("recent_price_data")
+
+    result = price_range(
+        equity_historical_mandelbrot_pre_price_range_1m,
+        recent_price_data=recent_price_data,
+        rs_method="RS",
+    ).collect()
+
+    if "multiple" in current_param:
+        assert result.shape == (2, 4)
+        if recent_price_param is None:
+            assert result.select("bottom_price").to_series()[0] == 168.5382
+            assert result.select("bottom_price").to_series()[1] == 115.478
+            assert result.select("top_price").to_series()[0] == 174.0104
+            assert result.select("top_price").to_series()[1] == 135.41
+        else:
+            assert result.select("bottom_price").to_series()[0] == 170.3052
+            assert result.select("bottom_price").to_series()[1] == 118.0662
+            assert result.select("top_price").to_series()[0] == 175.8348
+            assert result.select("top_price").to_series()[1] == 138.445
+    else:
+        assert result.shape == (1, 4)
+
+    assert result.columns == [
+        "symbol",
+        "bottom_price",
+        "recent_price",
+        "top_price",
+    ]
