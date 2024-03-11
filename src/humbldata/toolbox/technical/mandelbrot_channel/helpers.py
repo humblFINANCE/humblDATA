@@ -414,6 +414,9 @@ def price_range(
         msg = "RS_method must be one of 'RS', 'RS_mean', 'RS_max', 'RS_min'"
         raise HumblDataError(msg)
 
+    if isinstance(data, pl.DataFrame):
+        data = data.lazy()
+
     sort_cols = _set_sort_cols(data, "symbol", "date")
     if _sort:
         data.sort(sort_cols)
@@ -447,8 +450,7 @@ def price_range(
         recent_price_expr = pl.col("close").last().alias("recent_price")
         # Perform a single group_by operation to calculate both STD of detrended returns and RS statistics
         price_range_data = (
-            data.lazy()
-            .group_by("symbol")
+            data.group_by("symbol")
             .agg(
                 [
                     # Conditional STD calculation based on _rv_adjustment
@@ -474,8 +476,7 @@ def price_range(
         )
     else:
         price_range_data = (
-            data.lazy()
-            .group_by("symbol")
+            data.group_by("symbol")
             .agg(
                 [
                     # Conditional STD calculation based on _rv_adjustment

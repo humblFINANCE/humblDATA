@@ -93,6 +93,33 @@ def equity_historical_rv_volb(request: FixtureRequest):
     return None
 
 
+@pytest.fixture(
+    params=[
+        "dataframe_single_symbol",
+        "lazyframe_single_symbol",
+        "dataframe_multiple_symbols",
+        "lazyframe_multiple_symbols",
+    ]
+)
+def equity_historical_mandelbrot_pre_price_range(request: FixtureRequest):
+    """1 month of data, ran through `calc_mandelbrot_channel()`"""
+    data = pl.read_csv(
+        "tests\\toolbox\\custom_data\\equity_historical_mandelbrot_pre_price_range_1m.csv",
+        try_parse_dates=True,
+    )
+    if request.param == "dataframe_single_symbol":
+        data = data.filter(pl.col("symbol") == "AAPL")
+        return data
+    elif request.param == "lazyframe_single_symbol":
+        data = data.filter(pl.col("symbol") == "AAPL")
+        return pl.LazyFrame(data)
+    elif request.param == "dataframe_multiple_symbols":
+        return data
+    elif request.param == "lazyframe_multiple_symbols":
+        return pl.LazyFrame(data)
+    return None
+
+
 # add_window_index() TEST ======================================================
 
 
