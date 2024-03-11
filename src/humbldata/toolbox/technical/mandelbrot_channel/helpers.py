@@ -6,6 +6,8 @@ context. Most of the helpers will be mathematical transformations of data. These
 functions should be **DUMB** functions.
 """
 
+from typing import Literal
+
 import polars as pl
 
 from humbldata.core.standard_models.abstract.errors import HumblDataError
@@ -258,9 +260,7 @@ RS_METHODS = ["RS", "RS_mean", "RS_max", "RS_min"]
 
 def _price_range_engine(
     data: pl.DataFrame | pl.LazyFrame,
-    _column_name_cum_sum_max: str,
-    _column_name_cum_sum_min: str,
-) -> pl.DataFrame | pl.LazyFrame:
+) -> pl.LazyFrame:
     """
     Context: Toolbox || Category: MandelBrot Channel || Sub-Category: Helpers || Command: **_price_range_engine**.
 
@@ -268,37 +268,23 @@ def _price_range_engine(
     This adjustment uses the latest cumulative sum of the deviate series.
     Modify Mandelbrot prices by calculating top and bottom modifiers and prices.
 
-    This function takes a DataFrame or LazyFrame, along with column names for cumulative sum maximum and minimum.
-    It calculates modifiers to adjust the top and bottom prices based on the difference between the last cumulative sum maximum and minimum.
-    If the difference is zero, a default modifier of 1 is used. The top and bottom prices are then calculated and rounded to 4 decimal places.
+    This function takes a DataFrame or LazyFrame, along with column names for
+    cumulative sum maximum and minimum.
+    It calculates modifiers to adjust the top and bottom prices based on the
+    difference between the last cumulative sum maximum and minimum.
+    If the difference is zero, a default modifier of 1 is used. The top and
+    bottom prices are then calculated and rounded to 4 decimal places.
 
     Parameters
     ----------
     data : pl.DataFrame | pl.LazyFrame
         The input data containing price and cumulative sum information.
-    _column_name_cum_sum_max : str
-        The name of the column containing the cumulative sum maximum values.
-    _column_name_cum_sum_min : str
-        The name of the column containing the cumulative sum minimum values.
 
     Returns
     -------
-    pl.DataFrame | pl.LazyFrame
+    pl.LazyFrame
         The modified data with calculated top and bottom prices.
 
-    Examples
-    --------
-    >>> data = pl.DataFrame({
-    ...     "symbol": ["A", "B", "C"],
-    ...     "last_cum_sum_max": [10, 20, 30],
-    ...     "last_cum_sum_min": [5, 15, 25],
-    ...     "recent_price": [100, 200, 300],
-    ...     "price_range": [10, 20, 30]
-    ... })
-    >>> _column_name_cum_sum_max = "last_cum_sum_max"
-    >>> _column_name_cum_sum_min = "last_cum_sum_min"
-    >>> modified_data = _modify_mandelbrot_prices(data, _column_name_cum_sum_max, _column_name_cum_sum_min)
-    >>> print(modified_data)
     """
     out = (
         data.lazy()
@@ -359,7 +345,7 @@ def _price_range_engine(
 def price_range(
     data: pl.LazyFrame | pl.DataFrame,
     recent_price_data: pl.DataFrame | pl.LazyFrame | None,
-    _rs_method: str = "RS",
+    rs_method: Literal["RS", "RS_mean", "RS_max", "RS_min"] = "RS",
     _detrended_returns: str = "detrended_log_returns",  # Parameterized detrended_returns column
     _column_name_cum_sum_max: str = "cum_sum_max",
     _column_name_cum_sum_min: str = "cum_sum_min",
@@ -367,7 +353,7 @@ def price_range(
     _rv_adjustment: bool = False,
     _sort: bool = True,
     **kwargs,
-) -> pl.DataFrame | pl.LazyFrame:
+) -> pl.LazyFrame:
     """
     Context: Toolbox || Category: MandelBrot Channel || Sub-Category: Helpers || Command: **price_range**.
 
@@ -383,8 +369,9 @@ def price_range(
         The dataset containing the financial data.
     recent_price_data : pl.DataFrame | pl.LazyFrame | None
         The dataset containing the most recent price data. If None, the most recent prices are extracted from `data`.
-    _rs_method : str, default "RS"
-        The RS method to use. Must be one of 'RS', 'RS_mean', 'RS_max', 'RS_min'.
+    rs_method : Literal["RS", "RS_mean", "RS_max", "RS_min"], default "RS"
+        The RS value to use. Must be one of 'RS', 'RS_mean', 'RS_max', 'RS_min'.
+        RS is the column that is the Range/STD of the detrended returns.
     _detrended_returns : str, default "detrended_log_returns"
         The column name for detrended returns.
     _column_name_cum_sum_max : str, default "cum_sum_max"
@@ -400,8 +387,9 @@ def price_range(
 
     Returns
     -------
-    pl.DataFrame | pl.LazyFrame
-        The dataset with calculated price range, including columns for top and bottom prices.
+    pl.LazyFrame
+        The dataset with calculated price range, including columns for top and
+        bottom prices.
 
     Raises
     ------
@@ -414,24 +402,29 @@ def price_range(
     >>> print(price_range_data.columns)
     ['symbol', 'bottom_price', 'recent_price', 'top_price']
 
+    Notes
+    -----
+    For `rs_method`, you should know how this affects the mandelbrot channel
+    that is produced. Selecting RS uses the most recent RS value to calculate
+    the price range, whereas selecting RS_mean, RS_max, or RS_min uses the mean,
+    max, or min of the RS values, respectively.
     """
     # Check if RS_method is one of the allowed values
-    if _rs_method not in RS_METHODS:
+    if rs_method not in RS_METHODS:
         msg = "RS_method must be one of 'RS', 'RS_mean', 'RS_max', 'RS_min'"
         raise HumblDataError(msg)
 
     sort_cols = _set_sort_cols(data, "symbol", "date")
     if _sort:
         data.sort(sort_cols)
-
-    # Define a conditional expression for std_detrended_returns based on _rv_adjustment
+    # Define Polars Expressions
     last_cum_sum_max = (
         pl.col(_column_name_cum_sum_max).last().alias("last_cum_sum_max")
     )
     last_cum_sum_min = (
         pl.col(_column_name_cum_sum_min).last().alias("last_cum_sum_min")
     )
-
+    # Define a conditional expression for std_detrended_returns based on _rv_adjustment
     std_detrended_returns_expr = (
         pl.col(_detrended_returns).std().alias(f"std_{_detrended_returns}")
         if _rv_adjustment
@@ -440,6 +433,15 @@ def price_range(
         .std()
         .alias(f"std_{_detrended_returns}")
     )
+    if rs_method == "RS":
+        rs_expr = pl.col("RS").last().alias("RS")
+    elif rs_method == "RS_mean":
+        rs_expr = pl.col("RS").mean().alias("RS_mean")
+    elif rs_method == "RS_max":
+        rs_expr = pl.col("RS").max().alias("RS_max")
+    elif rs_method == "RS_min":
+        rs_expr = pl.col("RS").min().alias("RS_min")
+
     if recent_price_data is None:
         # if no recent_prices_data is passed, then pull the most recent prices from the data
         recent_price_expr = pl.col("close").last().alias("recent_price")
@@ -457,16 +459,13 @@ def price_range(
                     last_cum_sum_max,
                     last_cum_sum_min,
                     # RS statistics
-                    pl.col("RS").last().alias("RS"),
-                    pl.col("RS").mean().alias("RS_mean"),
-                    pl.col("RS").min().alias("RS_min"),
-                    pl.col("RS").max().alias("RS_max"),
+                    rs_expr,
                 ]
             )
             # Join with recent_price_data on symbol
             .with_columns(
                 (
-                    pl.col(_rs_method)
+                    pl.col(rs_method)
                     * pl.col("std_detrended_log_returns")
                     * pl.col("recent_price")
                 ).alias("price_range")
@@ -485,17 +484,14 @@ def price_range(
                     last_cum_sum_max,
                     last_cum_sum_min,
                     # RS statistics
-                    pl.col("RS").last().alias("RS"),
-                    pl.col("RS").mean().alias("RS_mean"),
-                    pl.col("RS").min().alias("RS_min"),
-                    pl.col("RS").max().alias("RS_max"),
+                    rs_expr,
                 ]
             )
             # Join with recent_price_data on symbol
             .join(recent_price_data.lazy(), on="symbol")
             .with_columns(
                 (
-                    pl.col(_rs_method)
+                    pl.col(rs_method)
                     * pl.col("std_detrended_log_returns")
                     * pl.col("recent_price")
                 ).alias("price_range")
@@ -503,12 +499,6 @@ def price_range(
             .sort("symbol")
         )
     # Relative Position Modifier
-    out = _modify_mandelbrot_prices(
-        price_range_data,
-        "cum_sum_max",
-        "cum_sum_min",
-    )
-
-    return out
+    out = _price_range_engine(price_range_data)
 
     return out
