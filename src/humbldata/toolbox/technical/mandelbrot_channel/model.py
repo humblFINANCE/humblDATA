@@ -136,11 +136,12 @@ def calc_mandelbrot_channel(
         symbols = data.select("symbol").unique().sort("symbol").collect()
         recent_prices = get_latest_price(symbols)
     else:
-        recent_prices = (
-            data1.group_by("symbol")
-            .agg(pl.col("close").last().alias("recent_price"))
-            .sort("symbol")
-        )
+        recent_prices = None
+        # recent_prices = (
+        #     data1.group_by("symbol")
+        #     .agg(pl.col("close").last().alias("recent_price"))
+        #     .sort("symbol")
+        # )
 
     # Step X: Calculate Rescaled Price Range ------------------------------
     out = price_range(
