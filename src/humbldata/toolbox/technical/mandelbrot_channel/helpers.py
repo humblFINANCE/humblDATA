@@ -373,7 +373,7 @@ def price_range(
         The RS value to use. Must be one of 'RS', 'RS_mean', 'RS_max', 'RS_min'.
         RS is the column that is the Range/STD of the detrended returns.
     _detrended_returns : str, default "detrended_log_returns"
-        The column name for detrended returns.
+        The column name for detrended returns in `data`
     _column_name_cum_sum_max : str, default "cum_sum_max"
         The column name for cumulative sum max in `data`
     _column_name_cum_sum_min : str, default "cum_sum_min"
