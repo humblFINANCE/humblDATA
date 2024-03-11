@@ -130,8 +130,6 @@ def calc_mandelbrot_channel(
     data8 = data7.sort(sort_cols).with_columns(
         (pl.col("cum_sum_range") / pl.col("cum_sum_std")).alias("RS")
     )
-    # Calculate mean, min, and max of 'RS' for each 'symbol' group
-    # do i need to collect only the last window for RS or do i want the calcs over the whole data
 
     # Step X: Collect Recent Prices ----------------------------------------
     if _live_price:

@@ -432,6 +432,8 @@ def price_range(
             .select(pl.col(["symbol", f"std_{_detrended_returns}"]))
         )
     # Merge RS stats with STD of detrended returns and recent price
+    # Calculate mean, min, and max of 'RS' for each 'symbol' group
+    # do i need to collect only the last window for RS or do i want the calcs over the whole data
 
     rs_data = (
         data.group_by("symbol")
