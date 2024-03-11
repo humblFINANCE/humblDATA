@@ -7,7 +7,6 @@ functions should be **DUMB** functions.
 """
 
 from datetime import UTC, datetime, timedelta, timezone
-from typing import Optional
 
 import polars as pl
 from dateutil.relativedelta import relativedelta
@@ -271,8 +270,6 @@ def _check_required_columns(data: pl.DataFrame | pl.LazyFrame, *columns: str):
     --------
     >>> check_required_columns(data, "open", "close", "high", "low")
     """
-    if isinstance(data, pl.LazyFrame):
-        data = data.collect()
     missing_columns = [col for col in columns if col not in data.columns]
     if missing_columns:
         msg = f"Missing required columns: {', '.join(missing_columns)}"
@@ -470,34 +467,33 @@ def detrend(
     _sort: bool = False,
 ) -> pl.DataFrame | pl.LazyFrame | pl.Series:
     """
-        Context: Toolbox || Category: Helpers || **Command: detrend**.
+    Context: Toolbox || Category: Helpers || **Command: detrend**.
 
-        This is a DUMB command. It can be used in any CONTEXT or CATEGORY.
+    This is a DUMB command. It can be used in any CONTEXT or CATEGORY.
 
-        Detrends a column in a DataFrame, LazyFrame, or Series by subtracting the
-        values of another column from it. Optionally sorts the data by 'symbol' and
-        'date' before detrending if _sort is True.
+    Detrends a column in a DataFrame, LazyFrame, or Series by subtracting the
+    values of another column from it. Optionally sorts the data by 'symbol' and
+    'date' before detrending if _sort is True.
 
     Parameters
     ----------
-        data : Union[pl.DataFrame, pl.LazyFrame, pl.Series]
-            The data structure containing the columns to be processed.
-        _detrend_col : str
-            The name of the column from which values will be subtracted.
-        _detrend_value_col : str | pl.Series | None, optional
-            The name of the column whose values will be subtracted OR if you pass a
-            pl.Series to the `data` parameter, then you can use this to pass a
-            second `pl.Series` to
-            subtract from the first.
-        _sort : bool, optional
-            If True, sorts the data by 'symbol' and 'date' before detrending.
-            Default is False.
+    data : Union[pl.DataFrame, pl.LazyFrame, pl.Series]
+        The data structure containing the columns to be processed.
+    _detrend_col : str
+        The name of the column from which values will be subtracted.
+    _detrend_value_col : str | pl.Series | None, optional
+        The name of the column whose values will be subtracted OR if you
+        pass a pl.Series to the `data` parameter, then you can use this to
+        pass a second `pl.Series` to subtract from the first.
+    _sort : bool, optional
+        If True, sorts the data by 'symbol' and 'date' before detrending.
+        Default is False.
 
     Returns
     -------
-        Union[pl.DataFrame, pl.LazyFrame, pl.Series]
-            The detrended data structure with the same type as the input,
-            with an added column named `f"detrended_{_detrend_col}"`.
+    Union[pl.DataFrame, pl.LazyFrame, pl.Series]
+        The detrended data structure with the same type as the input,
+        with an added column named `f"detrended_{_detrend_col}"`.
 
     Notes
     -----
