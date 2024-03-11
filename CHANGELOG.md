@@ -1,3 +1,22 @@
+## v0.1.4 (2024-03-11)
+
+### ⚡️ Performance
+
+- **price_range**: 35% speed increase, reducing jargon and simplifying transformatio
+- **_check_required_cols**: removed redundant `LazyFrame` collect
+
+### ✅🤡🧪 Tests
+
+- **mandelbrot_channel**: finished `price_range()` tests || finished with testing helpers✅
+- **setting up test for  prior to refactor**: scope
+- **price-range**: error condition test, passing `_rs_method` that doesnt exist
+- **vol_filter**: tests filtering ability by counting the rows that are filtered
+- **vol_buckets**: added error condition test when columns missig
+
+### 📌➕⬇️ ➖⬆️  Dependencies
+
+- **dev**: added `line_profiler`
+
 ## v0.1.3 (2024-03-08)
 
 ### 🐛🚑️ Fixes
