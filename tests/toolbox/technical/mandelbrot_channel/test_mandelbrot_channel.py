@@ -377,7 +377,6 @@ def test_price_range_missing_rs_method():
     with pytest.raises(HumblDataError):
         price_range(
             equity_historical,
-            equity_historical,
-            equity_historical,
-            _rs_method="nonexistent",
+            recent_price_data=None,
+            rs_method="nonexistent",
         )

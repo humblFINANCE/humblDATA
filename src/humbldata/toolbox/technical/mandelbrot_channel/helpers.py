@@ -344,7 +344,7 @@ def _price_range_engine(
 
 def price_range(
     data: pl.LazyFrame | pl.DataFrame,
-    recent_price_data: pl.DataFrame | pl.LazyFrame | None,
+    recent_price_data: pl.DataFrame | pl.LazyFrame | None = None,
     rs_method: Literal["RS", "RS_mean", "RS_max", "RS_min"] = "RS",
     _detrended_returns: str = "detrended_log_returns",  # Parameterized detrended_returns column
     _column_name_cum_sum_max: str = "cum_sum_max",
@@ -375,11 +375,14 @@ def price_range(
     _detrended_returns : str, default "detrended_log_returns"
         The column name for detrended returns.
     _column_name_cum_sum_max : str, default "cum_sum_max"
-        The column name for cumulative sum max.
+        The column name for cumulative sum max in `data`
     _column_name_cum_sum_min : str, default "cum_sum_min"
-        The column name for cumulative sum min.
+        The column name for cumulative sum min in `data`
     _rv_adjustment : bool, default False
-        If True, adjusts for real volatility.
+        If True, calculated the `std()` for all observations (since they have
+        already been filtered by volatility bucket). If False, then calculates
+        the `std()` for the most recent `window_index`
+        and uses that to adjust the price range.
     _sort : bool, default True
         If True, sorts the data based on symbols and dates.
     **kwargs
