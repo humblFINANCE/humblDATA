@@ -1,3 +1,9 @@
+## v0.1.6 (2024-03-12)
+
+### 🐛🚑️ Fixes
+
+- **docs**: added codefence (testing publish)
+
 ## v0.1.5 (2024-03-12)
 
 ### 🐛🚑️ Fixes
