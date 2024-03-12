@@ -1,6 +1,6 @@
 <p align="center">
   <a href="" rel="noopener">
- <img width=200px height=200px src="https://github.com/humblFINANCE/humbldata/raw/master/docs/assets/temp_humbldata_logo.png" alt="Project logo"></a>
+ <img width=200px height=200px src="https://raw.githubusercontent.com/humblFINANCE/humbldata/master/docs/assets/temp_humbldata_logo.png?token=GHSAT0AAAAAACN3Y3NIVUUVQ2TZJH52KAEOZPQQXEQ" alt="Project logo"></a>
 </p>
 
 <h3 align="center">humbldata</h3>
