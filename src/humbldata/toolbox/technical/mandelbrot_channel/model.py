@@ -89,41 +89,41 @@ def calc_mandelbrot_channel(
     on the output to get a DataFrame. Lazy logic saves the calculation for when
     it is needed.
     """
-    # Setup ====================================================
+    # Setup ====================================================================
     window_int = _window_format(window, _return_timedelta=True)
     sort_cols = _set_sort_cols(data, "symbol", "date")
 
     data = data.lazy()
-    # Step 1: Collect Price Data -------------------------------------------
-    # Step X: Add window bins ----------------------------------------------
+    # Step 1: Collect Price Data -----------------------------------------------
+    # Step X: Add window bins --------------------------------------------------
     # We want date grouping, non-overlapping window bins
     data1 = add_window_index(data, window=window)
 
-    # Step X: Calculate Log Returns + Rvol ---------------------------------
+    # Step X: Calculate Log Returns + Rvol -------------------------------------
     if "log_returns" not in data1.columns:
         data2 = log_returns(data1, _column_name="close")
     else:
         data2 = data1
 
-    # Step X: Calculate Log Mean Series ------------------------------------
+    # Step X: Calculate Log Mean Series ----------------------------------------
     if isinstance(data2, pl.DataFrame | pl.LazyFrame):
         data3 = mean(data2)
     else:
         msg = "A series was passed to `mean()` calculation. Please provide a DataFrame or LazyFrame."
         raise HumblDataError(msg)
-    # Step X: Calculate Mean De-trended Series -----------------------------
+    # Step X: Calculate Mean De-trended Series ---------------------------------
     data4 = detrend(
         data3, _detrend_value_col="window_mean", _detrend_col="log_returns"
     )
-    # Step X: Calculate Cumulative Deviate Series --------------------------
+    # Step X: Calculate Cumulative Deviate Series ------------------------------
     data5 = cum_sum(data4, _column_name="detrended_log_returns")
-    # Step X: Calculate Mandelbrot Range -----------------------------------
+    # Step X: Calculate Mandelbrot Range ---------------------------------------
     data6 = range_(data5, _column_name="cum_sum")
-    # Step X: Calculate Standard Deviation ---------------------------------
+    # Step X: Calculate Standard Deviation -------------------------------------
     data7 = std(data6, _column_name="cum_sum")
-    # Step X: Calculate Range (R) & Standard Deviation (S) -----------------
+    # Step X: Calculate Range (R) & Standard Deviation (S) ---------------------
     if rv_adjustment:
-        # Step 8.1: Calculate Realized Volatility --------------------------
+        # Step 8.1: Calculate Realized Volatility ------------------------------
         data7 = calc_realized_volatility(
             data=data7,
             window=window,
@@ -134,16 +134,16 @@ def calc_mandelbrot_channel(
         for col in data7.columns:
             if "volatility_pct" in col:
                 data7 = data7.rename({col: "realized_volatility"})
-        # Step 8.2: Calculate Volatility Bucket Stats ----------------------
+        # Step 8.2: Calculate Volatility Bucket Stats --------------------------
         data7 = vol_buckets(data=data7, lo_quantile=0.3, hi_quantile=0.65)
         data7 = vol_filter(data7)
 
-    # Step X: Calculate RS -------------------------------------------------
+    # Step X: Calculate RS -----------------------------------------------------
     data8 = data7.sort(sort_cols).with_columns(
         (pl.col("cum_sum_range") / pl.col("cum_sum_std")).alias("RS")
     )
 
-    # Step X: Collect Recent Prices ----------------------------------------
+    # Step X: Collect Recent Prices --------------------------------------------
     if _live_price:
         symbols = (
             data.select("symbol").unique().sort("symbol").collect().to_series()
@@ -152,7 +152,7 @@ def calc_mandelbrot_channel(
     else:
         recent_prices = None
 
-    # Step X: Calculate Rescaled Price Range ------------------------------
+    # Step X: Calculate Rescaled Price Range ----------------------------------
     out = price_range(
         data=data8,
         recent_price_data=recent_prices,
@@ -218,6 +218,8 @@ async def _acalc_mandelbrot_channel_historical_engine(
         data.lazy()
         .select(pl.col("date"))
         .filter(pl.col("date") >= start_date)
+        .unique()
+        .sort("date")
         .collect()
         .to_series()
     )
@@ -238,10 +240,13 @@ async def _acalc_mandelbrot_channel_historical_engine(
     ]
 
     lazyframes = await asyncio.gather(*tasks)
+    out = (
+        await pl.concat(lazyframes, how="vertical")
+        .sort(["symbol", "date"])
+        .collect_async()
+    )
 
-    # dataframes = [lf.collect() for lf in lazyframes]
-
-    out = pl.collect_all(lazyframes)
+    # out = await pl.collect_all_async(lazyframes)
 
     return out
 
