@@ -1,4 +1,4 @@
-![Project logo](https://github.com/humblFINANCE/humbldata/raw/master/docs/assets/temp_humbldata_logo.png)
+![Project logo](./docs/assets/temp_humbldata_logo.png)
 
 <h3 align="center">humbldata</h3>
 
