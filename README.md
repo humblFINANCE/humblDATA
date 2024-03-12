@@ -1,4 +1,6 @@
-![Project logo](./docs/assets/temp_humbldata_logo.png)
+<p align="center">
+  <img src="./docs/assets/temp_humbldata_logo.png" alt="Project logo">
+</p>
 
 <h3 align="center">humbldata</h3>
 
