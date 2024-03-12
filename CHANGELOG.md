@@ -1,7 +1,10 @@
+## v1.0.3 (2024-03-12)
+
 ## v1.0.2 (2024-03-12)
 
 ### 🐛🚑️ Fixes
 
+- **pypi**: changed project logo URL to `.md`
 - **pypi**: updating image URL
 
 ## v1.0.1 (2024-03-12)
