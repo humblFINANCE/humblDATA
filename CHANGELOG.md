@@ -1,3 +1,10 @@
+## v0.2.0 (2024-03-12)
+
+### ✨ Features
+
+- **mandelbrot_channel**: finalized `historical` calculation
+- **mandelbrot_channel**: added `calc_mandelbrot_channel_historical`
+
 ## v0.1.6 (2024-03-12)
 
 ### 🐛🚑️ Fixes
