@@ -47,7 +47,7 @@ def calc_mandelbrot_channel(
     *,
     _rv_grouped_mean: bool = True,
     _live_price: bool = True,
-) -> pl.DataFrame | pl.LazyFrame:
+) -> pl.LazyFrame:
     """
     Context: Toolbox || Category: Technical || Sub-Category: Mandelbrot Channel || **Command: calc_mandelbrot_channel`.
 
@@ -77,8 +77,14 @@ def calc_mandelbrot_channel(
 
     Returns
     -------
-    pl.DataFrame | pl.LazyFrame
+    pl.LazyFrame
         The calculated Mandelbrot Channel data for the given time series.
+
+    Notes
+    -----
+    Since the function returns a pl.LazyFrame, don't forget to run `.collect()`
+    on the output to get a DataFrame. Lazy logic saves the calculation for when
+    it is needed.
     """
     # Setup ====================================================
     window_int = _window_format(window, _return_timedelta=True)
@@ -155,14 +161,14 @@ def calc_mandelbrot_channel(
 
 
 async def acalc_mandelbrot_channel(
-    data,
-    window="1m",
-    rv_adjustment=True,
-    _rv_method="std",
-    _rs_method="RS",
-    _rv_grouped_mean=True,
-    _live_price=True,
-):
+    data: pl.DataFrame | pl.LazyFrame,
+    window: str = "1m",
+    rv_adjustment: bool = True,
+    _rv_method: str = "std",
+    _rs_method: Literal["RS", "RS_mean", "RS_max", "RS_min"] = "RS",
+    _rv_grouped_mean: bool = True,
+    _live_price: bool = True,
+) -> pl.DataFrame | pl.LazyFrame:
     """
     Context: Toolbox || Category: Technical || Sub-Category: Mandelbrot Channel || **Command: acalc_mandelbrot_channel**.
 
