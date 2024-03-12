@@ -4,9 +4,12 @@ Context: Toolbox || Category: Technical || **Command: calc_mandelbrot_channel**.
 A command to generate a Mandelbrot Channel for any time series.
 """
 
+import asyncio
 from typing import Literal
 
+import nest_asyncio
 import polars as pl
+from polars import lazyframe
 
 from humbldata.core.standard_models.abstract.errors import (
     HumblDataError,
@@ -166,6 +169,7 @@ async def acalc_mandelbrot_channel(
     rv_adjustment: bool = True,
     _rv_method: str = "std",
     _rs_method: Literal["RS", "RS_mean", "RS_max", "RS_min"] = "RS",
+    *,
     _rv_grouped_mean: bool = True,
     _live_price: bool = True,
 ) -> pl.DataFrame | pl.LazyFrame:
@@ -188,4 +192,89 @@ async def acalc_mandelbrot_channel(
         _rs_method=_rs_method,
         _rv_grouped_mean=_rv_grouped_mean,
         _live_price=_live_price,
+    )
+
+
+async def _acalc_mandelbrot_channel_historical_engine(
+    data: pl.DataFrame | pl.LazyFrame,
+    window: str = "1m",
+    rv_adjustment: bool = True,
+    _rv_method: str = "std",
+    _rs_method: Literal["RS", "RS_mean", "RS_max", "RS_min"] = "RS",
+    *,
+    _rv_grouped_mean: bool = True,
+    _live_price: bool = True,
+) -> pl.DataFrame | pl.LazyFrame:
+    """
+    Context: Toolbox || Category: Technical || Sub-Category: Mandelbrot Channel || **Command: _calc_mandelbrot_channel_historical_engine**.
+
+    This function acts as the internal logic to the wrapper function
+    `calc_mandelbrot_channel_historical()`.
+    """
+    window_days = _window_format(window, _return_timedelta=True)
+    start_date = data.lazy().select(pl.col("date")).collect().to_series().min()
+    start_date = start_date + window_days
+    dates = (
+        data.lazy()
+        .select(pl.col("date"))
+        .filter(pl.col("date") >= start_date)
+        .collect()
+        .to_series()
+    )
+
+    tasks = [
+        asyncio.create_task(
+            acalc_mandelbrot_channel(
+                data=data.filter(pl.col("date") <= date),
+                window=window,
+                rv_adjustment=rv_adjustment,
+                _rv_method=_rv_method,
+                _rs_method=_rs_method,
+                _rv_grouped_mean=_rv_grouped_mean,
+                _live_price=_live_price,
+            )
+        )
+        for date in dates
+    ]
+
+    lazyframes = await asyncio.gather(*tasks)
+
+    # dataframes = [lf.collect() for lf in lazyframes]
+
+    out = pl.collect_all(lazyframes)
+
+    return out
+
+
+def calc_mandelbrot_channel_historical(
+    data: pl.DataFrame | pl.LazyFrame,
+    window: str = "1m",
+    rv_adjustment: bool = True,
+    _rv_method: str = "std",
+    _rs_method: Literal["RS", "RS_mean", "RS_max", "RS_min"] = "RS",
+    *,
+    _rv_grouped_mean: bool = True,
+    _live_price: bool = True,
+) -> pl.DataFrame | pl.LazyFrame:
+    """
+    Context: Toolbox || Category: Technical || Sub-Category: Mandelbrot Channel || **Command: calc_mandelbrot_channel_historical**.
+
+    Calculates the Mandelbrot Channel for a given time series based on the
+    provided standard and extra parameters, over time! This means that instead
+    of using the dataset to calculate one statistic at the current point in time,
+    this function starts at the beginning of the dataset and calculates the statistic
+    for date present in the dataset, up to the current point in time.
+    """
+    nest_asyncio.apply()
+
+    return asyncio.run(
+        _acalc_mandelbrot_channel_historical_engine(
+            data=data,
+            window=window,
+            rv_adjustment=rv_adjustment,
+            _rv_method=_rv_method,
+            _rs_method=_rs_method,
+            _rv_grouped_mean=_rv_grouped_mean,
+            _live_price=_live_price,
+        )
     )
