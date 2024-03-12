@@ -171,7 +171,7 @@ async def acalc_mandelbrot_channel(
 
     Notes
     -----
-    This does not make calc_mandelbrot_channel non-blocking or asynchronous.
+    This does not make `calc_mandelbrot_channel()` non-blocking or asynchronous.
     """
     # Directly call the synchronous calc_mandelbrot_channel function
     return calc_mandelbrot_channel(
