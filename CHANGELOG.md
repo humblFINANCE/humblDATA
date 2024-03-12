@@ -1,3 +1,9 @@
+## v0.1.5 (2024-03-12)
+
+### 🐛🚑️ Fixes
+
+- **docs**: removed whitespace (testing publish)
+
 ## v0.1.4 (2024-03-11)
 
 ### ⚡️ Performance
