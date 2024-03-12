@@ -1,9 +1,11 @@
 name: Publish
 
 on:
-  release:
-    types:
-      - created
+  push:
+    branches:
+      - release
+    tags: # only created when `bump.yml` is run, which only runs on master push
+      - "v*"
 
 jobs:
   publish:

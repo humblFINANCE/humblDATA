@@ -169,7 +169,6 @@ async def acalc_mandelbrot_channel(
     Asynchronous wrapper for calc_mandelbrot_channel.
     This function allows calc_mandelbrot_channel to be called in an async context.
 
-
     Notes
     -----
     This does not make calc_mandelbrot_channel non-blocking or asynchronous.
