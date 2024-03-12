@@ -5,7 +5,6 @@ available. This will be passed as a `@property` to the `Toolbox()` class, giving
 access to the technical module and its functions.
 """
 
-
 from humbldata.core.standard_models.toolbox.technical.mandelbrotchannel import (
     MandelbrotChannelQueryParams,
 )
@@ -45,3 +44,6 @@ class Technical:
 
         # Use the fetcher to get the data
         return fetcher.fetch_data()
+
+
+a

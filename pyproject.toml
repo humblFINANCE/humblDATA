@@ -117,6 +117,9 @@ addopts = "--color=yes --doctest-modules --exitfirst --failed-first --strict-con
 filterwarnings = ["error", "ignore::DeprecationWarning"]
 testpaths = ["src", "tests"]
 xfail_strict = true
+markers = [
+  "integration: mark a test for integration/composition of other smaller functions"
+]
 
 [tool.ruff]  # https://github.com/charliermarsh/ruff
 fix = true
@@ -136,6 +139,9 @@ max-doc-length = 80
 
 [tool.ruff.pydocstyle]
 convention = "numpy"
+
+[tool.ruff.mccabe]
+max-complexity = 10
 
 [tool.poe.tasks]  # https://github.com/nat-n/poethepoet
 
