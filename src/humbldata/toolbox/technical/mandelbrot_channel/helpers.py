@@ -331,6 +331,7 @@ def _price_range_engine(
         # Select relevant columns
         .select(
             [
+                "date",
                 "symbol",
                 "bottom_price",
                 "recent_price",
@@ -423,7 +424,8 @@ def price_range(
     sort_cols = _set_sort_cols(data, "symbol", "date")
     if _sort:
         data.sort(sort_cols)
-    # Define Polars Expressions
+
+    # Define Polars Expressions ================================================
     last_cum_sum_max = (
         pl.col(_column_name_cum_sum_max).last().alias("last_cum_sum_max")
     )
@@ -439,6 +441,9 @@ def price_range(
         .std()
         .alias(f"std_{_detrended_returns}")
     )
+    date_expr = pl.col("date").max()
+    # ===========================================================================
+
     if rs_method == "RS":
         rs_expr = pl.col("RS").last().alias("RS")
     elif rs_method == "RS_mean":
@@ -456,6 +461,7 @@ def price_range(
             data.group_by("symbol")
             .agg(
                 [
+                    date_expr,
                     # Conditional STD calculation based on _rv_adjustment
                     std_detrended_returns_expr,
                     # Recent Price Data
@@ -482,6 +488,7 @@ def price_range(
             data.group_by("symbol")
             .agg(
                 [
+                    date_expr,
                     # Conditional STD calculation based on _rv_adjustment
                     std_detrended_returns_expr,
                     # cum_sum_max/min last
