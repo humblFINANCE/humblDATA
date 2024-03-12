@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./docs/assets/temp_humbldata_logo.png" alt="Project logo">
+  <img src="./docs/assets/temp_humbldata_logo.png" alt="Project logo" width="200px">
 </p>
 
 <h3 align="center">humbldata</h3>
