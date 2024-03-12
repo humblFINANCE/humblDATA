@@ -27,7 +27,7 @@ module.exports = {
         { value: "⏪ revert", name: "Reverts a previous commit" },
         { value: "➕ dep-add", name: "Add a dependency" },
         { value: "➖ dep-rm", name: "Remove a dependency" },
-        { value: "💥 break", name: "Introduce a breaking change. no longer backwards-compatible" }
+        { value: "💥 boom", name: "Introduce a breaking change. no longer backwards-compatible" }
     ],
     usePreparedCommit: false, // to re-use commit from ./.git/COMMIT_EDITMSG
     allowTicketNumber: true,
