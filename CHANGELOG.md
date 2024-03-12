@@ -1,3 +1,9 @@
+## v1.0.0 (2024-03-12)
+
+### 💥 Boom
+
+- **pypi**: `MAJOR` version bump to escape file name duplication in PYPI >>> ⏰ 1h 30m
+
 ## v0.3.0 (2024-03-12)
 
 ### ✨ Features
