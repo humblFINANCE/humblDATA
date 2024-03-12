@@ -1,8 +1,14 @@
+## v1.0.1 (2024-03-12)
+
 ## v1.0.0 (2024-03-12)
 
 ### 💥 Boom
 
 - **pypi**: `MAJOR` version bump to escape file name duplication in PYPI >>> ⏰ 1h 30m
+
+### 🐛🚑️ Fixes
+
+- **pypi**: linking project logo image to `github.com/user/repo/raw/branch/`
 
 ## v0.3.0 (2024-03-12)
 
