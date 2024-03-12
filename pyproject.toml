@@ -6,7 +6,7 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry]  # https://python-poetry.org/docs/pyproject/
 name = "humbldata"
 version = "0.3.0"
-description = "open-sourcing the math behind major financial institutional investors. this package connects data analysis to the humblFINANCE website."
+description = "open-sourcing the math behind major financial institutional investors/banks. this package connects data analysis to the humblFINANCE website."
 authors = ["Jennings Fantini <jjman2811@gmail.com>"]
 readme = "README.md"
 repository = "https://github.com/humblFINANCE/humbldata.git"
