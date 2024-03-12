@@ -49,7 +49,7 @@ def calc_mandelbrot_channel(
     _live_price: bool = True,
 ) -> pl.DataFrame | pl.LazyFrame:
     """
-    Context: Toolbox || Category: Technical || **Command: Mandelbrot Channel**.
+    Context: Toolbox || Category: Technical || Sub-Category: Mandelbrot Channel || **Command: calc_mandelbrot_channel`.
 
     Calculates the Mandelbrot Channel for a given time series based on the
     provided standard and extra parameters.
@@ -152,3 +152,35 @@ def calc_mandelbrot_channel(
     )
 
     return out
+
+
+async def acalc_mandelbrot_channel(
+    data,
+    window="1m",
+    rv_adjustment=True,
+    _rv_method="std",
+    _rs_method="RS",
+    _rv_grouped_mean=True,
+    _live_price=True,
+):
+    """
+    Context: Toolbox || Category: Technical || Sub-Category: Mandelbrot Channel || **Command: acalc_mandelbrot_channel**.
+
+    Asynchronous wrapper for calc_mandelbrot_channel.
+    This function allows calc_mandelbrot_channel to be called in an async context.
+
+
+    Notes
+    -----
+    This does not make calc_mandelbrot_channel non-blocking or asynchronous.
+    """
+    # Directly call the synchronous calc_mandelbrot_channel function
+    return calc_mandelbrot_channel(
+        data=data,
+        window=window,
+        rv_adjustment=rv_adjustment,
+        _rv_method=_rv_method,
+        _rs_method=_rs_method,
+        _rv_grouped_mean=_rv_grouped_mean,
+        _live_price=_live_price,
+    )
