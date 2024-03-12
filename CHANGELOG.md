@@ -1,3 +1,9 @@
+## v0.3.0 (2024-03-12)
+
+### ✨ Features
+
+- **break**: breaking change
+
 ## v0.2.0 (2024-03-12)
 
 ### ✨ Features

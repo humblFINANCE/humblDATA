@@ -5,7 +5,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]  # https://python-poetry.org/docs/pyproject/
 name = "humbldata"
-version = "0.2.0"
+version = "0.3.0"
 description = "open-sourcing the math behind major financial institutional investors. this package connects data analysis to the humblFINANCE website."
 authors = ["Jennings Fantini <jjman2811@gmail.com>"]
 readme = "README.md"
@@ -16,7 +16,7 @@ skip = ["menv/", "tests"]
 
 [tool.commitizen]
 name = "cz_gitmoji"
-version = "0.2.0"
+version = "0.3.0"
 tag_format = "v$version"
 update_changelog_on_bump = true
 annotated_tag = true
