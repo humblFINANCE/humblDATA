@@ -39,4 +39,7 @@ Install with `poetry`
 poetry add humbldata
 ```
 
+## Documentation
+
+To understand the structure of this **codebase**, the **commands** available and how to **contribute**, please refer to the [documentation](https://humblfinance.github.io/humbldata/)
 
