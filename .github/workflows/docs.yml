@@ -25,5 +25,8 @@ jobs:
           path: .cache
           restore-keys: |
             mkdocs-material-
-      - run: pip install mkdocs-material mkdocstrings mkdocstrings-python
-      - run: mkdocs gh-deploy --force --theme=material
+      - name: Install Poetry
+        run: pip install poetry pytest-md pytest-emoji
+      - name: Install dependencies with Poetry
+        run: poetry install --with=dev
+      - run: mkdocs gh-deploy --force --theme=materialre
