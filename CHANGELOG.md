@@ -1,3 +1,9 @@
+## v1.0.6 (2024-03-13)
+
+### 🐛🚑️ Fixes
+
+- **mandelbrot_channel**: renamed `recent_price` --> `close`
+
 ## v1.0.5 (2024-03-12)
 
 ## v1.0.4 (2024-03-12)
