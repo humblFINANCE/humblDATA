@@ -30,4 +30,4 @@ jobs:
         run: pip install poetry
       - name: Install dependencies with Poetry
         run: poetry install --with=dev
-      - run: poetry run mike deploy ${GITHUB_REF#refs/tags/} --update-alias latest --push
+      - run: poetry run mike deploy --push --update-alias ${GITHUB_REF#refs/tags/} latest
