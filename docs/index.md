@@ -29,4 +29,4 @@
 
 
 ---
-the humbldata package connects the humblfinance web app to its data sources and in-house analysis. A thin wrapper around the most popular open-source financial data providers, with some extra flair to use the same tools and math as the big guys. how do i know? because i used to pay a pretty penny for it! no longer... OSS is here to save the day
+the humbldata package is thin wrapper around the most popular open-source financial data providers, with some extra flair. it has modern financial statistics and tools (based on the same math) as the big guys. how do i know? because i used to pay a pretty penny for it! no longer... OSS is here to save the day
