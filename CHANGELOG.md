@@ -1,3 +1,9 @@
+## v1.0.7 (2024-03-13)
+
+### 🐛🚑️ Fixes
+
+- **test**: esting doc building with a new tag push from `bump.yml`
+
 ## v1.0.6 (2024-03-13)
 
 ### 🐛🚑️ Fixes
