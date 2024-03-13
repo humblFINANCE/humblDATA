@@ -1,3 +1,9 @@
+## v1.0.9 (2024-03-13)
+
+### 🐛🚑️ Fixes
+
+- **docs.yml**: `git fetch gh-pages` branch before `mike deploy`
+
 ## v1.0.8 (2024-03-13)
 
 ### 🐛🚑️ Fixes
