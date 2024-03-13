@@ -19,7 +19,7 @@ from humbldata.toolbox.technical.mandelbrot_channel.model import (
 def equity_historical(request: FixtureRequest):
     """One year of equity data, AAPL & AMZN symbols."""
     data = pl.read_csv(
-        "tests\\toolbox\\custom_data\\equity_historical_multiple_1y.csv",
+        "tests\\unittests\\toolbox\\custom_data\\equity_historical_multiple_1y.csv",
         try_parse_dates=True,
     )
     if request.param == "dataframe_single_symbol":
