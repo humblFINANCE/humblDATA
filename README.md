@@ -26,7 +26,15 @@
 </div>
 
 ---
-connects the humblfinance web app to its data sources and in-house analysis. A thin wrapper around the most popular open-source financial data providers, with some extra flair to use the same tools and math as the big guys. how do i know? because i used to pay a pretty penny for it! no longer... OSS is here to save the day
+`humbldata` connects the humblfinance web app to its data sources and in-house analysis. A thin wrapper around the most popular open-source financial data providers, with some extra flair to use the same tools and math as the big guys. how do i know? because i used to pay a pretty penny for it! no longer... OSS is here to save the day!
+
+# 🌟 Main Features 🌟
+- **Mandelbrot Channel**
+  - price channel of <span style="color:green"><b>BUY</b></span> / <span style="color:red"><b>SELL</b></span> levels used by the largest quant firms
+  - this is a popular indicator used to provide robust price boundaries for any asset, but no one has **open-sourced** it until now...
+- **Realized Volatility Estimators**
+  - all volatility calculations in Euan Sinclar's book, plus 2 extra.
+  - ⚡ lightning fast estimators use Rust under the hood
 
 # Getting Started
 
