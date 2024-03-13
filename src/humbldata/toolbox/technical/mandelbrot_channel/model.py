@@ -243,6 +243,7 @@ async def _acalc_mandelbrot_channel_historical_engine(
     out = (
         await pl.concat(lazyframes, how="vertical")
         .sort(["symbol", "date"])
+        .rename({"recent_price": "close"})
         .collect_async()
     )
 
