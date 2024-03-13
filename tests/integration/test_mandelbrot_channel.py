@@ -2,6 +2,10 @@ import polars as pl
 import pytest
 from _pytest.fixtures import FixtureRequest
 
+from humbldata.toolbox.technical.mandelbrot_channel.model import (
+    calc_mandelbrot_channel,
+)
+
 
 # FIXTURES =====================================================================
 @pytest.fixture(
@@ -32,5 +36,14 @@ def equity_historical(request: FixtureRequest):
 
 
 @pytest.mark.integration()
-def test_mandelbrot_channel_integration():
+def test_mandelbrot_channel_integration(equity_historical):
     """Testing the composed function of `calc_mandelbrot_channel()`."""
+    mandelbrot = calc_mandelbrot_channel(
+        equity_historical,
+        window="1m",
+        rv_adjustment=True,
+        _rv_method="std",
+        _rv_grouped_mean=False,
+        _rs_method="RS",
+        _live_price=False,
+    ).collect()

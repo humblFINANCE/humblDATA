@@ -2,6 +2,7 @@
 Context: Toolbox || Category: Technical || **Command: calc_realized_volatility**.
 
 A command to generate Realized Volatility for any time series.
+A complete set of volatility estimators based on Euan Sinclair's Volatility Trading
 """
 
 import inspect

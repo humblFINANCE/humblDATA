@@ -23,7 +23,7 @@ from humbldata.toolbox.technical.mandelbrot_channel.helpers import (
 def equity_historical(request: FixtureRequest):
     """One year of equity data, AAPL & AMZN symbols."""
     data = pl.read_csv(
-        "tests\\toolbox\\custom_data\\equity_historical_multiple_1y.csv",
+        "tests\\unittests\\toolbox\\custom_data\\equity_historical_multiple_1y.csv",
         try_parse_dates=True,
     )
     if request.param == "dataframe_single_symbol":
@@ -50,7 +50,7 @@ def equity_historical(request: FixtureRequest):
 def equity_historical_rv(request: FixtureRequest):
     """One year of equity data, AAPL & AMZN symbols & `realized_volatiliity` column."""
     data = pl.read_csv(
-        "tests\\toolbox\\custom_data\\equity_historical_multiple_rv_1m.csv",
+        "tests\\unittests\\toolbox\\custom_data\\equity_historical_multiple_rv_1m.csv",
         try_parse_dates=True,
     )
     if request.param == "dataframe_single_symbol":
@@ -77,7 +77,7 @@ def equity_historical_rv(request: FixtureRequest):
 def equity_historical_rv_volb(request: FixtureRequest):
     """One year of equity data, AAPL & AMZN symbols & `realized_volatiliity` + `vol_bucket` columns."""
     data = pl.read_csv(
-        "tests\\toolbox\\custom_data\\equity_historical_multiple_rv_volb_1m.csv",
+        "tests\\unittests\\toolbox\\custom_data\\equity_historical_multiple_rv_volb_1m.csv",
         try_parse_dates=True,
     )
     if request.param == "dataframe_single_symbol":
@@ -104,7 +104,7 @@ def equity_historical_rv_volb(request: FixtureRequest):
 def equity_historical_mandelbrot_pre_price_range_1m(request: FixtureRequest):
     """1 month of data, ran through `calc_mandelbrot_channel()` right before last `price_range()`"""
     data = pl.read_csv(
-        "tests\\toolbox\\custom_data\\equity_historical_mandelbrot_channel_pre_price_range_1m.csv",
+        "tests\\unittests\\toolbox\\custom_data\\equity_historical_mandelbrot_channel_pre_price_range_1m.csv",
         try_parse_dates=True,
     )
     if request.param == "dataframe_single_symbol":
@@ -159,7 +159,7 @@ def test_add_window_index(
 def equity_historical_edge_cases(request: type[FixtureRequest]):
     """Load equity historical data with unequal dates for testing edge cases."""
     data = pl.read_csv(
-        "tests\\toolbox\\custom_data\\equity_historical_unequal_10y.csv",
+        "tests\\unittests\\toolbox\\custom_data\\equity_historical_unequal_10y.csv",
         try_parse_dates=True,
     )
     if request.param == "dataframe_multiple_unequal_dates":

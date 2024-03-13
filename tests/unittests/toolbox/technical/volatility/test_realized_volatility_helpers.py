@@ -18,7 +18,7 @@ from humbldata.toolbox.technical.volatility.realized_volatility_helpers import (
 @pytest.fixture(params=["dataframe", "series", "lazyframe"])
 def volatility_test_df(request: FixtureRequest):
     data = pl.read_csv(
-        "tests\\toolbox\\custom_data\\equity_historical_single_log_returns.csv",
+        "tests\\unittests\\toolbox\\custom_data\\equity_historical_single_log_returns.csv",
         try_parse_dates=True,
     )
     if request.param == "dataframe":

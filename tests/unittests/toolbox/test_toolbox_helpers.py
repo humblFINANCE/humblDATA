@@ -30,7 +30,7 @@ from humbldata.toolbox.toolbox_helpers import (
 def equity_historical_multiple_1y_df():
     """pl.DataFrame of 1y of AAPL, AMD, GOOGL, PCT equity data."""
     return pl.read_csv(
-        "tests\\toolbox\\custom_data\\equity_historical_multiple_1y.csv"
+        "tests\\unittests\\toolbox\\custom_data\\equity_historical_multiple_1y.csv"
     )
 
 
@@ -38,7 +38,7 @@ def equity_historical_multiple_1y_df():
 def equity_historical_single_1y_window_index_3m_df():
     """pl.DataFrame of 1y of AAPL data with 3m window index."""
     return pl.read_csv(
-        "tests\\toolbox\\custom_data\\equity_historical_single_1y_window_index_3m.csv"
+        "tests\\unittests\\toolbox\\custom_data\\equity_historical_single_1y_window_index_3m.csv"
     )
 
 
