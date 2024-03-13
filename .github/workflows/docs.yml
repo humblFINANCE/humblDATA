@@ -26,7 +26,7 @@ jobs:
           restore-keys: |
             mkdocs-material-
       - name: Install Poetry
-        run: pip install poetry pytest-md pytest-emoji
+        run: pip install poetry
       - name: Install dependencies with Poetry
         run: poetry install --with=dev
-      - run: mkdocs gh-deploy --force --theme=material
+      - run: poetry run mkdocs gh-deploy --force --theme=material
