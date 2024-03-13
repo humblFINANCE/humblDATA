@@ -1,9 +1,10 @@
 name: Deploy Docs
 on:
   push:
-    branches:
-      - master
-      - main
+    # branches:
+      # - master
+    tags:
+      - "v*"
 permissions:
   contents: write
 jobs:
@@ -29,4 +30,4 @@ jobs:
         run: pip install poetry
       - name: Install dependencies with Poetry
         run: poetry install --with=dev
-      - run: poetry run mkdocs gh-deploy --force
+      - run: poetry run mike deploy ${GITHUB_REF#refs/tags/} --update-alias latest --push
