@@ -1,3 +1,9 @@
+## v1.0.8 (2024-03-13)
+
+### 🐛🚑️ Fixes
+
+- **docs**: added correct syntax for `mike deploy`
+
 ## v1.0.7 (2024-03-13)
 
 ### 🐛🚑️ Fixes
