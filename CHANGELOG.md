@@ -1,3 +1,10 @@
+## v1.0.14 (2024-03-14)
+
+### 🐛🚑️ Fixes
+
+- **bump.yml**: made contains string more specific to bump message
+- **bump.yml**: removed `:` from contains string
+
 ## v1.0.13 (2024-03-14)
 
 ### 🐛🚑️ Fixes
