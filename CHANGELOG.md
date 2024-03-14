@@ -1,3 +1,13 @@
+## v1.0.10 (2024-03-14)
+
+### 🐛🚑️ Fixes
+
+- **ToolboxData**: added alias `dt` for `datetime` to use  `date` type in fieldinfo
+
+### ✅🤡🧪 Tests
+
+- **mandelbrpt_channel_integration**: added initial mandelbrot_channel integration tests
+
 ## v1.0.9 (2024-03-13)
 
 ### 🐛🚑️ Fixes
