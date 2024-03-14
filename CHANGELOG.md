@@ -1,3 +1,9 @@
+## v1.0.15 (2024-03-14)
+
+### 🐛🚑️ Fixes
+
+- **gh-actions**: `test,yml` skips with bump commit, `docs.yml` uses mkdocs
+
 ## v1.0.14 (2024-03-14)
 
 ### 🐛🚑️ Fixes
