@@ -1,3 +1,9 @@
+## v1.0.11 (2024-03-14)
+
+### 🐛🚑️ Fixes
+
+- **bump.yml**: added 🔖 emoji to commit message to skip
+
 ## v1.0.10 (2024-03-14)
 
 ### 🐛🚑️ Fixes
