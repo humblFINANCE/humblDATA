@@ -78,7 +78,7 @@ def obb_login(pat: str | None = None) -> bool:
 
 def get_latest_price(
     symbol: str | list[str] | pl.Series,
-    provider: OBB_EQUITY_PRICE_QUOTE_PROVIDERS | None = None,
+    provider: OBB_EQUITY_PRICE_QUOTE_PROVIDERS | None = "yfinance",
 ) -> pl.LazyFrame:
     """
     Context: Core || Category: Utils || Subcategory: OpenBB Helpers || **Command: get_latest_price**.
