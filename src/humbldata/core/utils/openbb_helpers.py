@@ -104,9 +104,11 @@ def get_latest_price(
         logging.CRITICAL
     )
 
-    latest_prices = (
-        obb.equity.price.quote(symbol, provider=provider).to_polars().lazy()
-    )
-    return latest_prices.select(["symbol", "last_price"]).rename(
-        {"last_price": "recent_price"}
+    return (
+        obb.equity.price.quote(symbol, provider=provider)
+        .to_polars()
+        .lazy()
+        .select(["symbol", "last_price"])
+        .rename({"last_price": "recent_price"})
+        .collect()
     )
