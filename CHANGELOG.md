@@ -1,3 +1,9 @@
+## v1.0.16 (2024-03-14)
+
+### 🐛🚑️ Fixes
+
+- **mandelbrot_channel**: removed unecessary imports, added `dt` to standard_model
+
 ## v1.0.15 (2024-03-14)
 
 ### 🐛🚑️ Fixes
