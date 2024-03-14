@@ -24,6 +24,7 @@ end_date : str
     The end date of the data.
 """
 
+from datetime import datetime
 from typing import List, Optional, Set, Union
 
 from pydantic import Field, field_validator
@@ -31,7 +32,10 @@ from pydantic import Field, field_validator
 from humbldata.core.standard_models.abstract.data import Data
 from humbldata.core.standard_models.abstract.query_params import QueryParams
 from humbldata.core.utils.constants import OBB_EQUITY_PRICE_HISTORICAL_PROVIDERS
-from humbldata.core.utils.descriptions import QUERY_DESCRIPTIONS
+from humbldata.core.utils.descriptions import (
+    DATA_DESCRIPTIONS,
+    QUERY_DESCRIPTIONS,
+)
 
 
 class ToolboxQueryParams(QueryParams):
@@ -120,3 +124,39 @@ class ToolboxData(Data):
     This HumblDataObject will return values in json/dict format, with methods
     to allow transformation into polars_df, pandas_df, a list, a dict...
     """
+
+    date: date | datetime = Field(
+        default=None,
+        title="Date",
+        description=DATA_DESCRIPTIONS.get("date", ""),
+    )
+    open: float = Field(
+        default=None,
+        title="Open",
+        description=DATA_DESCRIPTIONS.get("open", ""),
+    )
+    high: float = Field(
+        default=None,
+        title="High",
+        description=DATA_DESCRIPTIONS.get("high", ""),
+    )
+    low: float = Field(
+        default=None,
+        title="Low",
+        description=DATA_DESCRIPTIONS.get("low", ""),
+    )
+    close: float = Field(
+        default=None,
+        title="Close",
+        description=DATA_DESCRIPTIONS.get("close", ""),
+    )
+    volume: float | int = Field(
+        default=None,
+        title="Volume",
+        description=DATA_DESCRIPTIONS.get("volume", ""),
+    )
+    vwap: float = Field(
+        default=None,
+        title="VWAP",
+        description=DATA_DESCRIPTIONS.get("vwap", ""),
+    )
