@@ -24,7 +24,7 @@ end_date : str
     The end date of the data.
 """
 
-from datetime import datetime
+import datetime as dt
 from typing import List, Optional, Set, Union
 
 from pydantic import Field, field_validator
@@ -125,7 +125,7 @@ class ToolboxData(Data):
     to allow transformation into polars_df, pandas_df, a list, a dict...
     """
 
-    date: date | datetime = Field(
+    date: dt.date | dt.datetime = Field(
         default=None,
         title="Date",
         description=DATA_DESCRIPTIONS.get("date", ""),
