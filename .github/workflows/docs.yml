@@ -33,4 +33,4 @@ jobs:
         run: poetry install --with=dev
       - name: Deploy Docs
         # run: poetry run mike deploy --push --update-alias ${GITHUB_REF#refs/tags/} latest
-        run: poetry run mkdocs gh-deploy
+        run: poetry run mkdocs gh-deploy --force
