@@ -83,22 +83,24 @@ def get_latest_price(
     """
     Context: Core || Category: Utils || Subcategory: OpenBB Helpers || **Command: get_latest_price**.
 
-    Queries the latest stock price data for the given symbol(s) using the specified provider.
-    Defaults to FinancialModelingPrep (`fmp`) if no provider is specified. Returns a LazyFrame
-    with the stock symbols and their latest prices.
+    Queries the latest stock price data for the given symbol(s) using the
+    specified provider. Defaults to YahooFinance (`yfinance`) if no provider is
+    specified. Returns a LazyFrame with the stock symbols and their latest prices.
 
     Parameters
     ----------
     symbol : str | list[str] | pl.Series
-        The stock symbol(s) to query for the latest price. Accepts a single symbol, a list of symbols,
-        or a Polars Series of symbols.
+        The stock symbol(s) to query for the latest price. Accepts a single
+        symbol, a list of symbols, or a Polars Series of symbols.
     provider : OBB_EQUITY_PRICE_QUOTE_PROVIDERS, optional
-        The data provider for fetching stock prices. Defaults to None, in which case a default provider is used.
+        The data provider for fetching stock prices. Defaults is `yfinance`,
+        in which case a default provider is used.
 
     Returns
     -------
     pl.LazyFrame
-        A Polars LazyFrame with columns for the stock symbols ('symbol') and their latest prices ('last_price').
+        A Polars LazyFrame with columns for the stock symbols ('symbol') and
+        their latest prices ('last_price').
     """
     logging.getLogger("openbb_terminal.stocks.stocks_model").setLevel(
         logging.CRITICAL
