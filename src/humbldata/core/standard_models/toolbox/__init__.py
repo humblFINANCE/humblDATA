@@ -25,7 +25,6 @@ end_date : str
 """
 
 import datetime as dt
-from typing import List, Optional, Set, Union
 
 from pydantic import Field, field_validator
 
@@ -109,6 +108,9 @@ class ToolboxQueryParams(QueryParams):
             The uppercase stock symbol or a comma-separated string of uppercase
             symbols.
         """
+        if not isinstance(v, str):
+            msg = "`symbol` must be a `str`"
+            raise ValueError(msg)  # noqa: TRY004
         if isinstance(v, str):
             return v.upper()
         return ",".join([symbol.upper() for symbol in list(v)])
