@@ -98,7 +98,40 @@ def test_mandelbrot_channel_historical_integration(
             pytest.approx(172.17, rel=1e-3),
             pytest.approx(179.53, rel=1e-3),
         )
+        pct_top_and_bottom_mean = (
+            mandelbrot_historical.group_by("symbol")
+            .agg(pl.col("bottom_price").mean(), pl.col("top_price").mean())
+            .row(by_predicate=pl.col("symbol") == "PCT")
+        )
+        expected_pct_top_and_bottom = (
+            "PCT",
+            pytest.approx(4.81, rel=1e-3),
+            pytest.approx(9.26, rel=1e-3),
+        )
+        google_top_and_bottom_mean = (
+            mandelbrot_historical.group_by("symbol")
+            .agg(pl.col("bottom_price").mean(), pl.col("top_price").mean())
+            .row(by_predicate=pl.col("symbol") == "GOOGL")
+        )
+        expected_google_top_and_bottom = (
+            "GOOGL",
+            pytest.approx(116.95, rel=1e-3),
+            pytest.approx(125.30, rel=1e-3),
+        )
+        amd_top_and_bottom_mean = (
+            mandelbrot_historical.group_by("symbol")
+            .agg(pl.col("bottom_price").mean(), pl.col("top_price").mean())
+            .row(by_predicate=pl.col("symbol") == "AMD")
+        )
+        expected_amd_top_and_bottom = (
+            "AMD",
+            pytest.approx(97.66, rel=1e-3),
+            pytest.approx(115.28, rel=1e-3),
+        )
 
+        assert google_top_and_bottom_mean == expected_google_top_and_bottom
+        assert amd_top_and_bottom_mean == expected_amd_top_and_bottom
+        assert pct_top_and_bottom_mean == expected_pct_top_and_bottom
         assert aapl_top_and_bottom_mean == expected_aapl_top_and_bottom
         assert result_shape == (4, 1)
     else:
