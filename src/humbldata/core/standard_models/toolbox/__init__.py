@@ -23,13 +23,18 @@ start_date : str
 end_date : str
     The end date of the data.
 """
-from typing import List, Optional, Set, Union
+
+import datetime as dt
 
 from pydantic import Field, field_validator
 
 from humbldata.core.standard_models.abstract.data import Data
 from humbldata.core.standard_models.abstract.query_params import QueryParams
-from humbldata.core.utils.descriptions import QUERY_DESCRIPTIONS
+from humbldata.core.utils.constants import OBB_EQUITY_PRICE_HISTORICAL_PROVIDERS
+from humbldata.core.utils.descriptions import (
+    DATA_DESCRIPTIONS,
+    QUERY_DESCRIPTIONS,
+)
 
 
 class ToolboxQueryParams(QueryParams):
@@ -62,23 +67,28 @@ class ToolboxQueryParams(QueryParams):
 
     symbol: str = Field(
         default="",
-        title="The symbol/ticker of the stock",
+        title="Symbol/Ticker",
         description=QUERY_DESCRIPTIONS.get("symbol", ""),
     )
     interval: str | None = Field(
         default="1d",
-        title="The interval of the data",
+        title="Data Interval",
         description=QUERY_DESCRIPTIONS.get("interval", ""),
     )
     start_date: str = Field(
         default="",
-        title="The start date of the data",
+        title="start_date",
         description="The starting date for the data query.",
     )
     end_date: str = Field(
         default="",
-        title="The end date of the data",
+        title="end_date",
         description="The ending date for the data query.",
+    )
+    provider: OBB_EQUITY_PRICE_HISTORICAL_PROVIDERS = Field(
+        default="yfinance",
+        title="Data Provider",
+        description=QUERY_DESCRIPTIONS.get("provider", ""),
     )
 
     @field_validator("symbol", mode="before", check_fields=False)
@@ -98,6 +108,9 @@ class ToolboxQueryParams(QueryParams):
             The uppercase stock symbol or a comma-separated string of uppercase
             symbols.
         """
+        if not isinstance(v, str):
+            msg = "`symbol` must be a `str`"
+            raise ValueError(msg)  # noqa: TRY004
         if isinstance(v, str):
             return v.upper()
         return ",".join([symbol.upper() for symbol in list(v)])
@@ -113,3 +126,39 @@ class ToolboxData(Data):
     This HumblDataObject will return values in json/dict format, with methods
     to allow transformation into polars_df, pandas_df, a list, a dict...
     """
+
+    date: dt.date | dt.datetime = Field(
+        default=None,
+        title="Date",
+        description=DATA_DESCRIPTIONS.get("date", ""),
+    )
+    open: float = Field(
+        default=None,
+        title="Open",
+        description=DATA_DESCRIPTIONS.get("open", ""),
+    )
+    high: float = Field(
+        default=None,
+        title="High",
+        description=DATA_DESCRIPTIONS.get("high", ""),
+    )
+    low: float = Field(
+        default=None,
+        title="Low",
+        description=DATA_DESCRIPTIONS.get("low", ""),
+    )
+    close: float = Field(
+        default=None,
+        title="Close",
+        description=DATA_DESCRIPTIONS.get("close", ""),
+    )
+    volume: float | int = Field(
+        default=None,
+        title="Volume",
+        description=DATA_DESCRIPTIONS.get("volume", ""),
+    )
+    vwap: float = Field(
+        default=None,
+        title="VWAP",
+        description=DATA_DESCRIPTIONS.get("vwap", ""),
+    )

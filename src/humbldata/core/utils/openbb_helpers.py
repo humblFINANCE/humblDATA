@@ -13,6 +13,7 @@ import dotenv
 import polars as pl
 from openbb import obb
 
+from humbldata.core.utils.constants import OBB_EQUITY_PRICE_QUOTE_PROVIDERS
 from humbldata.core.utils.env import Env
 
 
@@ -77,39 +78,39 @@ def obb_login(pat: str | None = None) -> bool:
 
 def get_latest_price(
     symbol: str | list[str] | pl.Series,
-    provider: Literal["fmp", "intrinio"] | None = None,
+    provider: OBB_EQUITY_PRICE_QUOTE_PROVIDERS | None = "yfinance",
 ) -> pl.LazyFrame:
     """
     Context: Core || Category: Utils || Subcategory: OpenBB Helpers || **Command: get_latest_price**.
 
-    This function queries the latest stock price data using the specified
-    provider. If no provider is specified, it defaults to using
-    FinancialModelingPrep (`fmp`). The function returns a LazyFrame containing
-    the stock symbols and their corresponding latest prices.
+    Queries the latest stock price data for the given symbol(s) using the
+    specified provider. Defaults to YahooFinance (`yfinance`) if no provider is
+    specified. Returns a LazyFrame with the stock symbols and their latest prices.
 
     Parameters
     ----------
     symbol : str | list[str] | pl.Series
-        The stock symbol(s) for which to fetch the latest price. Can be a
-        single symbol, a list of symbols, or a Polars Series of symbols.
-
-    provider : Literal["fmp", "intrinio"] | None, optional
-        The data provider to use for fetching the stock prices. If not
-        specified, a default provider is used.
+        The stock symbol(s) to query for the latest price. Accepts a single
+        symbol, a list of symbols, or a Polars Series of symbols.
+    provider : OBB_EQUITY_PRICE_QUOTE_PROVIDERS, optional
+        The data provider for fetching stock prices. Defaults is `yfinance`,
+        in which case a default provider is used.
 
     Returns
     -------
     pl.LazyFrame
-        A Polars LazyFrame containing columns for the stock symbols ('symbol')
-        and their most recent prices ('last_price').
+        A Polars LazyFrame with columns for the stock symbols ('symbol') and
+        their latest prices ('last_price').
     """
     logging.getLogger("openbb_terminal.stocks.stocks_model").setLevel(
         logging.CRITICAL
     )
 
-    latest_prices = (
-        obb.equity.price.quote(symbol, provider=provider).to_polars().lazy()
-    )
-    return latest_prices.select(["symbol", "last_price"]).rename(
-        {"last_price": "recent_price"}
+    return (
+        obb.equity.price.quote(symbol, provider=provider)
+        .to_polars()
+        .lazy()
+        .select(["symbol", "last_price"])
+        .rename({"last_price": "recent_price"})
+        .collect()
     )

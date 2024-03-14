@@ -28,4 +28,71 @@ The point of CCCC is to make creation of Models, View & Controllers simpler.The 
     ??? abstract "`Command`"
         This is the smallest unit of code that can be executed.
 
-## CCCC Examples
+## CCCC Framework
+This is an example of how the CCCC framework can be used to create a simple API.
+This showcases the `mandelbrot_channel` **command**, in the `Technical` **category** from the `Toolbox` **context**.
+
+```mermaid
+classDiagram
+    class Toolbox {
+        <<Context>>
+        @property +technical
+    }
+    class Technical {
+        <<Category>>
+        -context_params: ToolboxQueryParams
+        +mandelbrot_channel(command_params: MandelbrotChannelQueryParams) HumblObject
+    }
+    class MandelbrotChannelQueryParams {
+        <<Standard Model (pydantic)>>
+        +window: str
+        +rv_adjustment: bool
+        -_rv_method: str
+        -_rs_method: str
+        -_rv_grouped_mean: bool
+        -_live_price: bool
+    }
+    class MandelbrotChannelData {
+        <<Standard Model (pydantic)>>
+        +date: date
+        +symbol: str
+        +bottom_price: f64
+        +recent_price: f64
+        +top_price: f64
+    }
+    class ToolboxQueryParams {
+        <<Standard Model (pydantic)>>
+        symbol: str
+        interval: str | None
+        start_date: str
+        end_date: str
+        provider: OBB_EQUITY_PRICE_HISTORICAL_PROVIDERS
+    }
+    class MandelbrotChannelFetcher {
+        -context_params: ToolboxQueryParams
+        +command_params: MandelbrotChannelQueryParams
+        +transform_query(self)
+        +extract_data(self)
+        +transform_data(self)
+        +fetch_data(self)  HumblObject
+    }
+
+    %% not actually a class
+    class mandelbrot_channel {
+        <<Command>>
+        +command_params: MandelbrotChannelQueryParams
+        +fetcher.fetch_data() HumblObject
+
+    }
+
+    Toolbox -->  Technical : returns
+    Technical --> mandelbrot_channel : returns
+    mandelbrot_channel <--> MandelbrotChannelFetcher : calls
+    MandelbrotChannelFetcher <-- MandelbrotChannelQueryParams : validates command query
+    MandelbrotChannelFetcher <-- MandelbrotChannelData : validates data
+    MandelbrotChannelFetcher <-- ToolboxQueryParams : validates context query
+
+
+    note for MandelbrotChannelFetcher "The 'Fetcher' uses the DUMB \n `calc_mandelbrot_channel()` \n function to perform the core \n command logic on the collected data."
+```
+

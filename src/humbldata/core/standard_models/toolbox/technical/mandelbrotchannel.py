@@ -10,6 +10,7 @@ Mandelbrot Channel command.
 from typing import TypeVar
 
 from openbb import obb
+from pydantic import Field
 
 from humbldata.core.standard_models.abstract.data import Data
 from humbldata.core.standard_models.abstract.query_params import QueryParams
@@ -21,8 +22,6 @@ Q = TypeVar("Q", bound=ToolboxQueryParams)
 class MandelbrotChannelQueryParams(QueryParams):
     """
     QueryParams for the Mandelbrot Channel command.
-
-
     """
 
 
@@ -30,6 +29,32 @@ class MandelbrotChannelData(Data):
     """
     Data model for the Mandelbrot Channel command.
     """
+
+    date: dt.date | dt.datetime = Field(
+        default=None,
+        title="Date",
+        description="The date of the data point.",
+    )
+    symbol: str = Field(
+        default=None,
+        title="Symbol",
+        description="The stock symbol.",
+    )
+    bottom_price: float = Field(
+        default=None,
+        title="Bottom Price",
+        description="The bottom price in the Mandelbrot Channel.",
+    )
+    recent_price: float = Field(
+        default=None,
+        title="Recent Price",
+        description="The most recent price within the Mandelbrot Channel.",
+    )
+    top_price: float = Field(
+        default=None,
+        title="Top Price",
+        description="The top price in the Mandelbrot Channel.",
+    )
 
 
 class MandelbrotChannelFetcher(
