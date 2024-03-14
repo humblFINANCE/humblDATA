@@ -7,6 +7,7 @@ This module is used to define the QueryParams and Data model for the
 Mandelbrot Channel command.
 """
 
+import datetime as dt
 from typing import TypeVar
 
 from openbb import obb

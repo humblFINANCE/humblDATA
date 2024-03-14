@@ -14,11 +14,6 @@ from polars import lazyframe
 from humbldata.core.standard_models.abstract.errors import (
     HumblDataError,
 )
-from humbldata.core.standard_models.toolbox import ToolboxQueryParams
-from humbldata.core.standard_models.toolbox.technical.mandelbrotchannel import (
-    MandelbrotChannelData,
-    MandelbrotChannelQueryParams,
-)
 from humbldata.core.utils.openbb_helpers import get_latest_price
 from humbldata.toolbox.technical.mandelbrot_channel.helpers import (
     add_window_index,
