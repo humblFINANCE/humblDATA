@@ -23,12 +23,14 @@ start_date : str
 end_date : str
     The end date of the data.
 """
+
 from typing import List, Optional, Set, Union
 
 from pydantic import Field, field_validator
 
 from humbldata.core.standard_models.abstract.data import Data
 from humbldata.core.standard_models.abstract.query_params import QueryParams
+from humbldata.core.utils.constants import OBB_EQUITY_PRICE_HISTORICAL_PROVIDERS
 from humbldata.core.utils.descriptions import QUERY_DESCRIPTIONS
 
 
@@ -62,23 +64,28 @@ class ToolboxQueryParams(QueryParams):
 
     symbol: str = Field(
         default="",
-        title="The symbol/ticker of the stock",
+        title="Symbol/Ticker",
         description=QUERY_DESCRIPTIONS.get("symbol", ""),
     )
     interval: str | None = Field(
         default="1d",
-        title="The interval of the data",
+        title="Data Interval",
         description=QUERY_DESCRIPTIONS.get("interval", ""),
     )
     start_date: str = Field(
         default="",
-        title="The start date of the data",
+        title="start_date",
         description="The starting date for the data query.",
     )
     end_date: str = Field(
         default="",
-        title="The end date of the data",
+        title="end_date",
         description="The ending date for the data query.",
+    )
+    provider: OBB_EQUITY_PRICE_HISTORICAL_PROVIDERS = Field(
+        default="yfinance",
+        title="Data Provider",
+        description=QUERY_DESCRIPTIONS.get("provider", ""),
     )
 
     @field_validator("symbol", mode="before", check_fields=False)
