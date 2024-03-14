@@ -1,3 +1,9 @@
+## v1.0.13 (2024-03-14)
+
+### 🐛🚑️ Fixes
+
+- **bump.yml**: removed random r character
+
 ## v1.0.12 (2024-03-14)
 
 ### 🐛🚑️ Fixes
