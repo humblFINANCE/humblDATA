@@ -1,3 +1,9 @@
+## v1.0.12 (2024-03-14)
+
+### 🐛🚑️ Fixes
+
+- **bump.yml**: replacing `startsWith` w/ `contains` to skip when commit has bump
+
 ## v1.0.11 (2024-03-14)
 
 ### 🐛🚑️ Fixes
