@@ -16,7 +16,7 @@ jobs:
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git fetch origin gh-pages --depth=1
+        #  git fetch origin gh-pages --depth=1
       - uses: actions/setup-python@v5
         with:
           python-version: 3.11.7
@@ -31,5 +31,6 @@ jobs:
         run: pip install poetry
       - name: Install dependencies with Poetry
         run: poetry install --with=dev
-      - run: poetry run mike deploy --push --update-alias ${GITHUB_REF#refs/tags/} latest
-
+      - name: Deploy Docs
+        # run: poetry run mike deploy --push --update-alias ${GITHUB_REF#refs/tags/} latest
+        run: poetry run mkdocs gh-deploy
