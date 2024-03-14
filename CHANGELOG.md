@@ -1,3 +1,9 @@
+## v1.0.17 (2024-03-14)
+
+### 🐛🚑️ Fixes
+
+- **docs.yml**: forcing the gh-deploy command
+
 ## v1.0.16 (2024-03-14)
 
 ### 🐛🚑️ Fixes
