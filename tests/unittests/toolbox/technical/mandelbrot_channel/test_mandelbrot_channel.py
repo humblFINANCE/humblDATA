@@ -1,0 +1,14 @@
+import polars as pl
+import pytest
+
+from humbldata.core.standard_models.abstract.errors import HumblDataError
+from humbldata.toolbox.technical.mandelbrot_channel.model import (
+    calc_mandelbrot_channel,
+    calc_mandelbrot_channel_historical,
+)
+
+
+def test_calc_mandelbrot_channel_invalid_data():
+    """Testing Input Validation"""
+    with pytest.raises(HumblDataError):
+        result = calc_mandelbrot_channel(data=pl.DataFrame().to_pandas())
