@@ -28,9 +28,9 @@ class Technical:
     """
 
     def __init__(self, context_params: ToolboxQueryParams):
-        self._context_params = context_params
+        self.context_params = context_params
 
-    def mandelbrot_channel(self, command_params: MandelbrotChannelQueryParams):
+    def mandelbrot_channel(self, **kwargs: MandelbrotChannelQueryParams):
         """
         Calculate the rescaled range statistics.
 
@@ -41,7 +41,9 @@ class Technical:
         )
 
         # Instantiate the Fetcher with the query parameters
-        fetcher = MandelbrotChannelFetcher(self._context_params, command_params)
+        fetcher = MandelbrotChannelFetcher(
+            context_params=self.context_params, command_params=kwargs
+        )
 
         # Use the fetcher to get the data
         return fetcher.fetch_data()

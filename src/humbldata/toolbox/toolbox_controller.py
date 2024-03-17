@@ -4,7 +4,6 @@
 The Toolbox Controller Module.
 """
 
-
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
 from humbldata.toolbox.technical.technical_controller import Technical
 
@@ -67,4 +66,4 @@ class Toolbox(ToolboxQueryParams):
 
         Access to all the technical indicators.
         """
-        return Technical(self)
+        return Technical(context_params=self)

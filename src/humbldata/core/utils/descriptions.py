@@ -19,7 +19,7 @@ QUERY_DESCRIPTIONS = {
 DATA_DESCRIPTIONS = {
     "symbol": "Symbol representing the entity requested in the data.",
     "cik": "Central Index Key (CIK) for the requested entity.",
-    "date": "The date of the data.",
+    "date": "The date of the data as a Date object, the returned data's original dtype",
     "open": "The open price.",
     "high": "The high price.",
     "low": "The low price.",

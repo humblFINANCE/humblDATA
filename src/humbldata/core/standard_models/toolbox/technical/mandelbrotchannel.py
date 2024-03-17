@@ -69,34 +69,36 @@ class MandelbrotChannelFetcher:
         context_params: ToolboxQueryParams,
         command_params: MandelbrotChannelQueryParams,
     ):
-        self._context_params = context_params
-        self._command_params = command_params
+        self.context_params = context_params
+        self.command_params = command_params
 
     def transform_query(self):
         """Transform the params to the command-specific query."""
 
     def extract_data(self):
         """Extract the data from the provider."""
-        # Assuming 'obb' is a predefined object in your context
         equity_historical_data = (
             obb.equity.price.historical(
-                symbol=self._context_params.symbol,
-                start_date=str(self._context_params.start_date),
-                end_date=str(self._context_params.end_date),
-                provider=self._context_params.provider,
-                **self._command_params.kwargs,
-            ).to_polars()
-        ).drop(["dividends", "stock_splits"], axis=1)
-        return equity_historical_data
+                symbol=self.context_params.symbol,
+                start_date=str(self.context_params.start_date),
+                end_date=str(self.context_params.end_date),
+                provider=self.context_params.provider,
+                # add kwargs
+            )
+            .to_polars()
+            .lazy()
+        ).drop(["dividends", "stock_splits"])
+        return equity_historical_data.collect()
 
     def transform_data(self):
         """Transform the command-specific data."""
         # Placeholder for data transformation logic
+        return self.raw_data
 
     def fetch_data(self):
         # Call the methods in the desired order
         query = self.transform_query()
-        raw_data = (
+        self.raw_data = (
             self.extract_data()
         )  # This should use 'query' to fetch the data
         transformed_data = (
