@@ -1,11 +1,9 @@
 """A wrapper around OpenBB Data Standardized Model to use with humbldata."""
 
-from openbb_core.provider.abstract.data import (
-    Data as OpenBBData,
-)
+import pandera.polars as pa
 
 
-class Data(OpenBBData):
+class Data(pa.DataFrameModel):
     """
     An abstract standard_model to represent a base Data Model.
 

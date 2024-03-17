@@ -108,9 +108,12 @@ class ToolboxQueryParams(QueryParams):
             The uppercase stock symbol or a comma-separated string of uppercase
             symbols.
         """
-        if not isinstance(v, str):
+        if isinstance(v, list) and not all(isinstance(item, str) for item in v):
+            msg = "Every element in `symbol` list must be a `str`"
+            raise ValueError(msg)
+        elif not isinstance(v, str):  # noqa: RET506
             msg = "`symbol` must be a `str`"
-            raise ValueError(msg)  # noqa: TRY004
+            raise ValueError(msg)
         if isinstance(v, str):
             return v.upper()
         return ",".join([symbol.upper() for symbol in list(v)])
