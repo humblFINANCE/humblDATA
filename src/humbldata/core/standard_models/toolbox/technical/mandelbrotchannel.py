@@ -17,6 +17,9 @@ from pydantic import Field
 from humbldata.core.standard_models.abstract.data import Data
 from humbldata.core.standard_models.abstract.query_params import QueryParams
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
+from humbldata.toolbox.technical.mandelbrot_channel.model import (
+    calc_mandelbrot_channel,
+)
 
 Q = TypeVar("Q", bound=ToolboxQueryParams)
 
@@ -93,6 +96,15 @@ class MandelbrotChannelFetcher:
     def transform_data(self):
         """Transform the command-specific data."""
         # Placeholder for data transformation logic
+        out = calc_mandelbrot_channel(
+            self.raw_data,
+            window="1y",
+            rv_adjustment=True,
+            _rv_method="yz",
+            _rv_grouped_mean=False,
+            _rs_method="RS",
+            _live_price=True,
+        ).collect()
         return self.raw_data
 
     def fetch_data(self):
