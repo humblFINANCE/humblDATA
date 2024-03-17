@@ -29,8 +29,11 @@ class MandelbrotChannelQueryParams(QueryParams):
     QueryParams for the Mandelbrot Channel command.
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    window: str = Field(
+        default="1m",
+        title="Window",
+        description="The window for the Mandelbrot Channel.",
+    )
 
 
 class MandelbrotChannelData(Data):
@@ -80,6 +83,9 @@ class MandelbrotChannelFetcher:
 
     def transform_query(self):
         """Transform the params to the command-specific query."""
+        if not self.command_params:
+            self.command_params = None
+        ## ASSIGN THE REST OF PARAMS, NONE IF EMPYT OR NOT PRESENT, will be set to default by class
         self.command_params = MandelbrotChannelQueryParams(self.command_params)
 
     def extract_data(self):
