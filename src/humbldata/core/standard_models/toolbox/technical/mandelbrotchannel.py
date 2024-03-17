@@ -10,6 +10,7 @@ Mandelbrot Channel command.
 import datetime as dt
 from typing import TypeVar
 
+import pandera.polars as pa
 from openbb import obb
 from pydantic import Field
 
@@ -31,27 +32,27 @@ class MandelbrotChannelData(Data):
     Data model for the Mandelbrot Channel command.
     """
 
-    date: dt.date | dt.datetime = Field(
+    date: dt.date | dt.datetime = pa.Field(
         default=None,
         title="Date",
         description="The date of the data point.",
     )
-    symbol: str = Field(
+    symbol: str = pa.Field(
         default=None,
         title="Symbol",
         description="The stock symbol.",
     )
-    bottom_price: float = Field(
+    bottom_price: float = pa.Field(
         default=None,
         title="Bottom Price",
         description="The bottom price in the Mandelbrot Channel.",
     )
-    recent_price: float = Field(
+    recent_price: float = pa.Field(
         default=None,
         title="Recent Price",
         description="The most recent price within the Mandelbrot Channel.",
     )
-    top_price: float = Field(
+    top_price: float = pa.Field(
         default=None,
         title="Top Price",
         description="The top price in the Mandelbrot Channel.",
@@ -77,17 +78,16 @@ class MandelbrotChannelFetcher:
     def extract_data(self):
         """Extract the data from the provider."""
         # Assuming 'obb' is a predefined object in your context
-        df = (
+        equity_historical_data = (
             obb.equity.price.historical(
-                symbol=self.context_params.symbol,
-                start_date=str(self.context_params.start_date),
-                end_date=str(self.context_params.end_date),
-                provider=self.command_params.provider,
-                verbose=not self.command_params.kwargs.get("silent", False),
-                **self.command_params.kwargs,
+                symbol=self._context_params.symbol,
+                start_date=str(self._context_params.start_date),
+                end_date=str(self._context_params.end_date),
+                provider=self._context_params.provider,
+                **self._command_params.kwargs,
             ).to_polars()
         ).drop(["dividends", "stock_splits"], axis=1)
-        return df
+        return equity_historical_data
 
     def transform_data(self):
         """Transform the command-specific data."""

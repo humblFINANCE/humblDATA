@@ -25,7 +25,10 @@ end_date : str
 """
 
 import datetime as dt
+from typing import Optional
 
+import pandera as pa
+import polars as pl
 import pytz
 from pydantic import Field, field_validator
 
@@ -76,6 +79,11 @@ class ToolboxQueryParams(QueryParams):
     ValueError
         If the `symbol` parameter is a list and not all elements are strings, or
         if `symbol` is not a string, list, or set.
+
+    Notes
+    -----
+    A Pydantic v2 Model
+
     """
 
     symbol: str | list[str] | set[str] = Field(
@@ -96,7 +104,7 @@ class ToolboxQueryParams(QueryParams):
     end_date: str = Field(
         default_factory=lambda: dt.datetime.now(
             tz=pytz.timezone("America/New_York")
-        ).strftime("%Y-%m-%d"),
+        ),
         title="end_date",
         description="The ending date for the data query.",
     )
@@ -145,38 +153,33 @@ class ToolboxData(Data):
     to allow transformation into polars_df, pandas_df, a list, a dict...
     """
 
-    date: dt.date | dt.datetime = Field(
+    date: pl.Date = pa.Field(
         default=None,
         title="Date",
         description=DATA_DESCRIPTIONS.get("date", ""),
     )
-    open: float = Field(
+    open: float = pa.Field(
         default=None,
         title="Open",
         description=DATA_DESCRIPTIONS.get("open", ""),
     )
-    high: float = Field(
+    high: float = pa.Field(
         default=None,
         title="High",
         description=DATA_DESCRIPTIONS.get("high", ""),
     )
-    low: float = Field(
+    low: float = pa.Field(
         default=None,
         title="Low",
         description=DATA_DESCRIPTIONS.get("low", ""),
     )
-    close: float = Field(
+    close: float = pa.Field(
         default=None,
         title="Close",
         description=DATA_DESCRIPTIONS.get("close", ""),
     )
-    volume: float | int = Field(
+    volume: int = pa.Field(
         default=None,
         title="Volume",
         description=DATA_DESCRIPTIONS.get("volume", ""),
-    )
-    vwap: float = Field(
-        default=None,
-        title="VWAP",
-        description=DATA_DESCRIPTIONS.get("vwap", ""),
     )
