@@ -29,6 +29,9 @@ class MandelbrotChannelQueryParams(QueryParams):
     QueryParams for the Mandelbrot Channel command.
     """
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
 
 class MandelbrotChannelData(Data):
     """
@@ -77,14 +80,15 @@ class MandelbrotChannelFetcher:
 
     def transform_query(self):
         """Transform the params to the command-specific query."""
+        self.command_params = MandelbrotChannelQueryParams(self.command_params)
 
     def extract_data(self):
         """Extract the data from the provider."""
         equity_historical_data = (
             obb.equity.price.historical(
                 symbol=self.context_params.symbol,
-                start_date=str(self.context_params.start_date),
-                end_date=str(self.context_params.end_date),
+                start_date=self.context_params.start_date,
+                end_date=self.context_params.end_date,
                 provider=self.context_params.provider,
                 # add kwargs
             )
@@ -98,7 +102,7 @@ class MandelbrotChannelFetcher:
         # Placeholder for data transformation logic
         out = calc_mandelbrot_channel(
             self.raw_data,
-            window="1y",
+            window=self.command_params.window,
             rv_adjustment=True,
             _rv_method="yz",
             _rv_grouped_mean=False,
