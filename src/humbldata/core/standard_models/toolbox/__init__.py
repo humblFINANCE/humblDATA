@@ -26,6 +26,7 @@ end_date : str
 
 import datetime as dt
 
+import pytz
 from pydantic import Field, field_validator
 
 from humbldata.core.standard_models.abstract.data import Data
@@ -44,17 +45,23 @@ class ToolboxQueryParams(QueryParams):
     This class defines the query parameters used by the ToolboxController,
     including the stock symbol, data interval, start date, and end date. It also
     includes a method to ensure the stock symbol is in uppercase.
+    If no dates constraints are given, it will collect the MAX amount of data
+    available.
 
-    Attributes
+    Parameters
     ----------
-    symbol : str
-        The symbol or ticker of the stock.
-    interval : Optional[str]
-        The interval of the data. Defaults to '1d'. Can be None.
-    start_date : str
+    symbol : str | list[str] | set[str], default=""
+        The symbol or ticker of the stock. You can pass multiple tickers like:
+        "AAPL", "AAPL, MSFT" or ["AAPL", "MSFT"]. The input will be converted
+        to uppercase.
+    interval : str | None, default="1d"
+        The interval of the data. Can be None.
+    start_date : str, default=""
         The start date for the data query.
-    end_date : str
+    end_date : str, default=""
         The end date for the data query.
+    provider : OBB_EQUITY_PRICE_HISTORICAL_PROVIDERS, default="yfinance"
+        The data provider to be used for the query.
 
     Methods
     -------
@@ -63,9 +70,15 @@ class ToolboxQueryParams(QueryParams):
         uppercase. If a list or set of symbols is provided, each symbol in the
         collection is converted to uppercase and returned as a comma-separated
         string.
+
+    Raises
+    ------
+    ValueError
+        If the `symbol` parameter is a list and not all elements are strings, or
+        if `symbol` is not a string, list, or set.
     """
 
-    symbol: str = Field(
+    symbol: str | list[str] | set[str] = Field(
         default="",
         title="Symbol/Ticker",
         description=QUERY_DESCRIPTIONS.get("symbol", ""),
@@ -76,12 +89,14 @@ class ToolboxQueryParams(QueryParams):
         description=QUERY_DESCRIPTIONS.get("interval", ""),
     )
     start_date: str = Field(
-        default="",
+        default="1950-01-01",
         title="start_date",
         description="The starting date for the data query.",
     )
     end_date: str = Field(
-        default="",
+        default_factory=lambda: dt.datetime.now(
+            tz=pytz.timezone("America/New_York")
+        ).strftime("%Y-%m-%d"),
         title="end_date",
         description="The ending date for the data query.",
     )

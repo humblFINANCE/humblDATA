@@ -58,9 +58,7 @@ class MandelbrotChannelData(Data):
     )
 
 
-class MandelbrotChannelFetcher(
-    MandelbrotChannelQueryParams, MandelbrotChannelData
-):
+class MandelbrotChannelFetcher:
     """
     Fetcher for the Mandelbrot Channel command.
     """
