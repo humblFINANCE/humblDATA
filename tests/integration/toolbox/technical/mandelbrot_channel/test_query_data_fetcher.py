@@ -2,7 +2,9 @@ import datetime
 
 import polars as pl
 import pytest
+from h11 import Data
 
+from humbldata.core.standard_models.toolbox import ToolboxQueryParams
 from humbldata.core.standard_models.toolbox.technical.mandelbrotchannel import (
     MandelbrotChannelData,
     MandelbrotChannelFetcher,
@@ -50,3 +52,30 @@ def mandelbrot_channel_data():
 
 def test_mandelbrot_channel_data_validation(mandelbrot_channel_data):
     MandelbrotChannelData(mandelbrot_channel_data)
+
+
+def test_mandelbrot_channel_fetcher():
+    """Test the integration of MandelbrotChannelFetcher with actual data fetching."""
+    fetcher = MandelbrotChannelFetcher(
+        context_params=ToolboxQueryParams(symbol="AMD"),
+        command_params=None,
+    )
+    data = fetcher.fetch_data()
+    assert not data.is_empty()
+    assert "date" in data.columns
+    assert "symbol" in data.columns
+    assert "bottom_price" in data.columns
+    assert "recent_price" in data.columns
+    assert "top_price" in data.columns
+
+
+def test_mandelbrot_channel_fetcher_integration():
+    """Test the MandelbrotChannelFetcher and validate the data with MandelbrotChannelData."""
+    fetcher = MandelbrotChannelFetcher(
+        context_params=ToolboxQueryParams(symbol="AMD"),
+        command_params=None,
+    )
+    data = fetcher.fetch_data()
+    assert not data.is_empty()
+
+    MandelbrotChannelData(data)

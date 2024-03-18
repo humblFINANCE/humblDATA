@@ -32,7 +32,7 @@ class Technical:
 
     def mandelbrot_channel(self, **kwargs: MandelbrotChannelQueryParams):
         """
-        Calculate the rescaled range statistics.
+        Calculate the Mandelbrot Channel.
 
         Explain the math...
         """

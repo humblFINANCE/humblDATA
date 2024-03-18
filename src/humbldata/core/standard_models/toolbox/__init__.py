@@ -87,30 +87,30 @@ class ToolboxQueryParams(QueryParams):
     """
 
     symbol: str | list[str] | set[str] = Field(
-        default="",
+        default="AAPL",
         title="Symbol/Ticker",
         description=QUERY_DESCRIPTIONS.get("symbol", ""),
     )
     interval: str | None = Field(
         default="1d",
-        title="Data Interval",
+        title="Interval",
         description=QUERY_DESCRIPTIONS.get("interval", ""),
     )
     start_date: dt.date | str = Field(
         default_factory=lambda: dt.date(1950, 1, 1),
-        title="start_date",
+        title="Start Date",
         description="The starting date for the data query.",
     )
     end_date: dt.date | str = Field(
         default_factory=lambda: dt.datetime.now(
             tz=pytz.timezone("America/New_York")
         ).date(),
-        title="end_date",
+        title="End Date",
         description="The ending date for the data query.",
     )
     provider: OBB_EQUITY_PRICE_HISTORICAL_PROVIDERS = Field(
         default="yfinance",
-        title="Data Provider",
+        title="Provider",
         description=QUERY_DESCRIPTIONS.get("provider", ""),
     )
 
