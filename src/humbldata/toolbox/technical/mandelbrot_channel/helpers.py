@@ -87,11 +87,6 @@ def add_window_index(
 
     window_monthly = _window_format_monthly(window)
 
-    # Adding a 'dummy' column if only one symbol is present in data, to avoid
-    # errors in the group_by_dynamic() function
-    if "symbol" not in data.columns:
-        data = data.with_columns(pl.lit("dummy").alias("symbol"))
-
     data = data.with_columns(
         _create_monthly_window_index(col="date", k=window_monthly)
         .alias("window_index")
