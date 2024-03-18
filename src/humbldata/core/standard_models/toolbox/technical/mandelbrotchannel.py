@@ -34,7 +34,31 @@ MANDELBROT_QUERY_DESCRIPTIONS = {
 
 
 class MandelbrotChannelQueryParams(QueryParams):
-    """QueryParams for the Mandelbrot Channel command."""
+    """
+    QueryParams model for the Mandelbrot Channel command, a Pydantic v2 model.
+
+    Parameters
+    ----------
+    window : str
+        The width of the window used for splitting the data into sections for detrending.
+        Defaults to "1m".
+    rv_adjustment : bool
+        Whether to adjust the calculation for realized volatility. If True, the data is filtered
+        to only include observations in the same volatility bucket that the stock is currently in.
+        Defaults to True.
+    rv_method : str
+        The method to calculate the realized volatility. Only need to define when rv_adjustment is True.
+        Defaults to "std".
+    rs_method : Literal["RS", "RS_min", "RS_max", "RS_mean"]
+        The method to use for Range/STD calculation. This is either, min, max or mean of all RS ranges
+        per window. If not defined, just used the most recent RS window. Defaults to "RS".
+    rv_grouped_mean : bool
+        Whether to calculate the mean value of realized volatility over multiple window lengths.
+        Defaults to False.
+    live_price : bool
+        Whether to calculate the ranges using the current live price, or the most recent 'close' observation.
+        Defaults to False.
+    """
 
     window: str = Field(
         default="1m",
@@ -69,7 +93,22 @@ class MandelbrotChannelQueryParams(QueryParams):
 
 
 class MandelbrotChannelData(Data):
-    """Data model for the Mandelbrot Channel command."""
+    """
+    Data model for the Mandelbrot Channel command, a Pandera.Polars Model.
+
+    Parameters
+    ----------
+    date : Union[dt.date, dt.datetime], optional
+        The date of the data point. Defaults to None.
+    symbol : str, optional
+        The stock symbol. Defaults to None.
+    bottom_price : float, optional
+        The bottom price in the Mandelbrot Channel. Defaults to None.
+    recent_price : float, optional
+        The most recent price within the Mandelbrot Channel. Defaults to None.
+    top_price : float, optional
+        The top price in the Mandelbrot Channel. Defaults to None.
+    """
 
     date: dt.date | dt.datetime = pa.Field(
         default=None,
@@ -99,18 +138,61 @@ class MandelbrotChannelData(Data):
 
 
 class MandelbrotChannelFetcher:
-    """Fetcher for the Mandelbrot Channel command."""
+    """
+    Fetcher for the Mandelbrot Channel command.
+
+    Parameters
+    ----------
+    context_params : ToolboxQueryParams
+        The context parameters for the toolbox query.
+    command_params : MandelbrotChannelQueryParams
+        The command-specific parameters for the Mandelbrot Channel query.
+
+    Attributes
+    ----------
+    context_params : ToolboxQueryParams
+        Stores the context parameters passed during initialization.
+    command_params : MandelbrotChannelQueryParams
+        Stores the command-specific parameters passed during initialization.
+    equity_historical_data : pl.DataFrame
+        The raw data extracted from the data provider, before transformation.
+
+    Methods
+    -------
+    transform_query()
+        Transform the command-specific parameters into a query.
+    extract_data()
+        Extracts the data from the provider and returns it as a Polars DataFrame.
+    transform_data()
+        Transforms the command-specific data according to the Mandelbrot Channel logic.
+    fetch_data()
+        Execute TET Pattern.
+    """
 
     def __init__(
         self,
         context_params: ToolboxQueryParams,
         command_params: MandelbrotChannelQueryParams,
     ):
+        """
+        Initialize the MandelbrotChannelFetcher with context and command parameters.
+
+        Parameters
+        ----------
+        context_params : ToolboxQueryParams
+            The context parameters for the toolbox query.
+        command_params : MandelbrotChannelQueryParams
+            The command-specific parameters for the Mandelbrot Channel query.
+        """
         self.context_params = context_params
         self.command_params = command_params
 
     def transform_query(self):
-        """Transform the params to the command-specific query."""
+        """
+        Transform the command-specific parameters into a query.
+
+        If command_params is not provided, it initializes a default MandelbrotChannelQueryParams object.
+        """
         if not self.command_params:
             self.command_params = None
             # Set Default Arguments
@@ -121,7 +203,16 @@ class MandelbrotChannelFetcher:
             )
 
     def extract_data(self):
-        """Extract the data from the provider."""
+        """
+        Extract the data from the provider and returns it as a Polars DataFrame.
+
+        Drops unnecessary columns like dividends and stock splits from the data.
+
+        Returns
+        -------
+        pl.DataFrame
+            The extracted data as a Polars DataFrame.
+        """
         equity_historical_data = (
             obb.equity.price.historical(
                 symbol=self.context_params.symbol,
@@ -136,10 +227,16 @@ class MandelbrotChannelFetcher:
         return equity_historical_data.collect()
 
     def transform_data(self):
-        """Transform the command-specific data."""
-        # Placeholder for data transformation logic
+        """
+        Transform the command-specific data according to the Mandelbrot Channel logic.
+
+        Returns
+        -------
+        pl.DataFrame
+            The transformed data as a Polars DataFrame
+        """
         out = calc_mandelbrot_channel(
-            self.raw_data,
+            self.equity_historical_data,
             window=self.command_params.window,
             rv_adjustment=self.command_params.rv_adjustment,
             _rv_method=self.command_params.rv_method,
@@ -150,14 +247,24 @@ class MandelbrotChannelFetcher:
         return out.collect()
 
     def fetch_data(self):
-        # Call the methods in the desired order
-        query = self.transform_query()
-        self.raw_data = (
-            self.extract_data()
-        )  # This should use 'query' to fetch the data
-        transformed_data = (
-            self.transform_data()
-        )  # This should transform 'raw_data'
+        """
+        Execute TET Pattern.
 
-        # Validate with MandelbrotChannelData, unpack dict into pydantic row by row
-        return transformed_data
+        This method executes the query transformation, data fetching and
+        transformation process by first calling `transform_query` to prepare the query parameters, then
+        extracting the raw data using `extract_data` method, and finally
+        transforming the raw data using `transform_data` method.
+
+        Returns
+        -------
+        pl.DataFrame
+            The transformed data as a Polars DataFrame, ready for further analysis
+            or visualization.
+        """
+        self.transform_query()  # Prepare the query parameters
+        self.equity_historical_data = (
+            self.extract_data()
+        )  # Extract the raw data using the prepared query
+        out = self.transform_data()  # Transform the raw data
+
+        return out
