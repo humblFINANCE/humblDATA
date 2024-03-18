@@ -292,7 +292,7 @@ class MandelbrotChannelFetcher:
             _rs_method=self.command_params.rs_method,
             _live_price=self.command_params.live_price,
         )
-        return out.collect()
+        return out
 
     def fetch_data(self):
         """
@@ -309,10 +309,8 @@ class MandelbrotChannelFetcher:
             The transformed data as a Polars DataFrame, ready for further analysis
             or visualization.
         """
-        self.transform_query()  # Prepare the query parameters
-        self.equity_historical_data = (
-            self.extract_data()
-        )  # Extract the raw data using the prepared query
-        out = self.transform_data()  # Transform the raw data
+        self.transform_query()
+        self.equity_historical_data = self.extract_data()
+        out = self.transform_data()
 
-        return out
+        return MandelbrotChannelData(out).collect()
