@@ -86,7 +86,7 @@ class ToolboxQueryParams(QueryParams):
 
     """
 
-    symbol: str | list[str] | set[str] = Field(
+    symbol: str | list[str] = Field(
         default="AAPL",
         title="Symbol/Ticker",
         description=QUERY_DESCRIPTIONS.get("symbol", ""),
@@ -131,15 +131,16 @@ class ToolboxQueryParams(QueryParams):
             The uppercase stock symbol or a comma-separated string of uppercase
             symbols.
         """
-        if isinstance(v, list) and not all(isinstance(item, str) for item in v):
+        # If v is a string, split it by commas into a list. Otherwise, ensure it's a list.
+        v = v.split(",") if isinstance(v, str) else v
+
+        # Trim whitespace and check if all elements in the list are strings
+        if not all(isinstance(item.strip(), str) for item in v):
             msg = "Every element in `symbol` list must be a `str`"
             raise ValueError(msg)
-        elif not isinstance(v, str):  # noqa: RET506
-            msg = "`symbol` must be a `str`"
-            raise ValueError(msg)
-        if isinstance(v, str):
-            return v.upper()
-        return ",".join([symbol.upper() for symbol in list(v)])
+
+        # Convert all elements to uppercase, trim whitespace, and join them with a comma
+        return ",".join([symbol.strip().upper() for symbol in v])
 
 
 class ToolboxData(Data):
