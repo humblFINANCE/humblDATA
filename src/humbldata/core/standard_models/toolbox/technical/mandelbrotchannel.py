@@ -146,8 +146,8 @@ class MandelbrotChannelFetcher:
             _rv_grouped_mean=self.command_params.rv_grouped_mean,
             _rs_method=self.command_params.rs_method,
             _live_price=self.command_params.live_price,
-        ).collect()
-        return self.raw_data
+        )
+        return out.collect()
 
     def fetch_data(self):
         # Call the methods in the desired order
