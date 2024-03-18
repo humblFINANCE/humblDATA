@@ -140,7 +140,7 @@ class ToolboxQueryParams(QueryParams):
             raise ValueError(msg)
 
         # Convert all elements to uppercase, trim whitespace, and join them with a comma
-        return ",".join([symbol.strip().upper() for symbol in v])
+        return [symbol.strip().upper() for symbol in v]
 
 
 class ToolboxData(Data):
