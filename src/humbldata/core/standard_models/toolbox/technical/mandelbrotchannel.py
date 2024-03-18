@@ -8,7 +8,7 @@ Mandelbrot Channel command.
 """
 
 import datetime as dt
-from typing import TypeVar
+from typing import Literal, TypeVar
 
 import pandera.polars as pa
 from openbb import obb
@@ -23,23 +23,53 @@ from humbldata.toolbox.technical.mandelbrot_channel.model import (
 
 Q = TypeVar("Q", bound=ToolboxQueryParams)
 
+MANDELBROT_QUERY_DESCRIPTIONS = {
+    "window": "The width of the window used for splitting the data into sections for detrending.",
+    "rv_adjustment": "Whether to adjust the calculation for realized volatility. If True, the data is filtered to only include observations in the same volatility bucket that the stock is currently in.",
+    "rv_method": "The method to calculate the realized volatility. Only need to define when rv_adjustment is True.",
+    "rs_method": "The method to use for Range/STD calculation. THis is either, min, max or mean of all RS ranges per window. If not defined, just used the most recent RS window",
+    "rv_grouped_mean": "Whether to calculate the the mean value of realized volatility over multiple window lengths",
+    "live_price": "Whether to calculate the ranges using the current live price, or the most recent 'close' observation.",
+}
+
 
 class MandelbrotChannelQueryParams(QueryParams):
-    """
-    QueryParams for the Mandelbrot Channel command.
-    """
+    """QueryParams for the Mandelbrot Channel command."""
 
     window: str = Field(
         default="1m",
         title="Window",
-        description="The window for the Mandelbrot Channel.",
+        description=MANDELBROT_QUERY_DESCRIPTIONS.get("window", ""),
+    )
+    rv_adjustment: bool = Field(
+        default=True,
+        title="Realized Volatility Adjustment",
+        description=MANDELBROT_QUERY_DESCRIPTIONS.get("rv_adjustment", ""),
+    )
+    rv_method: str = Field(
+        default="std",
+        title="Realized Volatility Method",
+        description=MANDELBROT_QUERY_DESCRIPTIONS.get("rv_method", ""),
+    )
+    rs_method: Literal["RS", "RS_min", "RS_max", "RS_mean"] = Field(
+        default="RS",
+        title="R/S Method",
+        description=MANDELBROT_QUERY_DESCRIPTIONS.get("rs_method", ""),
+    )
+    rv_grouped_mean: bool = Field(
+        default=False,
+        title="Realized Volatility Grouped Mean",
+        description=MANDELBROT_QUERY_DESCRIPTIONS.get("rv_grouped_mean", ""),
+    )
+    live_price: bool = Field(
+        default=False,
+        title="Live Price",
+        description=MANDELBROT_QUERY_DESCRIPTIONS.get("live_price", ""),
     )
 
 
 class MandelbrotChannelData(Data):
-    """
-    Data model for the Mandelbrot Channel command.
-    """
+    """Data model for the Mandelbrot Channel command."""
 
     date: dt.date | dt.datetime = pa.Field(
         default=None,
@@ -69,9 +99,7 @@ class MandelbrotChannelData(Data):
 
 
 class MandelbrotChannelFetcher:
-    """
-    Fetcher for the Mandelbrot Channel command.
-    """
+    """Fetcher for the Mandelbrot Channel command."""
 
     def __init__(
         self,
@@ -85,8 +113,12 @@ class MandelbrotChannelFetcher:
         """Transform the params to the command-specific query."""
         if not self.command_params:
             self.command_params = None
-        ## ASSIGN THE REST OF PARAMS, NONE IF EMPYT OR NOT PRESENT, will be set to default by class
-        self.command_params = MandelbrotChannelQueryParams(self.command_params)
+            # Set Default Arguments
+            self.command_params = MandelbrotChannelQueryParams()
+        else:
+            self.command_params = MandelbrotChannelQueryParams(
+                **self.command_params
+            )
 
     def extract_data(self):
         """Extract the data from the provider."""
@@ -109,11 +141,11 @@ class MandelbrotChannelFetcher:
         out = calc_mandelbrot_channel(
             self.raw_data,
             window=self.command_params.window,
-            rv_adjustment=True,
-            _rv_method="yz",
-            _rv_grouped_mean=False,
-            _rs_method="RS",
-            _live_price=True,
+            rv_adjustment=self.command_params.rv_adjustment,
+            _rv_method=self.command_params.rv_method,
+            _rv_grouped_mean=self.command_params.rv_grouped_mean,
+            _rs_method=self.command_params.rs_method,
+            _live_price=self.command_params.live_price,
         ).collect()
         return self.raw_data
 

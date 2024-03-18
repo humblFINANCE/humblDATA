@@ -59,7 +59,9 @@ def calc_mandelbrot_channel(
     window: str, default "1m"
         The window size for the calculation, specified as a string.
     rv_adjustment: bool, default True
-        Whether to adjust the calculation for realized volatility.
+        Whether to adjust the calculation for realized volatility. If True, the
+        data is filtered to only include observations in the same volatility
+        bucket that the stock is currently in.
     _rv_grouped_mean: bool, default True
         Whether to use the grouped mean in the realized volatility calculation.
     _rv_method: str, default "std"
