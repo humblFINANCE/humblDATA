@@ -11,6 +11,7 @@ import datetime as dt
 from typing import Literal, TypeVar
 
 import pandera.polars as pa
+import polars as pl
 from openbb import obb
 from pydantic import Field, field_validator
 
@@ -71,9 +72,22 @@ class MandelbrotChannelQueryParams(QueryParams):
         title="Realized Volatility Adjustment",
         description=MANDELBROT_QUERY_DESCRIPTIONS.get("rv_adjustment", ""),
     )
-    rv_method: str = Field(
+    rv_method: Literal[
+        "std",
+        "parkinson",
+        "garman_klass",
+        "gk",
+        "hodges_tompkins",
+        "ht",
+        "rogers_satchell",
+        "rs",
+        "yang_zhang",
+        "yz",
+        "squared_returns",
+        "sq",
+    ] = Field(
         default="std",
-        title="Realized Volatility Method",a
+        title="Realized Volatility Method",
         description=MANDELBROT_QUERY_DESCRIPTIONS.get("rv_method", ""),
     )
     rs_method: Literal["RS", "RS_min", "RS_max", "RS_mean"] = Field(
@@ -92,7 +106,7 @@ class MandelbrotChannelQueryParams(QueryParams):
         description=MANDELBROT_QUERY_DESCRIPTIONS.get("live_price", ""),
     )
 
-    @field_validator("window", mode="before", check_fields=False)
+    @field_validator("window", mode="after", check_fields=False)
     @classmethod
     def window_format(cls, v: str) -> str:
         """
@@ -138,7 +152,7 @@ class MandelbrotChannelData(Data):
         The top price in the Mandelbrot Channel. Defaults to None.
     """
 
-    date: dt.date | dt.datetime = pa.Field(
+    date: pl.Date = pa.Field(
         default=None,
         title="Date",
         description="The date of the data point.",

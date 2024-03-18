@@ -78,7 +78,7 @@ def add_window_index(
         day_indicator = pl.col(col).dt.day() > pl.col(col).last().dt.day()
         return (12 * year_diff + month_diff - day_indicator) // k
 
-    # Clean the window into stnaardized strings (i.e "1month"/"1 month" = "1mo")
+    # Clean the window into standardized strings (i.e "1month"/"1 month" = "1mo")
     window = _window_format(window, _return_timedelta=False)  # returns `str`
 
     if "w" in window or "d" in window:
