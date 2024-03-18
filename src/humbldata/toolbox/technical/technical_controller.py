@@ -6,7 +6,7 @@ access to the technical module and its functions.
 """
 
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
-from humbldata.core.standard_models.toolbox.technical.mandelbrotchannel import (
+from humbldata.core.standard_models.toolbox.technical.mandelbrot_channel import (
     MandelbrotChannelQueryParams,
 )
 
@@ -36,7 +36,7 @@ class Technical:
 
         Explain the math...
         """
-        from humbldata.core.standard_models.toolbox.technical.mandelbrotchannel import (
+        from humbldata.core.standard_models.toolbox.technical.mandelbrot_channel import (
             MandelbrotChannelFetcher,
         )
 

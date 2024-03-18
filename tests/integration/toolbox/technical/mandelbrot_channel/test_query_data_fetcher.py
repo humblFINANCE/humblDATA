@@ -5,7 +5,7 @@ import pytest
 from h11 import Data
 
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
-from humbldata.core.standard_models.toolbox.technical.mandelbrotchannel import (
+from humbldata.core.standard_models.toolbox.technical.mandelbrot_channel import (
     MandelbrotChannelData,
     MandelbrotChannelFetcher,
     MandelbrotChannelQueryParams,
