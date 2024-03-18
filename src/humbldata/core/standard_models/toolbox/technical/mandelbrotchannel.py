@@ -266,6 +266,12 @@ class MandelbrotChannelFetcher:
             .to_polars()
             .lazy()
         ).drop(["dividends", "stock_splits"])
+
+        if len(self.context_params.symbol) == 1:
+            equity_historical_data = equity_historical_data.with_columns(
+                symbol=pl.lit(self.context_params.symbol[0])
+            )
+
         return equity_historical_data.collect()
 
     def transform_data(self):
