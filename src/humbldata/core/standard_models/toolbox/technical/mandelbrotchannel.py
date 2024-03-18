@@ -12,7 +12,7 @@ from typing import Literal, TypeVar
 
 import pandera.polars as pa
 from openbb import obb
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from humbldata.core.standard_models.abstract.data import Data
 from humbldata.core.standard_models.abstract.query_params import QueryParams
@@ -20,6 +20,7 @@ from humbldata.core.standard_models.toolbox import ToolboxQueryParams
 from humbldata.toolbox.technical.mandelbrot_channel.model import (
     calc_mandelbrot_channel,
 )
+from humbldata.toolbox.toolbox_helpers import _window_format
 
 Q = TypeVar("Q", bound=ToolboxQueryParams)
 
@@ -61,7 +62,7 @@ class MandelbrotChannelQueryParams(QueryParams):
     """
 
     window: str = Field(
-        default="1m",
+        default="1mo",
         title="Window",
         description=MANDELBROT_QUERY_DESCRIPTIONS.get("window", ""),
     )
@@ -72,7 +73,7 @@ class MandelbrotChannelQueryParams(QueryParams):
     )
     rv_method: str = Field(
         default="std",
-        title="Realized Volatility Method",
+        title="Realized Volatility Method",a
         description=MANDELBROT_QUERY_DESCRIPTIONS.get("rv_method", ""),
     )
     rs_method: Literal["RS", "RS_min", "RS_max", "RS_mean"] = Field(
@@ -90,6 +91,33 @@ class MandelbrotChannelQueryParams(QueryParams):
         title="Live Price",
         description=MANDELBROT_QUERY_DESCRIPTIONS.get("live_price", ""),
     )
+
+    @field_validator("window", mode="before", check_fields=False)
+    @classmethod
+    def window_format(cls, v: str) -> str:
+        """
+        Format the window string into a standardized format.
+
+        Parameters
+        ----------
+        v : str
+            The window size as a string.
+
+        Returns
+        -------
+        str
+            The window string in a standardized format.
+
+        Raises
+        ------
+        ValueError
+            If the input is not a string.
+        """
+        if isinstance(v, str):
+            return _window_format(v, _return_timedelta=False)
+        else:
+            msg = "Window must be a string."
+            raise ValueError(msg)
 
 
 class MandelbrotChannelData(Data):

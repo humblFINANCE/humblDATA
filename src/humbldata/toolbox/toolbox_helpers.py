@@ -42,6 +42,7 @@ def _window_format(
         The end date of the window. If not provided, the current UTC date is used.
     _return_timedelta : bool, optional
         A flag to determine if the return type should be a timedelta object.
+        If False, the function just "cleans" the window string and returns it.
         Default is True.
     _avg_trading_days : bool, optional
         A flag to determine if the average trading days should be considered in
