@@ -25,7 +25,11 @@ end_date : str
 """
 
 import datetime as dt
+from typing import Optional
 
+import pandera as pa
+import polars as pl
+import pytz
 from pydantic import Field, field_validator
 
 from humbldata.core.standard_models.abstract.data import Data
@@ -44,17 +48,23 @@ class ToolboxQueryParams(QueryParams):
     This class defines the query parameters used by the ToolboxController,
     including the stock symbol, data interval, start date, and end date. It also
     includes a method to ensure the stock symbol is in uppercase.
+    If no dates constraints are given, it will collect the MAX amount of data
+    available.
 
-    Attributes
+    Parameters
     ----------
-    symbol : str
-        The symbol or ticker of the stock.
-    interval : Optional[str]
-        The interval of the data. Defaults to '1d'. Can be None.
-    start_date : str
+    symbol : str | list[str] | set[str], default=""
+        The symbol or ticker of the stock. You can pass multiple tickers like:
+        "AAPL", "AAPL, MSFT" or ["AAPL", "MSFT"]. The input will be converted
+        to uppercase.
+    interval : str | None, default="1d"
+        The interval of the data. Can be None.
+    start_date : str, default=""
         The start date for the data query.
-    end_date : str
+    end_date : str, default=""
         The end date for the data query.
+    provider : OBB_EQUITY_PRICE_HISTORICAL_PROVIDERS, default="yfinance"
+        The data provider to be used for the query.
 
     Methods
     -------
@@ -63,31 +73,44 @@ class ToolboxQueryParams(QueryParams):
         uppercase. If a list or set of symbols is provided, each symbol in the
         collection is converted to uppercase and returned as a comma-separated
         string.
+
+    Raises
+    ------
+    ValueError
+        If the `symbol` parameter is a list and not all elements are strings, or
+        if `symbol` is not a string, list, or set.
+
+    Notes
+    -----
+    A Pydantic v2 Model
+
     """
 
-    symbol: str = Field(
-        default="",
+    symbol: str | list[str] = Field(
+        default="AAPL",
         title="Symbol/Ticker",
         description=QUERY_DESCRIPTIONS.get("symbol", ""),
     )
     interval: str | None = Field(
         default="1d",
-        title="Data Interval",
+        title="Interval",
         description=QUERY_DESCRIPTIONS.get("interval", ""),
     )
-    start_date: str = Field(
-        default="",
-        title="start_date",
+    start_date: dt.date | str = Field(
+        default_factory=lambda: dt.date(1950, 1, 1),
+        title="Start Date",
         description="The starting date for the data query.",
     )
-    end_date: str = Field(
-        default="",
-        title="end_date",
+    end_date: dt.date | str = Field(
+        default_factory=lambda: dt.datetime.now(
+            tz=pytz.timezone("America/New_York")
+        ).date(),
+        title="End Date",
         description="The ending date for the data query.",
     )
     provider: OBB_EQUITY_PRICE_HISTORICAL_PROVIDERS = Field(
         default="yfinance",
-        title="Data Provider",
+        title="Provider",
         description=QUERY_DESCRIPTIONS.get("provider", ""),
     )
 
@@ -108,12 +131,16 @@ class ToolboxQueryParams(QueryParams):
             The uppercase stock symbol or a comma-separated string of uppercase
             symbols.
         """
-        if not isinstance(v, str):
-            msg = "`symbol` must be a `str`"
-            raise ValueError(msg)  # noqa: TRY004
-        if isinstance(v, str):
-            return v.upper()
-        return ",".join([symbol.upper() for symbol in list(v)])
+        # If v is a string, split it by commas into a list. Otherwise, ensure it's a list.
+        v = v.split(",") if isinstance(v, str) else v
+
+        # Trim whitespace and check if all elements in the list are strings
+        if not all(isinstance(item.strip(), str) for item in v):
+            msg = "Every element in `symbol` list must be a `str`"
+            raise ValueError(msg)
+
+        # Convert all elements to uppercase, trim whitespace, and join them with a comma
+        return [symbol.strip().upper() for symbol in v]
 
 
 class ToolboxData(Data):
@@ -127,38 +154,33 @@ class ToolboxData(Data):
     to allow transformation into polars_df, pandas_df, a list, a dict...
     """
 
-    date: dt.date | dt.datetime = Field(
+    date: pl.Date = pa.Field(
         default=None,
         title="Date",
         description=DATA_DESCRIPTIONS.get("date", ""),
     )
-    open: float = Field(
+    open: float = pa.Field(
         default=None,
         title="Open",
         description=DATA_DESCRIPTIONS.get("open", ""),
     )
-    high: float = Field(
+    high: float = pa.Field(
         default=None,
         title="High",
         description=DATA_DESCRIPTIONS.get("high", ""),
     )
-    low: float = Field(
+    low: float = pa.Field(
         default=None,
         title="Low",
         description=DATA_DESCRIPTIONS.get("low", ""),
     )
-    close: float = Field(
+    close: float = pa.Field(
         default=None,
         title="Close",
         description=DATA_DESCRIPTIONS.get("close", ""),
     )
-    volume: float | int = Field(
+    volume: int = pa.Field(
         default=None,
         title="Volume",
         description=DATA_DESCRIPTIONS.get("volume", ""),
-    )
-    vwap: float = Field(
-        default=None,
-        title="VWAP",
-        description=DATA_DESCRIPTIONS.get("vwap", ""),
     )

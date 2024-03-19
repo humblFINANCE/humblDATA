@@ -6,7 +6,7 @@ access to the technical module and its functions.
 """
 
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
-from humbldata.core.standard_models.toolbox.technical.mandelbrotchannel import (
+from humbldata.core.standard_models.toolbox.technical.mandelbrot_channel import (
     MandelbrotChannelQueryParams,
 )
 
@@ -28,20 +28,22 @@ class Technical:
     """
 
     def __init__(self, context_params: ToolboxQueryParams):
-        self._context_params = context_params
+        self.context_params = context_params
 
-    def mandelbrot_channel(self, command_params: MandelbrotChannelQueryParams):
+    def mandelbrot_channel(self, **kwargs: MandelbrotChannelQueryParams):
         """
-        Calculate the rescaled range statistics.
+        Calculate the Mandelbrot Channel.
 
         Explain the math...
         """
-        from humbldata.core.standard_models.toolbox.technical.mandelbrotchannel import (
+        from humbldata.core.standard_models.toolbox.technical.mandelbrot_channel import (
             MandelbrotChannelFetcher,
         )
 
         # Instantiate the Fetcher with the query parameters
-        fetcher = MandelbrotChannelFetcher(self._context_params, command_params)
+        fetcher = MandelbrotChannelFetcher(
+            context_params=self.context_params, command_params=kwargs
+        )
 
         # Use the fetcher to get the data
         return fetcher.fetch_data()

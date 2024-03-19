@@ -42,6 +42,7 @@ def _window_format(
         The end date of the window. If not provided, the current UTC date is used.
     _return_timedelta : bool, optional
         A flag to determine if the return type should be a timedelta object.
+        If False, the function just "cleans" the window string and returns it.
         Default is True.
     _avg_trading_days : bool, optional
         A flag to determine if the average trading days should be considered in
@@ -77,12 +78,6 @@ def _window_format(
     This allows for rolling based on an integer index in Polars functions by
     using the `1i` syntax.
     """  # noqa: W505
-    # Determine the 'latest' date if not provided. This is used to correctly calculate the  number of days in a window
-    if not end_date:
-        end_date = datetime.utcnow()
-    if isinstance(end_date, str):
-        end_date = datetime.strptime(end_date, "%Y-%m-%d").replace(tzinfo=UTC)
-
     # Separate the number and window part
     num = "".join(filter(str.isdigit, window))
     # Find the first character after the number in the window string
@@ -122,7 +117,13 @@ def _window_format(
         elif _avg_trading_days:
             window_periods = {"d": 1, "w": 5, "mo": 21, "q": 63, "y": 252}
             out = timedelta(days=window_periods[window_part] * num)
-
+        # Determine the 'latest' date if not provided. This is used to correctly calculate the  number of days in a window
+        if not end_date:
+            end_date = datetime.utcnow()
+        if isinstance(end_date, str):
+            end_date = datetime.strptime(end_date, "%Y-%m-%d").replace(
+                tzinfo=UTC
+            )
         # Conversion to datetime object, to get days
         then = end_date - out
         out = end_date - then

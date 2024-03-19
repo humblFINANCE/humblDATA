@@ -47,42 +47,59 @@ def calc_mandelbrot_channel(
     _live_price: bool = True,
 ) -> pl.LazyFrame:
     """
-    Context: Toolbox || Category: Technical || Sub-Category: Mandelbrot Channel || **Command: calc_mandelbrot_channel`.
+    Context: Toolbox || Category: Technical || Sub-Category: Mandelbrot Channel || **Command: calc_mandelbrot_channel**.
 
-    Calculates the Mandelbrot Channel for a given time series based on the
-    provided standard and extra parameters.
+    This command calculates the Mandelbrot Channel for a given time series, utilizing various parameters to adjust the calculation. The Mandelbrot Channel provides insights into the volatility and price range of a stock over a specified window.
 
     Parameters
     ----------
     data: pl.DataFrame | pl.LazyFrame
         The time series data for which to calculate the Mandelbrot Channel.
     window: str, default "1m"
-        The window size for the calculation, specified as a string.
+        The window size for the calculation, specified as a string. This
+        determines the period over which the channel is calculated.
     rv_adjustment: bool, default True
-        Whether to adjust the calculation for realized volatility.
+        Adjusts the calculation for realized volatility. If True, filters the
+        data to include only observations within the current volatility bucket
+        of the stock.
     _rv_grouped_mean: bool, default True
-        Whether to use the grouped mean in the realized volatility calculation.
+        Determines whether to use the grouped mean in the realized volatility
+        calculation.
     _rv_method: str, default "std"
-        The method to use for calculating realized volatility. You only need to
-        supply a value if `rv_adjustment` is True.
+        Specifies the method for calculating realized volatility, applicable
+        only if `rv_adjustment` is True.
     _rs_method: str, default "RS"
-        The method to use for calculating the range over standard deviation.
-        You can choose either RS/RS_mean/RS_min/RS_max. This changes the width of
-        the calculated Mandelbrot Channel
+        Defines the method for calculating the range over standard deviation,
+        affecting the width of the Mandelbrot Channel. Options include RS,
+        RS_mean, RS_min, and RS_max.
     _live_price: bool, default True
-        Whether to use live price data in the calculation. This may add a
-        significant amount of time to the calculation (1-3s)
+        Indicates whether to incorporate live price data into the calculation,
+        which may extend the calculation time by 1-3 seconds.
 
     Returns
     -------
     pl.LazyFrame
-        The calculated Mandelbrot Channel data for the given time series.
+        A LazyFrame containing the calculated Mandelbrot Channel data for the specified time series.
 
     Notes
     -----
-    Since the function returns a pl.LazyFrame, don't forget to run `.collect()`
-    on the output to get a DataFrame. Lazy logic saves the calculation for when
-    it is needed.
+    The function returns a pl.LazyFrame; remember to call `.collect()` on the result to obtain a DataFrame. This lazy evaluation strategy postpones the calculation until it is explicitly requested.
+
+    Example
+    -------
+    To calculate the Mandelbrot Channel for a yearly window with adjustments for realized volatility using the 'yz' method, and incorporating live price data:
+
+    ```python
+    mandelbrot_channel = calc_mandelbrot_channel(
+        data,
+        window="1y",
+        rv_adjustment=True,
+        _rv_method="yz",
+        _rv_grouped_mean=False,
+        _rs_method="RS",
+        _live_price=True
+    ).collect()
+    ```
     """
     # Setup ====================================================================
     window_int = _window_format(window, _return_timedelta=True)
