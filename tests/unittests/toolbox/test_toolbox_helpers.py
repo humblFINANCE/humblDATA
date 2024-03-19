@@ -232,7 +232,7 @@ def test_cum_sum(equity_historical_single_1y_window_index_3m_df):
         _column_name="close",
         _mandelbrot_usage=False,
     )
-    locked_value = result.select("cum_sum").unique().sum().to_series()[0]
+    locked_value = result.select("cum_sum").unique().sum().row(0)[0]
 
     assert locked_value == pytest.approx(1341081.62, 0.01)
 
@@ -344,7 +344,7 @@ def test_range_over_symbol(
             result.select(pl.col(f"{column_name}_range"))
             .unique()
             .sum()
-            .to_series()[0],
+            .row(0)[0],
             0.01,
         )
         == 223.88
@@ -367,7 +367,7 @@ def test_range_over_window_index(
             result.select(pl.col(f"{column_name}_range"))
             .unique()
             .sum()
-            .to_series()[0],
+            .row(0)[0],
             0.01,
         )
         == 122.42
@@ -392,7 +392,7 @@ def test_std_over_symbol(
         _column_name=column_name,
     )
     no_stds = len(result.select(pl.col("close_std")).unique())
-    std_sum = result.select(pl.col("close_std")).unique().sum().to_series()[0]
+    std_sum = result.select(pl.col("close_std")).unique().sum().row(0)[0]
     assert no_stds == 4
     assert (
         pytest.approx(std_sum, 0.01) == 53.48
@@ -406,7 +406,7 @@ def test_std_over_window_index(equity_historical_single_1y_window_index_3m_df):
         _column_name="close",
     )
     no_stds = len(result.select(pl.col("close_std")).unique())
-    std_sum = result.select(pl.col("close_std")).unique().sum().to_series()[0]
+    std_sum = result.select(pl.col("close_std")).unique().sum().row(0)[0]
     assert no_stds == 4
     assert (
         pytest.approx(std_sum, 0.01) == 34.48
@@ -424,7 +424,7 @@ def test_mean_over_window_index(equity_historical_single_1y_window_index_3m_df):
     no_means = len(result.select("window_mean").unique())
     assert no_means == 4
 
-    means_sum = result.select("window_mean").unique().sum().to_series()[0]
+    means_sum = result.select("window_mean").unique().sum().row(0)[0]
 
     assert (
         pytest.approx(means_sum, 0.01) == 686.57
@@ -441,7 +441,7 @@ def test_mean_over_window_index(equity_historical_multiple_1y_df):
     no_means = len(result.select("window_mean").unique())
     assert no_means == 4
 
-    means_sum = result.select("window_mean").unique().sum().to_series()[0]
+    means_sum = result.select("window_mean").unique().sum().row(0)[0]
 
     assert (
         pytest.approx(means_sum, 0.01) == 401.36

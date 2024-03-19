@@ -265,17 +265,17 @@ def test_vol_buckets(
     high_bucket_count = (
         result.filter(pl.col("vol_bucket") == "high")
         .select(pl.col("len"))
-        .to_series()[0]
+        .row(0)[0]
     )
     mid_bucket_count = (
         result.filter(pl.col("vol_bucket") == "mid")
         .select(pl.col("len"))
-        .to_series()[0]
+        .row(0)[0]
     )
     low_bucket_count = (
         result.filter(pl.col("vol_bucket") == "low")
         .select(pl.col("len"))
-        .to_series()[0]
+        .row(0)[0]
     )
     current_param = request.node.callspec.params.get("equity_historical_rv")
 
@@ -334,14 +334,14 @@ def test_vol_filter(
             .agg(pl.len())
             .filter(pl.col("vol_bucket") == "mid")
             .select(pl.col("len"))
-            .to_series()[0]
+            .row(0)[0]
         )
         low_bucket_filtered_count = (
             result.group_by("vol_bucket")
             .agg(pl.len())
             .filter(pl.col("vol_bucket") == "low")
             .select(pl.col("len"))
-            .to_series()[0]
+            .row(0)[0]
         )
         assert mid_bucket_filtered_count == 8
         assert low_bucket_filtered_count == 9
@@ -351,7 +351,7 @@ def test_vol_filter(
             .agg(pl.len())
             .filter(pl.col("vol_bucket") == "mid")
             .select(pl.col("len"))
-            .to_series()[0]
+            .row(0)[0]
         )
         assert mid_bucket_filtered_count == 8
 
@@ -413,21 +413,22 @@ def test_price_range(
     ).collect()
 
     if "multiple" in current_param:
-        assert result.shape == (2, 4)
+        assert result.shape == (2, 5)
         if recent_price_param is None:
-            assert result.select("bottom_price").to_series()[0] == 168.5382
-            assert result.select("bottom_price").to_series()[1] == 115.478
-            assert result.select("top_price").to_series()[0] == 174.0104
-            assert result.select("top_price").to_series()[1] == 135.41
+            assert result.select("bottom_price").row(0)[0] == 168.5382
+            assert result.select("bottom_price").row(1)[0] == 115.478
+            assert result.select("top_price").row(0)[0] == 174.0104
+            assert result.select("top_price").row(1)[0] == 135.41
         else:
-            assert result.select("bottom_price").to_series()[0] == 170.3052
-            assert result.select("bottom_price").to_series()[1] == 118.0662
-            assert result.select("top_price").to_series()[0] == 175.8348
-            assert result.select("top_price").to_series()[1] == 138.445
+            assert result.select("bottom_price").row(0)[0] == 170.3052
+            assert result.select("bottom_price").row(1)[0] == 118.0662
+            assert result.select("top_price").row(0)[0] == 175.8348
+            assert result.select("top_price").row(1)[0] == 138.445
     else:
-        assert result.shape == (1, 4)
+        assert result.shape == (1, 5)
 
     assert result.columns == [
+        "date",
         "symbol",
         "bottom_price",
         "recent_price",
