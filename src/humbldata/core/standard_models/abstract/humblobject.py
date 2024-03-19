@@ -1,16 +1,18 @@
 import io
-from typing import Any, ClassVar, Generic, TypeVar
+from typing import Any, ClassVar, Generic, Type, TypeVar
 
 import numpy as np
 import pandas as pd
 import polars as pl
 import pyarrow as pa
-from pydantic import BaseModel, Field, PrivateAttr
+from httpx import QueryParams
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, field_validator
 
 from humbldata.core.standard_models.abstract.chart import Chart
 from humbldata.core.standard_models.abstract.errors import HumblDataError
 from humbldata.core.standard_models.abstract.tagged import Tagged
 from humbldata.core.standard_models.abstract.warnings import Warning_
+from humbldata.core.standard_models.toolbox import ToolboxQueryParams
 
 T = TypeVar("T")
 
@@ -20,6 +22,8 @@ class HumblObject(Tagged, Generic[T]):
 
     _user_settings: ClassVar[BaseModel | None] = None
     _system_settings: ClassVar[BaseModel | None] = None
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     results: T | None = Field(
         default=None,
@@ -41,13 +45,18 @@ class HumblObject(Tagged, Generic[T]):
         default_factory=dict,
         description="Extra info.",
     )
+    context_params: ToolboxQueryParams | None = Field(
+        default_factory=ToolboxQueryParams,
+    )
+    command_params: Any | None = Field()
 
-    _context_params: dict[str, Any] | None = PrivateAttr(
-        default_factory=dict,
-    )
-    _command_params: dict[str, Any] | None = PrivateAttr(
-        default_factory=dict,
-    )
+    @field_validator("command_params")
+    def validate_command_params(cls, v):
+        class_name = v.__class__.__name__
+        if "QueryParams" in class_name:
+            return v
+        msg = "Wrong type for 'command_params', must be subclass of QueryParams"
+        raise TypeError(msg)
 
     def __repr__(self) -> str:
         """Human readable representation of the object."""
