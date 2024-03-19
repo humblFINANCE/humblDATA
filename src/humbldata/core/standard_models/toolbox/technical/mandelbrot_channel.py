@@ -42,24 +42,27 @@ class MandelbrotChannelQueryParams(QueryParams):
     Parameters
     ----------
     window : str
-        The width of the window used for splitting the data into sections for detrending.
-        Defaults to "1m".
+        The width of the window used for splitting the data into sections for
+        detrending. Defaults to "1m".
     rv_adjustment : bool
-        Whether to adjust the calculation for realized volatility. If True, the data is filtered
-        to only include observations in the same volatility bucket that the stock is currently in.
-        Defaults to True.
+        Whether to adjust the calculation for realized volatility. If True, the
+        data is filtered
+        to only include observations in the same volatility bucket that the
+        stock is currently in. Defaults to True.
     rv_method : str
-        The method to calculate the realized volatility. Only need to define when rv_adjustment is True.
-        Defaults to "std".
+        The method to calculate the realized volatility. Only need to define
+        when rv_adjustment is True. Defaults to "std".
     rs_method : Literal["RS", "RS_min", "RS_max", "RS_mean"]
-        The method to use for Range/STD calculation. This is either, min, max or mean of all RS ranges
-        per window. If not defined, just used the most recent RS window. Defaults to "RS".
+        The method to use for Range/STD calculation. This is either, min, max
+        or mean of all RS ranges
+        per window. If not defined, just used the most recent RS window.
+        Defaults to "RS".
     rv_grouped_mean : bool
-        Whether to calculate the mean value of realized volatility over multiple window lengths.
-        Defaults to False.
+        Whether to calculate the mean value of realized volatility over
+        multiple window lengths. Defaults to False.
     live_price : bool
-        Whether to calculate the ranges using the current live price, or the most recent 'close' observation.
-        Defaults to False.
+        Whether to calculate the ranges using the current live price, or the
+        most recent 'close' observation. Defaults to False.
     """
 
     window: str = Field(

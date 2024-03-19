@@ -24,7 +24,7 @@ class Chart(BaseModel):
     fig: Any | None = Field(
         default=None,
         description="The figure object.",
-        json_schema_extra={"exclude_from_api": True},
+        # json_schema_extra={"exclude_from_api": True},
     )
     model_config = ConfigDict(validate_assignment=True)
 
