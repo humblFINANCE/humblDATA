@@ -13,9 +13,11 @@ from typing import Literal, TypeVar
 import pandera.polars as pa
 import polars as pl
 from openbb import obb
+from polars.lazyframe.frame import LazyFrame
 from pydantic import Field, field_validator
 
 from humbldata.core.standard_models.abstract.data import Data
+from humbldata.core.standard_models.abstract.humblobject import HumblObject
 from humbldata.core.standard_models.abstract.query_params import QueryParams
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
 from humbldata.toolbox.technical.mandelbrot_channel.model import (
@@ -275,7 +277,7 @@ class MandelbrotChannelFetcher:
                 symbol=pl.lit(self.context_params.symbol[0])
             )
 
-        return equity_historical_data.collect()
+        return equity_historical_data
 
     def transform_data(self):
         """
@@ -314,6 +316,15 @@ class MandelbrotChannelFetcher:
         """
         self.transform_query()
         self.equity_historical_data = self.extract_data()
-        out = self.transform_data()
+        self.transformed_data = MandelbrotChannelData(
+            self.transform_data()
+        ).serialize()
 
-        return MandelbrotChannelData(out).collect()
+        return HumblObject(
+            results=self.transformed_data,
+            provider=self.context_params.provider,
+            warnings=None,
+            chart=None,
+            _context_params=self.context_params,
+            _command_params=self.command_params,
+        )
