@@ -3746,12 +3746,14 @@ test = ["ta-lib"]
 
 [[package]]
 name = "pandera"
-version = "0.0.0+dev0"
+version = "0.19.0b0"
 description = "A light-weight and flexible data validation and testing tool for statistical data objects."
 optional = false
 python-versions = ">=3.7"
-files = []
-develop = false
+files = [
+    {file = "pandera-0.19.0b0-py3-none-any.whl", hash = "sha256:b42724632316ab1a7150aaded9a601d0c88f1d7d6a1a100924c477342d7992fd"},
+    {file = "pandera-0.19.0b0.tar.gz", hash = "sha256:9312f5fe8891496343d762d59f8fd109a0e1c27ed93f1b693343d5f3364bcc15"},
+]
 
 [package.dependencies]
 multimethod = "<=1.10.0"
@@ -3777,12 +3779,6 @@ mypy = ["pandas-stubs"]
 polars = ["polars (>=0.20.0)"]
 pyspark = ["pyspark (>=3.2.0)"]
 strategies = ["hypothesis (>=6.92.7)"]
-
-[package.source]
-type = "git"
-url = "https://github.com/unionai-oss/pandera.git"
-reference = "HEAD"
-resolved_reference = "7d1b1ba2fff4a3819e90c4760a3df692c93417b7"
 
 [[package]]
 name = "pandocfilters"
@@ -6588,4 +6584,4 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11.7,<3.12"
-content-hash = "2e176773c660f68ade3cedd647e1bc51dce57eb75681eb9ae1f72d0c6e46277b"
+content-hash = "af0b9ac281c74641f40cb771e442b2f2b519e51b16578e60ae87d6fa877e98ce"
