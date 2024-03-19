@@ -174,6 +174,17 @@ class HumblObject(Tagged, Generic[T]):
         """
         return self.to_polars(collect=True).to_struct(name=name)
 
+    def is_empty(self) -> bool:
+        """
+        Check if the results are empty.
+
+        Returns
+        -------
+        bool
+            True if the results are empty, False otherwise.
+        """
+        return self.to_polars(collect=True).is_empty()
+
     def show(self) -> None:
         """Show the chart."""
         if not self.chart or not self.chart.fig:
