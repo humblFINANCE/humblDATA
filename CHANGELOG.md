@@ -1,3 +1,26 @@
+## v1.1.0 (2024-03-19)
+
+### ✨ Features
+
+- **MandelbrotChannelQueryParams**: `context_params` & `command_params` are being routed correctly
+
+### 🐛🚑️ Fixes
+
+- **MandelbrotChannelFetcher**: if only one symbol is queried, add a symbol column w/ the symbol
+- **ToolboxQueryParams**: fixed `@field_validator` to work with list or csv in a str
+- **ToolboxQueryParams**: added default date generation
+
+### ✅🤡🧪 Tests
+
+- **mandelbrot_channel**: finsihed integration tests & renamed standard_model file
+- **ToolboxQueryPArams**: added test for custm `@field_validator`
+- **queryparams & data**: added simple tests to check vpydantic validation is running right
+- **mandelbrot_channel_historical**: added successful tests asserting googl, amd and pct values
+
+### 📌➕⬇️ ➖⬆️  Dependencies
+
+- **pandera**: trying github install of initial pandera update for `pl` supprt
+
 ## v1.0.17 (2024-03-14)
 
 ### 🐛🚑️ Fixes
