@@ -43,8 +43,8 @@ def calc_mandelbrot_channel(
     rv_method: str = "std",
     rs_method: Literal["RS", "RS_mean", "RS_max", "RS_min"] = "RS",
     *,
-    _rv_grouped_mean: bool = True,
-    _live_price: bool = True,
+    rv_grouped_mean: bool = True,
+    live_price: bool = True,
 ) -> pl.LazyFrame:
     """
     Context: Toolbox || Category: Technical || Sub-Category: Mandelbrot Channel || **Command: calc_mandelbrot_channel**.
@@ -62,7 +62,7 @@ def calc_mandelbrot_channel(
         Adjusts the calculation for realized volatility. If True, filters the
         data to include only observations within the current volatility bucket
         of the stock.
-    _rv_grouped_mean: bool, default True
+    rv_grouped_mean: bool, default True
         Determines whether to use the grouped mean in the realized volatility
         calculation.
     rv_method: str, default "std"
@@ -72,7 +72,7 @@ def calc_mandelbrot_channel(
         Defines the method for calculating the range over standard deviation,
         affecting the width of the Mandelbrot Channel. Options include RS,
         RS_mean, RS_min, and RS_max.
-    _live_price: bool, default True
+    live_price: bool, default True
         Indicates whether to incorporate live price data into the calculation,
         which may extend the calculation time by 1-3 seconds.
 
@@ -95,9 +95,9 @@ def calc_mandelbrot_channel(
         window="1y",
         rv_adjustment=True,
         rv_method="yz",
-        _rv_grouped_mean=False,
+        rv_grouped_mean=False,
         rs_method="RS",
-        _live_price=True
+        live_price=True
     ).collect()
     ```
     """
@@ -140,7 +140,7 @@ def calc_mandelbrot_channel(
             data=data7,
             window=window,
             method=rv_method,
-            grouped_mean=_rv_grouped_mean,
+            grouped_mean=rv_grouped_mean,
         )
         # rename col for easy selection
         for col in data7.columns:
@@ -156,7 +156,7 @@ def calc_mandelbrot_channel(
     )
 
     # Step X: Collect Recent Prices --------------------------------------------
-    if _live_price:
+    if live_price:
         symbols = (
             data.select("symbol").unique().sort("symbol").collect().to_series()
         )
@@ -182,8 +182,8 @@ async def acalc_mandelbrot_channel(
     rv_method: str = "std",
     rs_method: Literal["RS", "RS_mean", "RS_max", "RS_min"] = "RS",
     *,
-    _rv_grouped_mean: bool = True,
-    _live_price: bool = True,
+    rv_grouped_mean: bool = True,
+    live_price: bool = True,
 ) -> pl.DataFrame | pl.LazyFrame:
     """
     Context: Toolbox || Category: Technical || Sub-Category: Mandelbrot Channel || **Command: acalc_mandelbrot_channel**.
@@ -202,8 +202,8 @@ async def acalc_mandelbrot_channel(
         rv_adjustment=rv_adjustment,
         rv_method=rv_method,
         rs_method=rs_method,
-        _rv_grouped_mean=_rv_grouped_mean,
-        _live_price=_live_price,
+        rv_grouped_mean=rv_grouped_mean,
+        live_price=live_price,
     )
 
 
@@ -214,8 +214,8 @@ async def _acalc_mandelbrot_channel_historical_engine(
     rv_method: str = "std",
     rs_method: Literal["RS", "RS_mean", "RS_max", "RS_min"] = "RS",
     *,
-    _rv_grouped_mean: bool = True,
-    _live_price: bool = True,
+    rv_grouped_mean: bool = True,
+    live_price: bool = True,
 ) -> pl.LazyFrame:
     """
     Context: Toolbox || Category: Technical || Sub-Category: Mandelbrot Channel || **Command: _calc_mandelbrot_channel_historical_engine**.
@@ -253,8 +253,8 @@ async def _acalc_mandelbrot_channel_historical_engine(
                 rv_adjustment=rv_adjustment,
                 rv_method=rv_method,
                 rs_method=rs_method,
-                _rv_grouped_mean=_rv_grouped_mean,
-                _live_price=_live_price,
+                rv_grouped_mean=rv_grouped_mean,
+                live_price=live_price,
             )
         )
         for date in dates
@@ -280,8 +280,8 @@ def calc_mandelbrot_channel_historical(
     rv_method: str = "std",
     rs_method: Literal["RS", "RS_mean", "RS_max", "RS_min"] = "RS",
     *,
-    _rv_grouped_mean: bool = True,
-    _live_price: bool = True,
+    rv_grouped_mean: bool = True,
+    live_price: bool = True,
 ) -> pl.LazyFrame:
     """
     Context: Toolbox || Category: Technical || Sub-Category: Mandelbrot Channel || **Command: calc_mandelbrot_channel_historical**.
@@ -301,7 +301,7 @@ def calc_mandelbrot_channel_historical(
             rv_adjustment=rv_adjustment,
             rv_method=rv_method,
             rs_method=rs_method,
-            _rv_grouped_mean=_rv_grouped_mean,
-            _live_price=_live_price,
+            rv_grouped_mean=rv_grouped_mean,
+            live_price=live_price,
         )
     )

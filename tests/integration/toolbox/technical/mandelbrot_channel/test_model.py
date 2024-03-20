@@ -48,9 +48,9 @@ def test_mandelbrot_channel_integration(
         window="1m",
         rv_adjustment=True,
         rv_method="std",
-        _rv_grouped_mean=False,
+        rv_grouped_mean=False,
         rs_method="RS",
-        _live_price=False,
+        live_price=False,
     ).collect()
 
     if "multiple" in current_param:
@@ -105,9 +105,9 @@ def test_mandelbrot_channel_historical_integration(
         window="1m",
         rv_adjustment=True,
         rv_method="std",
-        _rv_grouped_mean=False,
+        rv_grouped_mean=False,
         rs_method="RS",
-        _live_price=False,
+        live_price=False,
     )
 
     if "multiple" in current_param:

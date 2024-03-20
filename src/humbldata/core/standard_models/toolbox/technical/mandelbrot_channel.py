@@ -326,9 +326,9 @@ class MandelbrotChannelFetcher:
                 window=self.command_params.window,
                 rv_adjustment=self.command_params.rv_adjustment,
                 rv_method=self.command_params.rv_method,
-                _rv_grouped_mean=self.command_params.rv_grouped_mean,
+                rv_grouped_mean=self.command_params.rv_grouped_mean,
                 rs_method=self.command_params.rs_method,
-                _live_price=self.command_params.live_price,
+                live_price=self.command_params.live_price,
             )
         else:
             transformed_data = calc_mandelbrot_channel_historical(
@@ -336,9 +336,9 @@ class MandelbrotChannelFetcher:
                 window=self.command_params.window,
                 rv_adjustment=self.command_params.rv_adjustment,
                 rv_method=self.command_params.rv_method,
-                _rv_grouped_mean=self.command_params.rv_grouped_mean,
+                rv_grouped_mean=self.command_params.rv_grouped_mean,
                 rs_method=self.command_params.rs_method,
-                _live_price=self.command_params.live_price,
+                live_price=self.command_params.live_price,
             )
 
         self.transformed_data = MandelbrotChannelData(
