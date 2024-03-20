@@ -4,6 +4,7 @@ import plotly
 import plotly.graph_objs as go
 import polars as pl
 
+from humbldata.core.standard_models.abstract.humblobject import HumblObject
 from humbldata.core.utils import plotly_theme  # noqa: F401
 
 
@@ -46,27 +47,28 @@ def create_historical_plot(data: pl.DataFrame, symbol: str) -> go.Figure:
     return fig
 
 
-def create_current_plot(data, symbol: str) -> go.Figure:
+def create_current_plot(data, raw_data, symbol: str) -> go.Figure:
     """
     Create a plot for current data for a given symbol.
     """
     filtered_data = data.filter(pl.col("symbol") == symbol)
+    raw_data = raw_data.filter(pl.col("symbol") == symbol)
     fig = go.Figure()
     fig.add_trace(
         go.Scatter(
-            x=filtered_data.select("date").to_series(),
-            y=filtered_data.select("recent_price").to_series(),
+            x=raw_data.select("date").to_series(),
+            y=raw_data.select("close").to_series(),
             name="Recent Price",
             line=dict(color="blue"),
         )
     )
     fig.add_hline(
-        y=filtered_data.select("top_price").max(),
+        y=filtered_data.select("top_price").row(0)[0],
         line=dict(color="red", width=2),
         name="Top Price",
     )
     fig.add_hline(
-        y=filtered_data.select("bottom_price").min(),
+        y=filtered_data.select("bottom_price").row(0)[0],
         line=dict(color="green", width=2),
         name="Bottom Price",
     )
@@ -85,20 +87,28 @@ def is_historical_data(data) -> bool:
     return data.select("date").to_series().unique().shape[0] > 1
 
 
-def generate_plot_for_symbol(data: pl.DataFrame, symbol: str) -> go.Figure:
+def generate_plot_for_symbol(
+    data: pl.DataFrame, raw_data: pl.DataFrame, symbol: str
+) -> go.Figure:
     """
     Generate the appropriate plot for a symbol based on the data type.
     """
     if is_historical_data(data):
         return create_historical_plot(data, symbol)
     else:
-        return create_current_plot(data, symbol)
+        return create_current_plot(data, raw_data, symbol)
 
 
-def generate_plots(data: pl.DataFrame) -> list[go.Figure]:
+def generate_plots(data: HumblObject) -> list[go.Figure]:
     """
     Generate a list of plots for each symbol in the dataframe.
     """
-    symbols = data.select("symbol").unique().to_series()
-    plots = [generate_plot_for_symbol(data, symbol) for symbol in symbols]
+    calc_data: pl.DataFrame = data.to_polars()
+    raw_data: pl.DataFrame = data.to_polars(raw_data=True)
+    symbols = calc_data.select("symbol").unique().to_series()
+
+    plots = [
+        generate_plot_for_symbol(calc_data, raw_data, symbol)
+        for symbol in symbols
+    ]
     return plots
