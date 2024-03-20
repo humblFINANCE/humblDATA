@@ -227,6 +227,23 @@ class MandelbrotChannelFetcher:
         Transforms the command-specific data according to the Mandelbrot Channel logic.
     fetch_data()
         Execute TET Pattern.
+
+    Returns
+    -------
+    HumblObject
+        results : MandelbrotChannelData
+            Serializable results.
+        provider : Literal['fmp', 'intrinio', 'polygon', 'tiingo', 'yfinance']
+            Provider name.
+        warnings : Optional[List[Warning_]]
+            List of warnings.
+        chart : Optional[Chart]
+            Chart object.
+        context_params : ToolboxQueryParams
+            Context-specific parameters.
+        command_params : MandelbrotChannelQueryParams
+            Command-specific parameters.
+
     """
 
     def __init__(

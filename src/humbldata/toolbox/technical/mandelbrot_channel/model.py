@@ -216,7 +216,7 @@ async def _acalc_mandelbrot_channel_historical_engine(
     *,
     _rv_grouped_mean: bool = True,
     _live_price: bool = True,
-) -> pl.DataFrame | pl.LazyFrame:
+) -> pl.LazyFrame:
     """
     Context: Toolbox || Category: Technical || Sub-Category: Mandelbrot Channel || **Command: _calc_mandelbrot_channel_historical_engine**.
 
