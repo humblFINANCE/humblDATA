@@ -33,6 +33,7 @@ MANDELBROT_QUERY_DESCRIPTIONS = {
     "rs_method": "The method to use for Range/STD calculation. THis is either, min, max or mean of all RS ranges per window. If not defined, just used the most recent RS window",
     "rv_grouped_mean": "Whether to calculate the the mean value of realized volatility over multiple window lengths",
     "live_price": "Whether to calculate the ranges using the current live price, or the most recent 'close' observation.",
+    "historical": "Whether to calculate the Historical Mandelbrot Channel (over-time), and return a time-series of channels from the start to the end date. If False, the Mandelbrot Channel calculation is done aggregating all of the data into one observation. If True, then it will enable daily observations over-time.",
 }
 
 
@@ -108,6 +109,11 @@ class MandelbrotChannelQueryParams(QueryParams):
         default=False,
         title="Live Price",
         description=MANDELBROT_QUERY_DESCRIPTIONS.get("live_price", ""),
+    )
+    historical: bool = Field(
+        default=False,
+        title="Historical Mandelbrot Channel",
+        description=MANDELBROT_QUERY_DESCRIPTIONS.get("historical", ""),
     )
 
     @field_validator("window", mode="after", check_fields=False)
@@ -259,7 +265,7 @@ class MandelbrotChannelFetcher:
         pl.DataFrame
             The extracted data as a Polars DataFrame.
         """
-        equity_historical_data = (
+        self.equity_historical_data = (
             obb.equity.price.historical(
                 symbol=self.context_params.symbol,
                 start_date=self.context_params.start_date,
@@ -272,11 +278,12 @@ class MandelbrotChannelFetcher:
         ).drop(["dividends", "stock_splits"])
 
         if len(self.context_params.symbol) == 1:
-            equity_historical_data = equity_historical_data.with_columns(
-                symbol=pl.lit(self.context_params.symbol[0])
+            self.equity_historical_data = (
+                self.equity_historical_data.with_columns(
+                    symbol=pl.lit(self.context_params.symbol[0])
+                )
             )
-
-        return equity_historical_data
+        return self
 
     def transform_data(self):
         """
@@ -287,8 +294,8 @@ class MandelbrotChannelFetcher:
         pl.DataFrame
             The transformed data as a Polars DataFrame
         """
-        out = calc_mandelbrot_channel(
-            self.equity_historical_data,
+        transformed_data = calc_mandelbrot_channel(
+            data=self.equity_historical_data,
             window=self.command_params.window,
             rv_adjustment=self.command_params.rv_adjustment,
             _rv_method=self.command_params.rv_method,
@@ -296,7 +303,10 @@ class MandelbrotChannelFetcher:
             _rs_method=self.command_params.rs_method,
             _live_price=self.command_params.live_price,
         )
-        return out
+        self.transformed_data = MandelbrotChannelData(
+            transformed_data
+        ).serialize()
+        return self
 
     def fetch_data(self):
         """
@@ -314,10 +324,8 @@ class MandelbrotChannelFetcher:
             or visualization.
         """
         self.transform_query()
-        self.equity_historical_data = self.extract_data()
-        self.transformed_data = MandelbrotChannelData(
-            self.transform_data()
-        ).serialize()
+        self.extract_data()
+        self.transform_data()
 
         return HumblObject(
             results=self.transformed_data,
