@@ -188,7 +188,8 @@ class MandelbrotChannelData(Data):
         default=None,
         title="Recent Price",
         description="The most recent price within the Mandelbrot Channel.",
-        alias="close_price",
+        alias="(close_price|recent_price)",
+        regex=True,
     )
     top_price: float = pa.Field(
         default=None,

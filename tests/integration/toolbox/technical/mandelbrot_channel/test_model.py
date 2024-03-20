@@ -108,7 +108,7 @@ def test_mandelbrot_channel_historical_integration(
         rv_grouped_mean=False,
         rs_method="RS",
         live_price=False,
-    )
+    ).collect()
 
     if "multiple" in current_param:
         result_shape = mandelbrot_historical.select("symbol").unique().shape
@@ -177,6 +177,6 @@ def test_mandelbrot_channel_historical_integration(
             "date",
             "symbol",
             "bottom_price",
-            "close",
+            "close_price",
             "top_price",
         ]
