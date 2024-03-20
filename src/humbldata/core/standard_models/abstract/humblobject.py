@@ -13,9 +13,6 @@ from humbldata.core.standard_models.abstract.query_params import QueryParams
 from humbldata.core.standard_models.abstract.tagged import Tagged
 from humbldata.core.standard_models.abstract.warnings import Warning_
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
-from humbldata.core.standard_models.toolbox.technical.mandelbrot_channel import (
-    MandelbrotChannelQueryParams,
-)
 
 T = TypeVar("T")
 
@@ -34,9 +31,12 @@ def extract_subclass_dict(self, attribute_name: str, items: list):
     if attribute_value:
         # Assuming the attribute has a method called 'model_dump' to get its dictionary representation
         add_item = attribute_value.model_dump()
+        add_item_str = str(add_item)
+        if len(add_item_str) > 80:
+            add_item_str = add_item_str[:80] + "..."
         for i, item in enumerate(items):
             if item.startswith(f"{attribute_name}:"):
-                items[i] = f"{attribute_name}: {add_item}"
+                items[i] = f"{attribute_name}: {add_item_str}"
                 break
 
     return items
