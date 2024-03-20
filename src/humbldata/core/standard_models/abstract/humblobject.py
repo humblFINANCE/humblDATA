@@ -72,8 +72,14 @@ class HumblObject(Tagged, Generic[T]):
     )
     context_params: ToolboxQueryParams | None = Field(
         default_factory=ToolboxQueryParams,
+        title="Context Parameters",
+        description="Context parameters.",
     )
-    command_params: QueryParams | None = Field()
+    command_params: QueryParams | None = Field(
+        default=QueryParams,
+        title="Command Parameters",
+        description="Command-specific parameters.",
+    )
 
     # @field_validator("command_params")
     # def validate_command_params(cls, v):
