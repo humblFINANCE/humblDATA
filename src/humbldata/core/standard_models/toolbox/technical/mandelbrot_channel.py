@@ -325,9 +325,9 @@ class MandelbrotChannelFetcher:
                 data=self.equity_historical_data,
                 window=self.command_params.window,
                 rv_adjustment=self.command_params.rv_adjustment,
-                _rv_method=self.command_params.rv_method,
+                rv_method=self.command_params.rv_method,
                 _rv_grouped_mean=self.command_params.rv_grouped_mean,
-                _rs_method=self.command_params.rs_method,
+                rs_method=self.command_params.rs_method,
                 _live_price=self.command_params.live_price,
             )
         else:
@@ -335,9 +335,9 @@ class MandelbrotChannelFetcher:
                 data=self.equity_historical_data,
                 window=self.command_params.window,
                 rv_adjustment=self.command_params.rv_adjustment,
-                _rv_method=self.command_params.rv_method,
+                rv_method=self.command_params.rv_method,
                 _rv_grouped_mean=self.command_params.rv_grouped_mean,
-                _rs_method=self.command_params.rs_method,
+                rs_method=self.command_params.rs_method,
                 _live_price=self.command_params.live_price,
             )
 

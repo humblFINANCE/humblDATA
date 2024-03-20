@@ -40,8 +40,8 @@ def calc_mandelbrot_channel(
     data: pl.DataFrame | pl.LazyFrame,
     window: str = "1m",
     rv_adjustment: bool = True,
-    _rv_method: str = "std",
-    _rs_method: Literal["RS", "RS_mean", "RS_max", "RS_min"] = "RS",
+    rv_method: str = "std",
+    rs_method: Literal["RS", "RS_mean", "RS_max", "RS_min"] = "RS",
     *,
     _rv_grouped_mean: bool = True,
     _live_price: bool = True,
@@ -65,10 +65,10 @@ def calc_mandelbrot_channel(
     _rv_grouped_mean: bool, default True
         Determines whether to use the grouped mean in the realized volatility
         calculation.
-    _rv_method: str, default "std"
+    rv_method: str, default "std"
         Specifies the method for calculating realized volatility, applicable
         only if `rv_adjustment` is True.
-    _rs_method: str, default "RS"
+    rs_method: str, default "RS"
         Defines the method for calculating the range over standard deviation,
         affecting the width of the Mandelbrot Channel. Options include RS,
         RS_mean, RS_min, and RS_max.
@@ -94,9 +94,9 @@ def calc_mandelbrot_channel(
         data,
         window="1y",
         rv_adjustment=True,
-        _rv_method="yz",
+        rv_method="yz",
         _rv_grouped_mean=False,
-        _rs_method="RS",
+        rs_method="RS",
         _live_price=True
     ).collect()
     ```
@@ -139,7 +139,7 @@ def calc_mandelbrot_channel(
         data7 = calc_realized_volatility(
             data=data7,
             window=window,
-            method=_rv_method,
+            method=rv_method,
             grouped_mean=_rv_grouped_mean,
         )
         # rename col for easy selection
@@ -168,7 +168,7 @@ def calc_mandelbrot_channel(
     out = price_range(
         data=data8,
         recent_price_data=recent_prices,
-        rs_method=_rs_method,
+        rs_method=rs_method,
         _rv_adjustment=rv_adjustment,
     )
 
@@ -179,8 +179,8 @@ async def acalc_mandelbrot_channel(
     data: pl.DataFrame | pl.LazyFrame,
     window: str = "1m",
     rv_adjustment: bool = True,
-    _rv_method: str = "std",
-    _rs_method: Literal["RS", "RS_mean", "RS_max", "RS_min"] = "RS",
+    rv_method: str = "std",
+    rs_method: Literal["RS", "RS_mean", "RS_max", "RS_min"] = "RS",
     *,
     _rv_grouped_mean: bool = True,
     _live_price: bool = True,
@@ -200,8 +200,8 @@ async def acalc_mandelbrot_channel(
         data=data,
         window=window,
         rv_adjustment=rv_adjustment,
-        _rv_method=_rv_method,
-        _rs_method=_rs_method,
+        rv_method=rv_method,
+        rs_method=rs_method,
         _rv_grouped_mean=_rv_grouped_mean,
         _live_price=_live_price,
     )
@@ -211,8 +211,8 @@ async def _acalc_mandelbrot_channel_historical_engine(
     data: pl.DataFrame | pl.LazyFrame,
     window: str = "1m",
     rv_adjustment: bool = True,
-    _rv_method: str = "std",
-    _rs_method: Literal["RS", "RS_mean", "RS_max", "RS_min"] = "RS",
+    rv_method: str = "std",
+    rs_method: Literal["RS", "RS_mean", "RS_max", "RS_min"] = "RS",
     *,
     _rv_grouped_mean: bool = True,
     _live_price: bool = True,
@@ -251,8 +251,8 @@ async def _acalc_mandelbrot_channel_historical_engine(
                 data=data.filter(pl.col("date") <= date),
                 window=window,
                 rv_adjustment=rv_adjustment,
-                _rv_method=_rv_method,
-                _rs_method=_rs_method,
+                rv_method=rv_method,
+                rs_method=rs_method,
                 _rv_grouped_mean=_rv_grouped_mean,
                 _live_price=_live_price,
             )
@@ -277,8 +277,8 @@ def calc_mandelbrot_channel_historical(
     data: pl.DataFrame | pl.LazyFrame,
     window: str = "1m",
     rv_adjustment: bool = True,
-    _rv_method: str = "std",
-    _rs_method: Literal["RS", "RS_mean", "RS_max", "RS_min"] = "RS",
+    rv_method: str = "std",
+    rs_method: Literal["RS", "RS_mean", "RS_max", "RS_min"] = "RS",
     *,
     _rv_grouped_mean: bool = True,
     _live_price: bool = True,
@@ -299,8 +299,8 @@ def calc_mandelbrot_channel_historical(
             data=data,
             window=window,
             rv_adjustment=rv_adjustment,
-            _rv_method=_rv_method,
-            _rs_method=_rs_method,
+            rv_method=rv_method,
+            rs_method=rs_method,
             _rv_grouped_mean=_rv_grouped_mean,
             _live_price=_live_price,
         )

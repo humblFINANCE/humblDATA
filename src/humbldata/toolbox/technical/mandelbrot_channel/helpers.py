@@ -397,7 +397,7 @@ def price_range(
 
     Examples
     --------
-    >>> price_range_data = price_range(data, recent_price_data=None, _rs_method="RS")
+    >>> price_range_data = price_range(data, recent_price_data=None, rs_method="RS")
     >>> print(price_range_data.columns)
     ['symbol', 'bottom_price', 'recent_price', 'top_price']
 

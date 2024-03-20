@@ -47,9 +47,9 @@ def test_mandelbrot_channel_integration(
         equity_historical,
         window="1m",
         rv_adjustment=True,
-        _rv_method="std",
+        rv_method="std",
         _rv_grouped_mean=False,
-        _rs_method="RS",
+        rs_method="RS",
         _live_price=False,
     ).collect()
 
@@ -104,9 +104,9 @@ def test_mandelbrot_channel_historical_integration(
         equity_historical,
         window="1m",
         rv_adjustment=True,
-        _rv_method="std",
+        rv_method="std",
         _rv_grouped_mean=False,
-        _rs_method="RS",
+        rs_method="RS",
         _live_price=False,
     )
 
