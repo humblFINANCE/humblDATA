@@ -5,16 +5,41 @@ import numpy as np
 import pandas as pd
 import polars as pl
 import pyarrow as pa
-from httpx import QueryParams
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, field_validator
 
 from humbldata.core.standard_models.abstract.chart import Chart
 from humbldata.core.standard_models.abstract.errors import HumblDataError
+from humbldata.core.standard_models.abstract.query_params import QueryParams
 from humbldata.core.standard_models.abstract.tagged import Tagged
 from humbldata.core.standard_models.abstract.warnings import Warning_
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
+from humbldata.core.standard_models.toolbox.technical.mandelbrot_channel import (
+    MandelbrotChannelQueryParams,
+)
 
 T = TypeVar("T")
+
+
+def extract_subclass_dict(self, attribute_name: str, items: list):
+    """
+    Extract the dictionary representation of the specified attribute.
+
+    Parameters
+    ----------
+    attribute_name : str
+        The name of the attribute to update in the items list.
+    """
+    # Check if the attribute exists and has a value
+    attribute_value = getattr(self, attribute_name, None)
+    if attribute_value:
+        # Assuming the attribute has a method called 'model_dump' to get its dictionary representation
+        add_item = attribute_value.model_dump()
+        for i, item in enumerate(items):
+            if item.startswith(f"{attribute_name}:"):
+                items[i] = f"{attribute_name}: {add_item}"
+                break
+
+    return items
 
 
 class HumblObject(Tagged, Generic[T]):
@@ -48,15 +73,15 @@ class HumblObject(Tagged, Generic[T]):
     context_params: ToolboxQueryParams | None = Field(
         default_factory=ToolboxQueryParams,
     )
-    command_params: Any | None = Field()
+    command_params: QueryParams | None = Field()
 
-    @field_validator("command_params")
-    def validate_command_params(cls, v):
-        class_name = v.__class__.__name__
-        if "QueryParams" in class_name:
-            return v
-        msg = "Wrong type for 'command_params', must be subclass of QueryParams"
-        raise TypeError(msg)
+    # @field_validator("command_params")
+    # def validate_command_params(cls, v):
+    #     class_name = v.__class__.__name__
+    #     if "QueryParams" in class_name:
+    #         return v
+    #     msg = "Wrong type for 'command_params', must be subclass of QueryParams"
+    #     raise TypeError(msg)
 
     def __repr__(self) -> str:
         """Human readable representation of the object."""
@@ -64,6 +89,10 @@ class HumblObject(Tagged, Generic[T]):
             f"{k}: {v}"[:83] + ("..." if len(f"{k}: {v}") > 83 else "")
             for k, v in self.model_dump().items()
         ]
+
+        # Needed to extract subclass dict correctly
+        items = extract_subclass_dict(self, "command_params", items)
+
         return f"{self.__class__.__name__}\n\n" + "\n".join(items)
 
     def to_polars(self, *, collect: bool = True) -> pl.LazyFrame | pl.DataFrame:
