@@ -21,6 +21,7 @@ from humbldata.core.standard_models.abstract.query_params import QueryParams
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
 from humbldata.toolbox.technical.mandelbrot_channel.model import (
     calc_mandelbrot_channel,
+    calc_mandelbrot_channel_historical,
 )
 from humbldata.toolbox.toolbox_helpers import _window_format
 
@@ -65,6 +66,12 @@ class MandelbrotChannelQueryParams(QueryParams):
     live_price : bool
         Whether to calculate the ranges using the current live price, or the
         most recent 'close' observation. Defaults to False.
+    historical : bool
+        Whether to calculate the Historical Mandelbrot Channel (over-time), and
+        return a time-series of channels from the start to the end date. If
+        False, the Mandelbrot Channel calculation is done aggregating all of the
+        data into one observation. If True, then it will enable daily
+        observations over-time. Defaults to False.
     """
 
     window: str = Field(
@@ -181,6 +188,7 @@ class MandelbrotChannelData(Data):
         default=None,
         title="Recent Price",
         description="The most recent price within the Mandelbrot Channel.",
+        alias="close_price",
     )
     top_price: float = pa.Field(
         default=None,
@@ -294,15 +302,27 @@ class MandelbrotChannelFetcher:
         pl.DataFrame
             The transformed data as a Polars DataFrame
         """
-        transformed_data = calc_mandelbrot_channel(
-            data=self.equity_historical_data,
-            window=self.command_params.window,
-            rv_adjustment=self.command_params.rv_adjustment,
-            _rv_method=self.command_params.rv_method,
-            _rv_grouped_mean=self.command_params.rv_grouped_mean,
-            _rs_method=self.command_params.rs_method,
-            _live_price=self.command_params.live_price,
-        )
+        if self.command_params.historical is False:
+            transformed_data = calc_mandelbrot_channel(
+                data=self.equity_historical_data,
+                window=self.command_params.window,
+                rv_adjustment=self.command_params.rv_adjustment,
+                _rv_method=self.command_params.rv_method,
+                _rv_grouped_mean=self.command_params.rv_grouped_mean,
+                _rs_method=self.command_params.rs_method,
+                _live_price=self.command_params.live_price,
+            )
+        else:
+            transformed_data = calc_mandelbrot_channel_historical(
+                data=self.equity_historical_data,
+                window=self.command_params.window,
+                rv_adjustment=self.command_params.rv_adjustment,
+                _rv_method=self.command_params.rv_method,
+                _rv_grouped_mean=self.command_params.rv_grouped_mean,
+                _rs_method=self.command_params.rs_method,
+                _live_price=self.command_params.live_price,
+            )
+
         self.transformed_data = MandelbrotChannelData(
             transformed_data
         ).serialize()
