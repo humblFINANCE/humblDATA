@@ -291,7 +291,7 @@ class MandelbrotChannelFetcher:
         pl.DataFrame
             The extracted data as a Polars DataFrame.
         """
-        self.equity_historical_data = (
+        self.equity_historical_data: pl.LazyFrame = (
             obb.equity.price.historical(
                 symbol=self.context_params.symbol,
                 start_date=self.context_params.start_date,
@@ -369,6 +369,7 @@ class MandelbrotChannelFetcher:
         return HumblObject(
             results=self.transformed_data,
             provider=self.context_params.provider,
+            raw_data=self.equity_historical_data.serialize(),
             warnings=None,
             chart=None,
             context_params=self.context_params,

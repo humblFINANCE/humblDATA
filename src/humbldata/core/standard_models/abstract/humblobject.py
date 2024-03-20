@@ -54,6 +54,10 @@ class HumblObject(Tagged, Generic[T]):
         default=None,
         description="Serializable Logical Plan of the pl.LazyFrame results.",
     )
+    raw_data: T | None = Field(
+        default=None,
+        description="Serialized raw data used in the command calculations.",
+    )
     provider: str | None = Field(
         default=None,
         description="Provider name.",
@@ -101,7 +105,9 @@ class HumblObject(Tagged, Generic[T]):
 
         return f"{self.__class__.__name__}\n\n" + "\n".join(items)
 
-    def to_polars(self, *, collect: bool = True) -> pl.LazyFrame | pl.DataFrame:
+    def to_polars(
+        self, collect: bool = True, raw_data: bool = False
+    ) -> pl.LazyFrame | pl.DataFrame:
         """
         Deserialize the stored results and optionally collect them into a Polars DataFrame.
 
@@ -122,16 +128,31 @@ class HumblObject(Tagged, Generic[T]):
         HumblDataError
             If no results are found to deserialize
         """
-        if self.results is None or not self.results:
-            raise HumblDataError("No results found.")
+        if not raw_data:
+            if self.results is None or not self.results:
+                raise HumblDataError("No results found.")
 
-        if collect:
-            out = pl.LazyFrame.deserialize(io.StringIO(self.results)).collect()
+            if collect:
+                out = pl.LazyFrame.deserialize(
+                    io.StringIO(self.results)
+                ).collect()
+            else:
+                out = pl.LazyFrame.deserialize(io.StringIO(self.results))
         else:
-            out = pl.LazyFrame.deserialize(io.StringIO(self.results))
+            if self.raw_data is None or not self.raw_data:
+                raise HumblDataError("No raw data found.")
+
+            if collect:
+                out = pl.LazyFrame.deserialize(
+                    io.StringIO(self.raw_data)
+                ).collect()
+            else:
+                out = pl.LazyFrame.deserialize(io.StringIO(self.raw_data))
         return out
 
-    def to_df(self, *, collect: bool = True) -> pl.LazyFrame | pl.DataFrame:
+    def to_df(
+        self, collect: bool = True, raw_data: bool = False
+    ) -> pl.LazyFrame | pl.DataFrame:
         """
         Alias for the `to_polars` method.
 
@@ -147,9 +168,9 @@ class HumblObject(Tagged, Generic[T]):
             The deserialized results as a Polars LazyFrame or DataFrame,
             depending on the collect parameter.
         """
-        return self.to_polars(collect=collect)
+        return self.to_polars(collect=collect, raw_data=raw_data)
 
-    def to_pandas(self) -> pd.DataFrame:
+    def to_pandas(self, raw_data: bool = False) -> pd.DataFrame:
         """
         Convert the results to a Pandas DataFrame.
 
@@ -158,9 +179,9 @@ class HumblObject(Tagged, Generic[T]):
         pd.DataFrame
             The results as a Pandas DataFrame.
         """
-        return self.to_polars(collect=True).to_pandas()
+        return self.to_polars(collect=True, raw_data=raw_data).to_pandas()
 
-    def to_numpy(self) -> np.ndarray:
+    def to_numpy(self, raw_data: bool = False) -> np.ndarray:
         """
         Convert the results to a NumPy array.
 
@@ -169,9 +190,9 @@ class HumblObject(Tagged, Generic[T]):
         np.ndarray
             The results as a NumPy array.
         """
-        return self.to_polars(collect=True).to_numpy()
+        return self.to_polars(collect=True, raw_data=raw_data).to_numpy()
 
-    def to_dict(self, *, row_wise: bool = False) -> dict:
+    def to_dict(self, row_wise: bool = False, raw_data: bool = False) -> dict:
         """
         Convert the results to a dictionary.
 
@@ -188,10 +209,10 @@ class HumblObject(Tagged, Generic[T]):
             The results as a dictionary.
         """
         if row_wise:
-            return self.to_polars(collect=True).to_dicts()
-        return self.to_polars(collect=True).to_dict()
+            return self.to_polars(collect=True, raw_data=raw_data).to_dicts()
+        return self.to_polars(collect=True, raw_data=raw_data).to_dict()
 
-    def to_arrow(self) -> pa.Table:
+    def to_arrow(self, raw_data: bool = False) -> pa.Table:
         """
         Convert the results to an Arrow Table.
 
@@ -200,9 +221,11 @@ class HumblObject(Tagged, Generic[T]):
         pa.Table
             The results as an Arrow Table.
         """
-        return self.to_polars(collect=True).to_arrow()
+        return self.to_polars(collect=True, raw_data=raw_data).to_arrow()
 
-    def to_struct(self, name: str = "results") -> pl.Series:
+    def to_struct(
+        self, name: str = "results", raw_data: bool = False
+    ) -> pl.Series:
         """
         Convert the results to a struct.
 
@@ -216,9 +239,11 @@ class HumblObject(Tagged, Generic[T]):
         pl.Struct
             The results as a struct.
         """
-        return self.to_polars(collect=True).to_struct(name=name)
+        return self.to_polars(collect=True, raw_data=raw_data).to_struct(
+            name=name
+        )
 
-    def is_empty(self) -> bool:
+    def is_empty(self, raw_data: bool = False) -> bool:
         """
         Check if the results are empty.
 
@@ -227,7 +252,7 @@ class HumblObject(Tagged, Generic[T]):
         bool
             True if the results are empty, False otherwise.
         """
-        return self.to_polars(collect=True).is_empty()
+        return self.to_polars(collect=True, raw_data=raw_data).is_empty()
 
     def show(self) -> None:
         """Show the chart."""
