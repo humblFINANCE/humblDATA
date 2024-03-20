@@ -279,11 +279,12 @@ class MandelbrotChannelFetcher:
                 start_date=self.context_params.start_date,
                 end_date=self.context_params.end_date,
                 provider=self.context_params.provider,
+                adjustment="splits_and_dividends",
                 # add kwargs
             )
             .to_polars()
             .lazy()
-        ).drop(["dividends", "stock_splits"])
+        ).drop(["dividend", "split_ratio"])
 
         if len(self.context_params.symbol) == 1:
             self.equity_historical_data = (

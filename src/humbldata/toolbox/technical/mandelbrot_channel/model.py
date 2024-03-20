@@ -224,8 +224,17 @@ async def _acalc_mandelbrot_channel_historical_engine(
     `calc_mandelbrot_channel_historical()`.
     """
     window_days = _window_format(window, _return_timedelta=True)
-    start_date = data.lazy().select(pl.col("date")).collect().to_series().min()
+    start_date = data.lazy().select(pl.col("date")).min().collect().row(0)[0]
     start_date = start_date + window_days
+    end_date = data.lazy().select("date").max().collect().row(0)[0]
+
+    if start_date >= end_date:
+        msg = f"You set <historical=True> \n\
+        This calculation needs *at least* one window of data. \n\
+        The (start date + window) is: {start_date} and the dataset ended: {end_date}. \n\
+        Please adjust dates accordingly."
+        raise HumblDataError(msg)
+
     dates = (
         data.lazy()
         .select(pl.col("date"))
@@ -253,10 +262,10 @@ async def _acalc_mandelbrot_channel_historical_engine(
 
     lazyframes = await asyncio.gather(*tasks)
     out = (
-        await pl.concat(lazyframes, how="vertical")
+        pl.concat(lazyframes, how="vertical")
         .sort(["symbol", "date"])
         .rename({"recent_price": "close_price"})
-        .collect_async()
+        # .collect_async()
     )
 
     # out = await pl.collect_all_async(lazyframes)
@@ -273,7 +282,7 @@ def calc_mandelbrot_channel_historical(
     *,
     _rv_grouped_mean: bool = True,
     _live_price: bool = True,
-) -> pl.DataFrame | pl.LazyFrame:
+) -> pl.LazyFrame:
     """
     Context: Toolbox || Category: Technical || Sub-Category: Mandelbrot Channel || **Command: calc_mandelbrot_channel_historical**.
 
