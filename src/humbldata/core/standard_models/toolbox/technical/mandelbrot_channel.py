@@ -35,6 +35,7 @@ MANDELBROT_QUERY_DESCRIPTIONS = {
     "rv_grouped_mean": "Whether to calculate the the mean value of realized volatility over multiple window lengths",
     "live_price": "Whether to calculate the ranges using the current live price, or the most recent 'close' observation.",
     "historical": "Whether to calculate the Historical Mandelbrot Channel (over-time), and return a time-series of channels from the start to the end date. If False, the Mandelbrot Channel calculation is done aggregating all of the data into one observation. If True, then it will enable daily observations over-time.",
+    "chart": "Whether to return a chart object.",
 }
 
 
@@ -72,6 +73,8 @@ class MandelbrotChannelQueryParams(QueryParams):
         False, the Mandelbrot Channel calculation is done aggregating all of the
         data into one observation. If True, then it will enable daily
         observations over-time. Defaults to False.
+    chart : bool
+        Whether to return a chart object. Defaults to False.
     """
 
     window: str = Field(
@@ -121,6 +124,11 @@ class MandelbrotChannelQueryParams(QueryParams):
         default=False,
         title="Historical Mandelbrot Channel",
         description=MANDELBROT_QUERY_DESCRIPTIONS.get("historical", ""),
+    )
+    chart: bool = Field(
+        default=False,
+        title="Results Chart",
+        description=MANDELBROT_QUERY_DESCRIPTIONS.get("chart", ""),
     )
 
     @field_validator("window", mode="after", check_fields=False)
