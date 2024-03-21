@@ -1,5 +1,5 @@
 import io
-from typing import Any, ClassVar, Generic, Type, TypeVar
+from typing import Any, ClassVar, Generic, TypeVar
 
 import numpy as np
 import pandas as pd
