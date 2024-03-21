@@ -262,15 +262,15 @@ async def _acalc_mandelbrot_channel_historical_engine(
 
     lazyframes = await asyncio.gather(*tasks)
     out = (
-        pl.concat(lazyframes, how="vertical")
+        await pl.concat(lazyframes, how="vertical")
         .sort(["symbol", "date"])
         .rename({"recent_price": "close_price"})
-        # .collect_async()
+        .collect_async()
     )
 
     # out = await pl.collect_all_async(lazyframes)
 
-    return out
+    return out.lazy()
 
 
 def calc_mandelbrot_channel_historical(
