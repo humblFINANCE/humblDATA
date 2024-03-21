@@ -5,7 +5,14 @@ import numpy as np
 import pandas as pd
 import polars as pl
 import pyarrow as pa
-from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    PrivateAttr,
+    SerializeAsAny,
+    field_validator,
+)
 
 from humbldata.core.standard_models.abstract.chart import Chart
 from humbldata.core.standard_models.abstract.errors import HumblDataError
@@ -79,7 +86,7 @@ class HumblObject(Tagged, Generic[T]):
         title="Context Parameters",
         description="Context parameters.",
     )
-    command_params: QueryParams | None = Field(
+    command_params: SerializeAsAny[QueryParams] | None = Field(
         default=QueryParams,
         title="Command Parameters",
         description="Command-specific parameters.",
@@ -101,7 +108,7 @@ class HumblObject(Tagged, Generic[T]):
         ]
 
         # Needed to extract subclass dict correctly
-        items = extract_subclass_dict(self, "command_params", items)
+        # items = extract_subclass_dict(self, "command_params", items)
 
         return f"{self.__class__.__name__}\n\n" + "\n".join(items)
 
