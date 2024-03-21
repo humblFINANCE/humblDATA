@@ -4,6 +4,7 @@ import plotly
 import plotly.graph_objs as go
 import polars as pl
 
+from humbldata.core.standard_models.abstract.chart import Chart
 from humbldata.core.standard_models.abstract.humblobject import HumblObject
 from humbldata.core.utils import plotly_theme  # noqa: F401
 
@@ -89,14 +90,16 @@ def is_historical_data(data) -> bool:
 
 def generate_plot_for_symbol(
     data: pl.DataFrame, raw_data: pl.DataFrame, symbol: str
-) -> go.Figure:
+) -> Chart:
     """
     Generate the appropriate plot for a symbol based on the data type.
     """
     if is_historical_data(data):
-        return create_historical_plot(data, symbol)
+        out = create_historical_plot(data, symbol)
     else:
-        return create_current_plot(data, raw_data, symbol)
+        out = create_current_plot(data, raw_data, symbol)
+
+    return Chart(content=out.to_plotly_json(), fig=out)
 
 
 def generate_plots(data: HumblObject) -> list[go.Figure]:

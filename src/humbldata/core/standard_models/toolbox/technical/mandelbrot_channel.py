@@ -353,6 +353,7 @@ class MandelbrotChannelFetcher:
         self.transformed_data = MandelbrotChannelData(
             transformed_data
         ).serialize()
+
         return self
 
     def fetch_data(self):
