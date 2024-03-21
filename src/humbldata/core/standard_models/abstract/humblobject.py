@@ -263,6 +263,13 @@ class HumblObject(Tagged, Generic[T]):
 
     def show(self) -> None:
         """Show the chart."""
-        if not self.chart or not self.chart[0].fig:
-            raise HumblDataError("Chart not found.")
-        raise NotImplementedError
+        if isinstance(self.chart, list):
+            for chart in self.chart:
+                if chart and chart.fig:
+                    chart.fig.show()
+                else:
+                    msg = "Chart object is missing or incomplete."
+                    raise HumblDataError(msg)
+        elif not self.chart or not self.chart.fig:
+            msg = "Chart not found."
+            raise HumblDataError(msg)
