@@ -61,7 +61,7 @@ class HumblObject(Tagged, Generic[T]):
         default=None,
         description="Serializable Logical Plan of the pl.LazyFrame results.",
     )
-    raw_data: T | None = Field(
+    equity_data: T | None = Field(
         default=None,
         description="Serialized raw data used in the command calculations.",
     )
@@ -263,6 +263,6 @@ class HumblObject(Tagged, Generic[T]):
 
     def show(self) -> None:
         """Show the chart."""
-        if not self.chart or not self.chart.fig:
+        if not self.chart or not self.chart[0].fig:
             raise HumblDataError("Chart not found.")
         raise NotImplementedError

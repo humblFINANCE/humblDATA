@@ -385,7 +385,7 @@ class MandelbrotChannelFetcher:
         return HumblObject(
             results=self.transformed_data,
             provider=self.context_params.provider,
-            raw_data=self.equity_historical_data.serialize(),
+            equity_data=self.equity_historical_data.serialize(),
             warnings=None,
             chart=self.chart,
             context_params=self.context_params,
