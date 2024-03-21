@@ -89,7 +89,7 @@ def is_historical_data(data) -> bool:
 
 
 def generate_plot_for_symbol(
-    data: pl.DataFrame, raw_data: pl.DataFrame, symbol: str
+    data: pl.DataFrame, equity_data: pl.DataFrame, symbol: str
 ) -> Chart:
     """
     Generate the appropriate plot for a symbol based on the data type.
@@ -97,21 +97,36 @@ def generate_plot_for_symbol(
     if is_historical_data(data):
         out = create_historical_plot(data, symbol)
     else:
-        out = create_current_plot(data, raw_data, symbol)
+        out = create_current_plot(data, equity_data, symbol)
 
     return Chart(content=out.to_plotly_json(), fig=out)
 
 
-def generate_plots(data: HumblObject) -> list[go.Figure]:
+def generate_plots(
+    data: pl.LazyFrame, equity_data: pl.LazyFrame
+) -> list[Chart]:
     """
-    Generate a list of plots for each symbol in the dataframe.
+    Context: Toolbox || Category: Technical || Subcategory: Mandelbrot Channel || **Command: generate_plots()**.
+
+    Generate plots for each unique symbol in the given dataframes.
+
+    Parameters
+    ----------
+    data : pl.LazyFrame
+        The LazyFrame containing the symbols and MandelbrotChannelData
+    equity_data : pl.LazyFrame
+        The LazyFrame containing equity data for the symbols.
+
+    Returns
+    -------
+    list[Chart]
+        A list of Chart objects, each representing a plot for a unique symbol.
+
     """
-    calc_data: pl.DataFrame = data.to_polars()
-    raw_data: pl.DataFrame = data.to_polars(raw_data=True)
-    symbols = calc_data.select("symbol").unique().to_series()
+    symbols = data.select("symbol").unique().collect().to_series()
 
     plots = [
-        generate_plot_for_symbol(calc_data, raw_data, symbol)
+        generate_plot_for_symbol(data.collect(), equity_data.collect(), symbol)
         for symbol in symbols
     ]
     return plots

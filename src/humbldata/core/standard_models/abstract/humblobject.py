@@ -73,7 +73,7 @@ class HumblObject(Tagged, Generic[T]):
         default=None,
         description="List of warnings.",
     )
-    chart: Chart | None = Field(
+    chart: Chart | list[Chart] | None = Field(
         default=None,
         description="Chart object.",
     )

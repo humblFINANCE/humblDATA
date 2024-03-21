@@ -23,6 +23,7 @@ from humbldata.toolbox.technical.mandelbrot_channel.model import (
     calc_mandelbrot_channel,
     calc_mandelbrot_channel_historical,
 )
+from humbldata.toolbox.technical.mandelbrot_channel.view import generate_plots
 from humbldata.toolbox.toolbox_helpers import _window_format
 
 Q = TypeVar("Q", bound=ToolboxQueryParams)
@@ -282,10 +283,12 @@ class MandelbrotChannelFetcher:
         if not self.command_params:
             self.command_params = None
             # Set Default Arguments
-            self.command_params = MandelbrotChannelQueryParams()
+            self.command_params: MandelbrotChannelQueryParams = (
+                MandelbrotChannelQueryParams()
+            )
         else:
-            self.command_params = MandelbrotChannelQueryParams(
-                **self.command_params
+            self.command_params: MandelbrotChannelQueryParams = (
+                MandelbrotChannelQueryParams(**self.command_params)
             )
 
     def extract_data(self):
@@ -350,10 +353,14 @@ class MandelbrotChannelFetcher:
                 live_price=self.command_params.live_price,
             )
 
-        self.transformed_data = MandelbrotChannelData(
-            transformed_data
-        ).serialize()
+        self.transformed_data = MandelbrotChannelData(transformed_data)
 
+        if self.command_params.chart:
+            self.chart = generate_plots(
+                self.transformed_data, self.equity_historical_data
+            )
+
+        self.transformed_data = self.transformed_data.serialize()
         return self
 
     def fetch_data(self):
@@ -380,7 +387,7 @@ class MandelbrotChannelFetcher:
             provider=self.context_params.provider,
             raw_data=self.equity_historical_data.serialize(),
             warnings=None,
-            chart=None,
+            chart=self.chart,
             context_params=self.context_params,
             command_params=self.command_params,
         )
