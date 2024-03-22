@@ -37,10 +37,11 @@ def test_create_current_plot(mandelbrot_data, request: FixtureRequest):
     current_param = request.node.callspec.params.get("mandelbrot_data")
 
     if current_param == "current":
-        close_data = mandelbrot_data.select(
+        equity_data = mandelbrot_data.select(
             "close_price", "date", "symbol"
         ).rename({"close_price": "close"})
-        plots = create_current_plot(mandelbrot_data, close_data, symbol="AAPL")
+
+        plots = create_current_plot(mandelbrot_data, equity_data, symbol="AAPL")
         assert isinstance(plots, Figure)
 
 
