@@ -37,6 +37,7 @@ MANDELBROT_QUERY_DESCRIPTIONS = {
     "live_price": "Whether to calculate the ranges using the current live price, or the most recent 'close' observation.",
     "historical": "Whether to calculate the Historical Mandelbrot Channel (over-time), and return a time-series of channels from the start to the end date. If False, the Mandelbrot Channel calculation is done aggregating all of the data into one observation. If True, then it will enable daily observations over-time.",
     "chart": "Whether to return a chart object.",
+    "template": "The template/theme to use for the plotly figure.",
 }
 
 
@@ -130,6 +131,25 @@ class MandelbrotChannelQueryParams(QueryParams):
         default=False,
         title="Results Chart",
         description=MANDELBROT_QUERY_DESCRIPTIONS.get("chart", ""),
+    )
+    template: Literal[
+        "humbl_dark",
+        "humbl_light",
+        "ggplot2",
+        "seaborn",
+        "simple_white",
+        "plotly",
+        "plotly_white",
+        "plotly_dark",
+        "presentation",
+        "xgridoff",
+        "ygridoff",
+        "gridon",
+        "none",
+    ] = Field(
+        default="humbl_dark",
+        title="Plotly Template",
+        description=MANDELBROT_QUERY_DESCRIPTIONS.get("template", ""),
     )
 
     @field_validator("window", mode="after", check_fields=False)
@@ -357,7 +377,9 @@ class MandelbrotChannelFetcher:
 
         if self.command_params.chart:
             self.chart = generate_plots(
-                self.transformed_data, self.equity_historical_data
+                self.transformed_data,
+                self.equity_historical_data,
+                template=self.command_params.template,
             )
 
         self.transformed_data = self.transformed_data.serialize()

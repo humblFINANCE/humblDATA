@@ -9,7 +9,9 @@ from humbldata.core.standard_models.abstract.humblobject import HumblObject
 from humbldata.core.utils import plotly_theme  # noqa: F401
 
 
-def create_historical_plot(data: pl.DataFrame, symbol: str) -> go.Figure:
+def create_historical_plot(
+    data: pl.DataFrame, symbol: str, template: str
+) -> go.Figure:
     """
     Create a plot for historical data for a given symbol.
     """
@@ -44,11 +46,14 @@ def create_historical_plot(data: pl.DataFrame, symbol: str) -> go.Figure:
         title=f"Historical Mandelbrot Channel for {symbol}",
         xaxis_title="Date",
         yaxis_title="Price",
+        template=template,
     )
     return fig
 
 
-def create_current_plot(data, equity_data, symbol: str) -> go.Figure:
+def create_current_plot(
+    data: pl.DataFrame, equity_data: pl.DataFrame, symbol: str, template: str
+) -> go.Figure:
     """
     Create a plot for current data for a given symbol.
     """
@@ -77,11 +82,12 @@ def create_current_plot(data, equity_data, symbol: str) -> go.Figure:
         title=f"Current Mandelbrot Channel for {symbol}",
         xaxis_title="Date",
         yaxis_title="Price",
+        template=template,
     )
     return fig
 
 
-def is_historical_data(data) -> bool:
+def is_historical_data(data: pl.DataFrame) -> bool:
     """
     Determine if the dataframe contains historical data.
     """
@@ -89,21 +95,21 @@ def is_historical_data(data) -> bool:
 
 
 def generate_plot_for_symbol(
-    data: pl.DataFrame, equity_data: pl.DataFrame, symbol: str
+    data: pl.DataFrame, equity_data: pl.DataFrame, symbol: str, template: str
 ) -> Chart:
     """
     Generate the appropriate plot for a symbol based on the data type.
     """
     if is_historical_data(data):
-        out = create_historical_plot(data, symbol)
+        out = create_historical_plot(data, symbol, template)
     else:
-        out = create_current_plot(data, equity_data, symbol)
+        out = create_current_plot(data, equity_data, symbol, template)
 
     return Chart(content=out.to_plotly_json(), fig=out)
 
 
 def generate_plots(
-    data: pl.LazyFrame, equity_data: pl.LazyFrame
+    data: pl.LazyFrame, equity_data: pl.LazyFrame, template: str
 ) -> list[Chart]:
     """
     Context: Toolbox || Category: Technical || Subcategory: Mandelbrot Channel || **Command: generate_plots()**.
@@ -116,6 +122,8 @@ def generate_plots(
         The LazyFrame containing the symbols and MandelbrotChannelData
     equity_data : pl.LazyFrame
         The LazyFrame containing equity data for the symbols.
+    template : str
+        The template/theme to use for the plotly figure.
 
     Returns
     -------
@@ -126,7 +134,9 @@ def generate_plots(
     symbols = data.select("symbol").unique().collect().to_series()
 
     plots = [
-        generate_plot_for_symbol(data.collect(), equity_data.collect(), symbol)
+        generate_plot_for_symbol(
+            data.collect(), equity_data.collect(), symbol, template
+        )
         for symbol in symbols
     ]
     return plots

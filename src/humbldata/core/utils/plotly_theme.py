@@ -432,6 +432,21 @@ pio.templates["humbl_dark"] = go.layout.Template(
     }
 )
 
+pio.templates["humbl_dark"].layout.annotations = [
+    {
+        "name": "draft watermark",
+        "text": "humblDATA",
+        "textangle": -25,
+        "opacity": 0.1,
+        "font": dict(color="black", size=90),
+        "xref": "paper",
+        "yref": "paper",
+        "x": 0.5,
+        "y": 0.5,
+        "showarrow": False,
+    }
+]
+
 
 pio.templates["humbl_light"] = go.layout.Template(
     {
@@ -867,3 +882,17 @@ pio.templates["humbl_light"] = go.layout.Template(
         },
     }
 )
+pio.templates["humbl_light"].layout.annotations = [
+    {
+        "name": "draft watermark",
+        "text": "humblDATA",
+        "textangle": -25,
+        "opacity": 0.1,
+        "font": dict(color="black", size=90),
+        "xref": "paper",
+        "yref": "paper",
+        "x": 0.5,
+        "y": 0.5,
+        "showarrow": False,
+    }
+]
