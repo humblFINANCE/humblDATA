@@ -13,7 +13,21 @@ def create_historical_plot(
     data: pl.DataFrame, symbol: str, template: str
 ) -> go.Figure:
     """
-    Create a plot for historical data for a given symbol.
+    Generate a historical plot for a given symbol from the provided data.
+
+    Parameters
+    ----------
+    data : pl.DataFrame
+        The dataframe containing historical data including dates, bottom prices, close prices, and top prices.
+    symbol : str
+        The symbol for which the historical plot is to be generated.
+    template : str
+        The template to be used for styling the plot.
+
+    Returns
+    -------
+    go.Figure
+        A plotly figure object representing the historical data of the given symbol.
     """
     filtered_data = data.filter(pl.col("symbol") == symbol)
 
@@ -55,7 +69,23 @@ def create_current_plot(
     data: pl.DataFrame, equity_data: pl.DataFrame, symbol: str, template: str
 ) -> go.Figure:
     """
-    Create a plot for current data for a given symbol.
+    Generate a current plot for a given symbol from the provided data and equity data.
+
+    Parameters
+    ----------
+    data : pl.DataFrame
+        The dataframe containing historical data including top and bottom prices.
+    equity_data : pl.DataFrame
+        The dataframe containing current equity data including dates and close prices.
+    symbol : str
+        The symbol for which the current plot is to be generated.
+    template : str
+        The template to be used for styling the plot.
+
+    Returns
+    -------
+    go.Figure
+        A plotly figure object representing the current data of the given symbol.
     """
     filtered_data = data.filter(pl.col("symbol") == symbol)
     equity_data = equity_data.filter(pl.col("symbol") == symbol)
@@ -89,7 +119,17 @@ def create_current_plot(
 
 def is_historical_data(data: pl.DataFrame) -> bool:
     """
-    Determine if the dataframe contains historical data.
+    Check if the provided dataframe contains historical data based on the uniqueness of dates.
+
+    Parameters
+    ----------
+    data : pl.DataFrame
+        The dataframe to check for historical data presence.
+
+    Returns
+    -------
+    bool
+        Returns True if the dataframe contains historical data (more than one unique date), otherwise False.
     """
     return data.select("date").to_series().unique().shape[0] > 1
 
@@ -98,7 +138,24 @@ def generate_plot_for_symbol(
     data: pl.DataFrame, equity_data: pl.DataFrame, symbol: str, template: str
 ) -> Chart:
     """
-    Generate the appropriate plot for a symbol based on the data type.
+    Generate a plot for a given symbol based on whether the data is historical or current.
+
+    Parameters
+    ----------
+    data : pl.DataFrame
+        The dataframe containing Mandelbrot channel data for all symbols.
+    equity_data : pl.DataFrame
+        The dataframe containing equity data for all symbols.
+    symbol : str
+        The symbol for which to generate the plot.
+    template : str
+        The template/theme to use for the plotly figure.
+
+    Returns
+    -------
+    Chart
+        A Chart object containing the generated plot for the specified symbol.
+
     """
     if is_historical_data(data):
         out = create_historical_plot(data, symbol, template)
