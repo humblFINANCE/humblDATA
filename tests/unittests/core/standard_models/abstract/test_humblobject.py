@@ -83,6 +83,7 @@ def test_to_dict(humblobject: HumblObject):
     assert isinstance(humblobject.to_dict(), dict)
     assert isinstance(humblobject.to_dict(equity_data=True), dict)
     assert isinstance(humblobject.to_dict(row_wise=True), list)
+    assert isinstance(humblobject.to_dict(row_wise=True)[0], dict)
 
 
 def test_to_arrow(humblobject: HumblObject):
