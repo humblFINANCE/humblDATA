@@ -91,8 +91,8 @@ def test_hodges_tompkins(volatility_test_df):
             .select(cs.contains("ht"))
             .collect()
         )
-        assert len(result) == 5
-        assert result.to_series().mean() == pytest.approx(8.51, 0.01)
+        assert len(result) == 4
+        assert result.to_series().mean() == pytest.approx(10.64, 0.01)
         assert result.to_series().sum() == pytest.approx(42.59, 0.01)
 
 

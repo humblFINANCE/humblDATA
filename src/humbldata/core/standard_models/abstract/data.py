@@ -16,7 +16,6 @@ class Data(pa.DataFrameModel):
     Example
     -------
     ```py
-    total_time = f"{end_time - start_time:.3f}"
     class EquityHistoricalData(Data):
 
     date: Union[dateType, datetime] = Field(

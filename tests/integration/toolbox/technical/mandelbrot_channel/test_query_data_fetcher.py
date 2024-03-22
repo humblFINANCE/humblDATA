@@ -60,7 +60,7 @@ def test_mandelbrot_channel_fetcher():
         context_params=ToolboxQueryParams(symbol="AMD"),
         command_params=None,
     )
-    data = fetcher.fetch_data()
+    data = fetcher.fetch_data().to_polars()
     assert not data.is_empty()
     assert "date" in data.columns
     assert "symbol" in data.columns
@@ -75,7 +75,7 @@ def test_mandelbrot_channel_fetcher_integration():
         context_params=ToolboxQueryParams(symbol="AMD"),
         command_params=None,
     )
-    data = fetcher.fetch_data()
+    data = fetcher.fetch_data().to_polars()
     assert not data.is_empty()
 
     MandelbrotChannelData(data)

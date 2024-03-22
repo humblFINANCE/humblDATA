@@ -120,7 +120,8 @@ filterwarnings = ["error", "ignore::DeprecationWarning"]
 testpaths = ["src", "tests"]
 xfail_strict = true
 markers = [
-  "integration: mark a test for integration/composition of other smaller functions"
+  "integration: mark a test for integration/composition of other smaller functions",
+  "slow: mark a test as slow to run"
 ]
 
 [tool.ruff]  # https://github.com/charliermarsh/ruff

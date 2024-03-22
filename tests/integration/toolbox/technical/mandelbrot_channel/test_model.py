@@ -47,10 +47,10 @@ def test_mandelbrot_channel_integration(
         equity_historical,
         window="1m",
         rv_adjustment=True,
-        _rv_method="std",
-        _rv_grouped_mean=False,
-        _rs_method="RS",
-        _live_price=False,
+        rv_method="std",
+        rv_grouped_mean=False,
+        rs_method="RS",
+        live_price=False,
     ).collect()
 
     if "multiple" in current_param:
@@ -104,11 +104,11 @@ def test_mandelbrot_channel_historical_integration(
         equity_historical,
         window="1m",
         rv_adjustment=True,
-        _rv_method="std",
-        _rv_grouped_mean=False,
-        _rs_method="RS",
-        _live_price=False,
-    )
+        rv_method="std",
+        rv_grouped_mean=False,
+        rs_method="RS",
+        live_price=False,
+    ).collect()
 
     if "multiple" in current_param:
         result_shape = mandelbrot_historical.select("symbol").unique().shape
@@ -177,6 +177,6 @@ def test_mandelbrot_channel_historical_integration(
             "date",
             "symbol",
             "bottom_price",
-            "close",
+            "close_price",
             "top_price",
         ]

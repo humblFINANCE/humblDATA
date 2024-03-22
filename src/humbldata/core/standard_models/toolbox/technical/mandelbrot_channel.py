@@ -13,14 +13,17 @@ from typing import Literal, TypeVar
 import pandera.polars as pa
 import polars as pl
 from openbb import obb
-from pydantic import Field, field_validator
+from pydantic import Field, PrivateAttr, field_validator
 
 from humbldata.core.standard_models.abstract.data import Data
+from humbldata.core.standard_models.abstract.humblobject import HumblObject
 from humbldata.core.standard_models.abstract.query_params import QueryParams
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
 from humbldata.toolbox.technical.mandelbrot_channel.model import (
     calc_mandelbrot_channel,
+    calc_mandelbrot_channel_historical,
 )
+from humbldata.toolbox.technical.mandelbrot_channel.view import generate_plots
 from humbldata.toolbox.toolbox_helpers import _window_format
 
 Q = TypeVar("Q", bound=ToolboxQueryParams)
@@ -32,6 +35,9 @@ MANDELBROT_QUERY_DESCRIPTIONS = {
     "rs_method": "The method to use for Range/STD calculation. THis is either, min, max or mean of all RS ranges per window. If not defined, just used the most recent RS window",
     "rv_grouped_mean": "Whether to calculate the the mean value of realized volatility over multiple window lengths",
     "live_price": "Whether to calculate the ranges using the current live price, or the most recent 'close' observation.",
+    "historical": "Whether to calculate the Historical Mandelbrot Channel (over-time), and return a time-series of channels from the start to the end date. If False, the Mandelbrot Channel calculation is done aggregating all of the data into one observation. If True, then it will enable daily observations over-time.",
+    "chart": "Whether to return a chart object.",
+    "template": "The template/theme to use for the plotly figure.",
 }
 
 
@@ -42,24 +48,35 @@ class MandelbrotChannelQueryParams(QueryParams):
     Parameters
     ----------
     window : str
-        The width of the window used for splitting the data into sections for detrending.
-        Defaults to "1m".
+        The width of the window used for splitting the data into sections for
+        detrending. Defaults to "1m".
     rv_adjustment : bool
-        Whether to adjust the calculation for realized volatility. If True, the data is filtered
-        to only include observations in the same volatility bucket that the stock is currently in.
-        Defaults to True.
+        Whether to adjust the calculation for realized volatility. If True, the
+        data is filtered
+        to only include observations in the same volatility bucket that the
+        stock is currently in. Defaults to True.
     rv_method : str
-        The method to calculate the realized volatility. Only need to define when rv_adjustment is True.
-        Defaults to "std".
+        The method to calculate the realized volatility. Only need to define
+        when rv_adjustment is True. Defaults to "std".
     rs_method : Literal["RS", "RS_min", "RS_max", "RS_mean"]
-        The method to use for Range/STD calculation. This is either, min, max or mean of all RS ranges
-        per window. If not defined, just used the most recent RS window. Defaults to "RS".
+        The method to use for Range/STD calculation. This is either, min, max
+        or mean of all RS ranges
+        per window. If not defined, just used the most recent RS window.
+        Defaults to "RS".
     rv_grouped_mean : bool
-        Whether to calculate the mean value of realized volatility over multiple window lengths.
-        Defaults to False.
+        Whether to calculate the mean value of realized volatility over
+        multiple window lengths. Defaults to False.
     live_price : bool
-        Whether to calculate the ranges using the current live price, or the most recent 'close' observation.
-        Defaults to False.
+        Whether to calculate the ranges using the current live price, or the
+        most recent 'close' observation. Defaults to False.
+    historical : bool
+        Whether to calculate the Historical Mandelbrot Channel (over-time), and
+        return a time-series of channels from the start to the end date. If
+        False, the Mandelbrot Channel calculation is done aggregating all of the
+        data into one observation. If True, then it will enable daily
+        observations over-time. Defaults to False.
+    chart : bool
+        Whether to return a chart object. Defaults to False.
     """
 
     window: str = Field(
@@ -104,6 +121,35 @@ class MandelbrotChannelQueryParams(QueryParams):
         default=False,
         title="Live Price",
         description=MANDELBROT_QUERY_DESCRIPTIONS.get("live_price", ""),
+    )
+    historical: bool = Field(
+        default=False,
+        title="Historical Mandelbrot Channel",
+        description=MANDELBROT_QUERY_DESCRIPTIONS.get("historical", ""),
+    )
+    chart: bool = Field(
+        default=False,
+        title="Results Chart",
+        description=MANDELBROT_QUERY_DESCRIPTIONS.get("chart", ""),
+    )
+    template: Literal[
+        "humbl_dark",
+        "humbl_light",
+        "ggplot2",
+        "seaborn",
+        "simple_white",
+        "plotly",
+        "plotly_white",
+        "plotly_dark",
+        "presentation",
+        "xgridoff",
+        "ygridoff",
+        "gridon",
+        "none",
+    ] = Field(
+        default="humbl_dark",
+        title="Plotly Template",
+        description=MANDELBROT_QUERY_DESCRIPTIONS.get("template", ""),
     )
 
     @field_validator("window", mode="after", check_fields=False)
@@ -171,6 +217,8 @@ class MandelbrotChannelData(Data):
         default=None,
         title="Recent Price",
         description="The most recent price within the Mandelbrot Channel.",
+        alias="(close_price|recent_price)",
+        regex=True,
     )
     top_price: float = pa.Field(
         default=None,
@@ -209,6 +257,23 @@ class MandelbrotChannelFetcher:
         Transforms the command-specific data according to the Mandelbrot Channel logic.
     fetch_data()
         Execute TET Pattern.
+
+    Returns
+    -------
+    HumblObject
+        results : MandelbrotChannelData
+            Serializable results.
+        provider : Literal['fmp', 'intrinio', 'polygon', 'tiingo', 'yfinance']
+            Provider name.
+        warnings : Optional[List[Warning_]]
+            List of warnings.
+        chart : Optional[Chart]
+            Chart object.
+        context_params : ToolboxQueryParams
+            Context-specific parameters.
+        command_params : MandelbrotChannelQueryParams
+            Command-specific parameters.
+
     """
 
     def __init__(
@@ -238,10 +303,12 @@ class MandelbrotChannelFetcher:
         if not self.command_params:
             self.command_params = None
             # Set Default Arguments
-            self.command_params = MandelbrotChannelQueryParams()
+            self.command_params: MandelbrotChannelQueryParams = (
+                MandelbrotChannelQueryParams()
+            )
         else:
-            self.command_params = MandelbrotChannelQueryParams(
-                **self.command_params
+            self.command_params: MandelbrotChannelQueryParams = (
+                MandelbrotChannelQueryParams(**self.command_params)
             )
 
     def extract_data(self):
@@ -255,24 +322,26 @@ class MandelbrotChannelFetcher:
         pl.DataFrame
             The extracted data as a Polars DataFrame.
         """
-        equity_historical_data = (
+        self.equity_historical_data: pl.LazyFrame = (
             obb.equity.price.historical(
                 symbol=self.context_params.symbol,
                 start_date=self.context_params.start_date,
                 end_date=self.context_params.end_date,
                 provider=self.context_params.provider,
+                adjustment="splits_and_dividends",
                 # add kwargs
             )
             .to_polars()
             .lazy()
-        ).drop(["dividends", "stock_splits"])
+        ).drop(["dividend", "split_ratio"])
 
         if len(self.context_params.symbol) == 1:
-            equity_historical_data = equity_historical_data.with_columns(
-                symbol=pl.lit(self.context_params.symbol[0])
+            self.equity_historical_data = (
+                self.equity_historical_data.with_columns(
+                    symbol=pl.lit(self.context_params.symbol[0])
+                )
             )
-
-        return equity_historical_data.collect()
+        return self
 
     def transform_data(self):
         """
@@ -283,16 +352,38 @@ class MandelbrotChannelFetcher:
         pl.DataFrame
             The transformed data as a Polars DataFrame
         """
-        out = calc_mandelbrot_channel(
-            self.equity_historical_data,
-            window=self.command_params.window,
-            rv_adjustment=self.command_params.rv_adjustment,
-            _rv_method=self.command_params.rv_method,
-            _rv_grouped_mean=self.command_params.rv_grouped_mean,
-            _rs_method=self.command_params.rs_method,
-            _live_price=self.command_params.live_price,
-        )
-        return out
+        if self.command_params.historical is False:
+            transformed_data = calc_mandelbrot_channel(
+                data=self.equity_historical_data,
+                window=self.command_params.window,
+                rv_adjustment=self.command_params.rv_adjustment,
+                rv_method=self.command_params.rv_method,
+                rv_grouped_mean=self.command_params.rv_grouped_mean,
+                rs_method=self.command_params.rs_method,
+                live_price=self.command_params.live_price,
+            )
+        else:
+            transformed_data = calc_mandelbrot_channel_historical(
+                data=self.equity_historical_data,
+                window=self.command_params.window,
+                rv_adjustment=self.command_params.rv_adjustment,
+                rv_method=self.command_params.rv_method,
+                rv_grouped_mean=self.command_params.rv_grouped_mean,
+                rs_method=self.command_params.rs_method,
+                live_price=self.command_params.live_price,
+            )
+
+        self.transformed_data = MandelbrotChannelData(transformed_data)
+
+        if self.command_params.chart:
+            self.chart = generate_plots(
+                self.transformed_data,
+                self.equity_historical_data,
+                template=self.command_params.template,
+            )
+
+        self.transformed_data = self.transformed_data.serialize()
+        return self
 
     def fetch_data(self):
         """
@@ -310,7 +401,15 @@ class MandelbrotChannelFetcher:
             or visualization.
         """
         self.transform_query()
-        self.equity_historical_data = self.extract_data()
-        out = self.transform_data()
+        self.extract_data()
+        self.transform_data()
 
-        return MandelbrotChannelData(out).collect()
+        return HumblObject(
+            results=self.transformed_data,
+            provider=self.context_params.provider,
+            equity_data=self.equity_historical_data.serialize(),
+            warnings=None,
+            chart=self.chart,
+            context_params=self.context_params,
+            command_params=self.command_params,
+        )
