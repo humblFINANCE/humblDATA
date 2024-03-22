@@ -48,17 +48,17 @@ def create_historical_plot(data: pl.DataFrame, symbol: str) -> go.Figure:
     return fig
 
 
-def create_current_plot(data, raw_data, symbol: str) -> go.Figure:
+def create_current_plot(data, equity_data, symbol: str) -> go.Figure:
     """
     Create a plot for current data for a given symbol.
     """
     filtered_data = data.filter(pl.col("symbol") == symbol)
-    raw_data = raw_data.filter(pl.col("symbol") == symbol)
+    equity_data = equity_data.filter(pl.col("symbol") == symbol)
     fig = go.Figure()
     fig.add_trace(
         go.Scatter(
-            x=raw_data.select("date").to_series(),
-            y=raw_data.select("close").to_series(),
+            x=equity_data.select("date").to_series(),
+            y=equity_data.select("close").to_series(),
             name="Recent Price",
             line=dict(color="blue"),
         )
