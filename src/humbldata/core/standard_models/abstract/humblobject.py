@@ -201,21 +201,35 @@ class HumblObject(Tagged, Generic[T]):
 
     def to_dict(
         self, row_wise: bool = False, equity_data: bool = False
-    ) -> dict:
+    ) -> dict | list[dict]:
         """
-        Convert the results to a dictionary.
+        Transform the stored data into a dictionary or a list of dictionaries.
+
+        This method allows for the conversion of the internal data
+        representation into a more universally accessible format, either
+        aggregating the entire dataset into a single dictionary (column-wise)
+        or breaking it down into a list of dictionaries, each representing a
+        row in the dataset.
 
         Parameters
         ----------
         row_wise : bool, optional
-            If True, convert every row to a dictionary of Python-native values.
-            If False, convert DataFrame to a dictionary, mapping column name to
-            values. Default is False.
+            Determines the format of the output. If set to True, the method
+            returns a list of dictionaries, with each dictionary representing a
+            row and its corresponding data as key-value pairs. If set to False,
+            the method returns a single dictionary, with column names as keys
+            and lists of column data as values. Default is False.
+
+        equity_data : bool, optional
+            A flag to specify whether to use equity-specific data for the
+            conversion. This parameter allows for flexibility in handling
+            different types of data stored within the object. Default is
+            False.
 
         Returns
         -------
-        dict
-            The results as a dictionary.
+        dict | list[dict]
+            Depending on the `row_wise` parameter, either a dictionary mapping column names to lists of values (if `row_wise` is False) or a list of dictionaries, each representing a row in the dataset (if `row_wise` is True).
         """
         if row_wise:
             return self.to_polars(
