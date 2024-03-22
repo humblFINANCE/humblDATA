@@ -1,3 +1,35 @@
+## v1.2.0 (2024-03-22)
+
+### ✨ Features
+
+- **plotly_theme**: `humblDATA` watermark on graph
+- **HumblObject**: `.show()` method shows the charts
+- **mandelbrot_channel::view**: integrate `chart` into `MandelbrotChannelQueryParams`
+- **mandelbrot_channel**: `chart` parameter now in `MandelbrotChannelQueryParams`
+- **HumblObject**: added `raw_data` Field for data used in command calculation
+- **mandelbrot_channel**: `Fetcher` now returns `HumblObject`
+- **core**: initial `HumblObject` class defined
+- **core**: added `Chart` object to safely type charts in `Toolbox`
+
+### 🐛🚑️ Fixes
+
+- **mandelbrot_channel::view**: plotting function returns `Chart` object
+- **mandelbrot_channel::view**: view logic wokriing with both historical and current data
+- **command_params**: custom `@field_validator` to ensure subclass of `QueryParams`
+
+### ✅🤡🧪 Tests
+
+- **HumblObject**: test each method in the object
+- **mandelbrot_channel::view**: test for `create_current_plot()`
+- **mandelbrot_channel::view**: basic test asserting `Figure` class
+- **HumblObject**: basic `command/context_param` & `provider` tests
+- **realized_volatility**: adjusted locked answers
+- **mandelbrot_channel**: added `to_polars()` to test objects to get the DF for assertions
+
+### 📌➕⬇️ ➖⬆️  Dependencies
+
+- **poetry**: added `pandera` 0.19.0b0 instead of direct dependency from `git`
+
 ## v1.1.0 (2024-03-19)
 
 ### ✨ Features
