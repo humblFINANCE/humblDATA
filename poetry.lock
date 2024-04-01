@@ -735,13 +735,13 @@ test = ["pytest"]
 
 [[package]]
 name = "commitizen"
-version = "3.20.0"
+version = "3.21.3"
 description = "Python commitizen client tool"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "commitizen-3.20.0-py3-none-any.whl", hash = "sha256:f079d9642347d314afae75664d289b0de80cf0343c99c3dcfa85782f164333f3"},
-    {file = "commitizen-3.20.0.tar.gz", hash = "sha256:17aebc8f36326fa3e65dcc08195303579e356be84b0d65c3c4bfed85b8822411"},
+    {file = "commitizen-3.21.3-py3-none-any.whl", hash = "sha256:1c23a9b0e02fadfb1f586649ed7f57745679af24be2f8158d2e746472f115246"},
+    {file = "commitizen-3.21.3.tar.gz", hash = "sha256:dc23147e77376cced87f2aedd3693afa05832da88bf9e08c0baaa9d242d9549f"},
 ]
 
 [package.dependencies]
@@ -913,7 +913,9 @@ files = [
     {file = "Cython-3.0.9-cp312-cp312-win32.whl", hash = "sha256:757ca93bdd80702546df4d610d2494ef2e74249cac4d5ba9464589fb464bd8a3"},
     {file = "Cython-3.0.9-cp312-cp312-win_amd64.whl", hash = "sha256:1dc320a9905ab95414013f6de805efbff9e17bb5fb3b90bbac533f017bec8136"},
     {file = "Cython-3.0.9-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:4ae349960ebe0da0d33724eaa7f1eb866688fe5434cc67ce4dbc06d6a719fbfc"},
+    {file = "Cython-3.0.9-cp36-cp36m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:63d2537bf688247f76ded6dee28ebd26274f019309aef1eb4f2f9c5c482fde2d"},
     {file = "Cython-3.0.9-cp36-cp36m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:36f5a2dfc724bea1f710b649f02d802d80fc18320c8e6396684ba4a48412445a"},
+    {file = "Cython-3.0.9-cp36-cp36m-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:deaf4197d4b0bcd5714a497158ea96a2bd6d0f9636095437448f7e06453cc83d"},
     {file = "Cython-3.0.9-cp36-cp36m-musllinux_1_1_aarch64.whl", hash = "sha256:000af6deb7412eb7ac0c635ff5e637fb8725dd0a7b88cc58dfc2b3de14e701c4"},
     {file = "Cython-3.0.9-cp36-cp36m-musllinux_1_1_x86_64.whl", hash = "sha256:15c7f5c2d35bed9aa5f2a51eaac0df23ae72f2dbacf62fc672dd6bfaa75d2d6f"},
     {file = "Cython-3.0.9-cp36-cp36m-win32.whl", hash = "sha256:f49aa4970cd3bec66ac22e701def16dca2a49c59cceba519898dd7526e0be2c0"},
