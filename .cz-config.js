@@ -8,7 +8,7 @@ module.exports = {
         breaking: 'List any BREAKING CHANGES (optional). Use "|" to break new line:\n',
         footerPrefixesSelect: "Select the ISSUES type of changeList by this change (optional):",
         customFooterPrefix: "Input ISSUES prefix:",
-        footer: "List any ISSUES by this change. E.g.: #31, #34:\n",
+        footer: "List any ISSUES closed by this change. E.g.: #31, #34:\n",
         confirmCommit: "Are you sure you want to proceed with the commit above?"
     },
     types: [
