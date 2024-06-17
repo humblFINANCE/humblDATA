@@ -26,6 +26,8 @@ jobs:
           github_token: "${{ secrets.GH_PAT }}"
           changelog_increment_filename: body.md
           extra_requirements: "cz-conventional-gitmoji"
+          git_name: "jjfantini"
+          git_email: "jenningsfantini+github@gmail.com"
       - name: Generate Release
         uses: softprops/action-gh-release@v2
         with:
