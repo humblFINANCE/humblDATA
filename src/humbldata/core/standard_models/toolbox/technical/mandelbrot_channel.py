@@ -381,6 +381,8 @@ class MandelbrotChannelFetcher:
                 self.equity_historical_data,
                 template=self.command_params.template,
             )
+        else:
+            self.chart = None
 
         self.transformed_data = self.transformed_data.serialize()
         return self
