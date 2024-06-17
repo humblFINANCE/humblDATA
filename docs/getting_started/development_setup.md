@@ -7,6 +7,9 @@ icon: material/crane
 
 Here, you will find all the settings needed to setup your machine to contribute to the project, and also understand the coding practices that went into making this package, so you can follow along and understand the code structure.
 
+## Environment Setup
+You can add a `.env` file to the root of the project to set environment variables. This is useful if you want to use your own Personal Access Token via OpenBB for your own data vendor support. Just set the `OBB_PAT` variable to your own key.
+
 ??? tip "Useful Developer Commands"
     - `micromamba activate -p ./menv`: activate the micromamba env
     - `poe`: list all the available commands for the package

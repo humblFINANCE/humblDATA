@@ -27,7 +27,7 @@ jobs:
           changelog_increment_filename: body.md
           extra_requirements: "cz-conventional-gitmoji"
       - name: Generate Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           name: humbldata v${{ env.REVISION }}
           body_path: "body.md"

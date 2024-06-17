@@ -6,6 +6,7 @@ These are various methods to calculate the realized volatility of financial data
 """
 
 import math
+from datetime import timedelta
 
 import numpy as np
 import polars as pl
@@ -105,33 +106,36 @@ def std(
         standard deviation of returns, or the modified Series with the rolling
         standard deviation values.
     """
-    window_int: int = _window_format(
+    window_timedelta = _window_format(
         window, _return_timedelta=True, _avg_trading_days=_avg_trading_days
-    ).days
+    )
     if isinstance(data, pl.Series):
-        return data.rolling_std(window_size=window_int, min_periods=1)
-    else:
-        sort_cols = _set_sort_cols(data, "symbol", "date")
-        if _sort:
-            data = data.lazy().sort(sort_cols)
-        # convert window_timedelta to days to use fixed window
-        result = (
-            data.lazy()
-            .set_sorted(sort_cols)
-            .with_columns(
-                (
-                    pl.col(_column_name_returns).rolling_std(
-                        window_size=window_int,
-                        min_periods=2,  # using min_periods=2, bc if min_periods=1, the first value will be 0.
-                        by="date",
-                    )
-                    * math.sqrt(trading_periods)
-                    * 100
-                ).alias(f"std_volatility_pct_{window_int}D")
-            )
+        return data.rolling_std(
+            window_size=window_timedelta.days, min_periods=1
         )
+    sort_cols = _set_sort_cols(data, "symbol", "date")
+    if _sort:
+        data = data.lazy().sort(sort_cols)
+    # convert window_timedelta to days to use fixed window
+    result = (
+        data.lazy()
+        .set_sorted(sort_cols)
+        .with_columns(
+            (
+                pl.col(_column_name_returns).rolling_std_by(
+                    window_size=window_timedelta,
+                    min_periods=2,  # using min_periods=2, bc if min_periods=1, the first value will be 0.
+                    by="date",
+                )
+                * math.sqrt(trading_periods)
+                * 100
+            ).alias(f"std_volatility_pct_{window_timedelta.days}D")
+        )
+    )
     if _drop_nulls:
-        return result.drop_nulls(subset=f"std_volatility_pct_{window_int}D")
+        return result.drop_nulls(
+            subset=f"std_volatility_pct_{window_timedelta.days}D"
+        )
     return result
 
 
