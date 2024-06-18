@@ -142,6 +142,34 @@ class ToolboxQueryParams(QueryParams):
         # Convert all elements to uppercase, trim whitespace, and join them with a comma
         return [symbol.strip().upper() for symbol in v]
 
+    @field_validator("interval", mode="before", check_fields=False)
+    @classmethod
+    def validate_interval(cls, v: str) -> str:
+        """
+        Validate the interval format.
+
+        Parameters
+        ----------
+        v : str
+            The interval string to be validated.
+
+        Returns
+        -------
+        str
+            The validated interval string.
+
+        Raises
+        ------
+        ValueError
+            If the interval format is invalid.
+        """
+        import re
+
+        if not re.match(r"^\d*[smhdWMQY]$", v):
+            msg = "Invalid interval format. Must be a number followed by one of 's', 'm', 'h', 'd', 'W', 'M', 'Q', 'Y'."
+            raise ValueError(msg)
+        return v
+
 
 class ToolboxData(Data):
     """
