@@ -19,9 +19,8 @@ from humbldata.toolbox.technical.mandelbrot_channel.model import (
 )
 def equity_historical(request: FixtureRequest):
     """One year of equity data, AAPL & AMZN symbols."""
-    data = pl.read_csv(
-        "tests\\unittests\\toolbox\\custom_data\\equity_historical_multiple_1y.csv",
-        try_parse_dates=True,
+    data = pl.read_parquet(
+        "tests/test_data/test_data.parquet",
     )
     if request.param == "dataframe_single_symbol":
         data = data.filter(pl.col("symbol") == "AAPL")
@@ -57,10 +56,11 @@ def test_mandelbrot_channel_integration(
         result_shape = mandelbrot.select("symbol").unique().shape
 
         symbols_top_and_bottom_mean = {
-            "AMD": ("AMD", 136.6295, 150.7249),
-            "AAPL": ("AAPL", 192.2322, 197.8368),
-            "GOOGL": ("GOOGL", 135.1688, 141.503),
-            "PCT": ("PCT", 0.5771, 6.3277),
+            "AMD": ("AMD", 131.45, 152.31),
+            "AAPL": ("AAPL", 191.06, 214.03),
+            "GOOGL": ("GOOGL", 135.11, 141.29),
+            "PCT": ("PCT", 2.41, 5.13),
+            "AMZN": ("AMZN", 146.35, 159.35),
         }
 
         for symbol, (
@@ -79,7 +79,7 @@ def test_mandelbrot_channel_integration(
                 pytest.approx(expected_top, rel=1e-3),
             )
             assert symbol_top_and_bottom_mean == expected_symbol_top_and_bottom
-        assert result_shape == (4, 1)
+        assert result_shape == (5, 1)
     else:
         result_shape = mandelbrot.select("symbol").unique().shape
         assert result_shape == (1, 1)

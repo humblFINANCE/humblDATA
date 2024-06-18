@@ -16,11 +16,9 @@ pytestmark = [
 
 @pytest.fixture()
 def humblobject():
-    with open(
-        "tests/unittests/toolbox/custom_data/mandelbrot_current.pkl", "rb"
-    ) as file:
+    with open("tests/test_data/mandelbrot_current.pkl", "rb") as file:
         out = pickle.load(file)
-
+        file.close()
     return out
 
 

@@ -139,22 +139,20 @@ class HumblObject(Tagged, Generic[T]):
             if self.results is None or not self.results:
                 raise HumblDataError("No results found.")
 
-            if collect:
-                out = pl.LazyFrame.deserialize(
-                    io.StringIO(self.results)
-                ).collect()
-            else:
-                out = pl.LazyFrame.deserialize(io.StringIO(self.results))
+            with io.StringIO(self.results) as results_io:
+                if collect:
+                    out = pl.LazyFrame.deserialize(results_io).collect()
+                else:
+                    out = pl.LazyFrame.deserialize(results_io)
         else:
             if self.equity_data is None or not self.equity_data:
                 raise HumblDataError("No raw data found.")
 
-            if collect:
-                out = pl.LazyFrame.deserialize(
-                    io.StringIO(self.equity_data)
-                ).collect()
-            else:
-                out = pl.LazyFrame.deserialize(io.StringIO(self.equity_data))
+            with io.StringIO(self.equity_data) as equity_data_io:
+                if collect:
+                    out = pl.LazyFrame.deserialize(equity_data_io).collect()
+                else:
+                    out = pl.LazyFrame.deserialize(equity_data_io)
         return out
 
     def to_df(
