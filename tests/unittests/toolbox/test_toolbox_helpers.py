@@ -27,19 +27,17 @@ from humbldata.toolbox.toolbox_helpers import (
 
 # FIXTURES (data used in tests) ================================================
 @pytest.fixture()
-def equity_historical_multiple_1y_df():
-    """pl.DataFrame of 1y of AAPL, AMD, GOOGL, PCT equity data."""
-    return pl.read_csv(
-        "tests\\unittests\\toolbox\\custom_data\\equity_historical_multiple_1y.csv"
-    )
+def equity_historical():
+    """pl.DataFrame of 1y of AAPL, AMD, GOOGL, PCT, AMZN equity data."""
+    return pl.read_parquet("tests/test_data/test_data.parquet")
 
 
-@pytest.fixture()
-def equity_historical_single_1y_window_index_3m_df():
-    """pl.DataFrame of 1y of AAPL data with 3m window index."""
-    return pl.read_csv(
-        "tests\\unittests\\toolbox\\custom_data\\equity_historical_single_1y_window_index_3m.csv"
-    )
+# @pytest.fixture()
+# def equity_historical_single_1y_window_index_3m_df():
+#     """pl.DataFrame of 1y of AAPL data with 3m window index."""
+#     return pl.read_csv(
+#         "tests\\unittests\\toolbox\\custom_data\\equity_historical_single_1y_window_index_3m.csv"
+#     )
 
 
 @pytest.mark.parametrize(
@@ -219,22 +217,24 @@ def test_cumsum_check_not_ending_in_zero(
         _cumsum_check(cumsum_not_ending_in_zero, "cumdev")
 
 
-def test_cum_sum(equity_historical_single_1y_window_index_3m_df):
+def test_cum_sum(equity_historical):
     """
-    Test the cum_sum function on one symbol with a 3m window index.
+    Test the cum_sum function on one symbol with a 1m window index.
 
     This test tests the functionality of the cum_sum function when the _mandelbrot_usage
     parameter is set to False. This is a special case, as the function will not be able to
     check if the cumulative sum ends in zero, as it would for the Mandelbrot Channel calculation.
     """
+    data = equity_historical.filter(pl.col("symbol") == "AAPL")
+
     result = cum_sum(
-        data=equity_historical_single_1y_window_index_3m_df,
+        data=data,
         _column_name="close",
         _mandelbrot_usage=False,
     )
     locked_value = result.select("cum_sum").unique().sum().row(0)[0]
 
-    assert locked_value == pytest.approx(1341081.62, 0.01)
+    assert locked_value == pytest.approx(2290130.93, 0.01)
 
 
 @pytest.mark.parametrize(
@@ -324,21 +324,22 @@ def test_detrend(
 
 
 def test_range_over_symbol(
-    equity_historical_multiple_1y_df,
+    equity_historical,
     column_name: str = "close",
     sort: bool = True,
-    expected_no_ranges: int = 4,
+    expected_no_ranges: int = 1115,
 ):
     """Test the range_ function with various column names and sort options."""
+
     result = range_(
-        data=equity_historical_multiple_1y_df,
+        data=equity_historical,
         _column_name=column_name,
         _sort=sort,
     )
     no_ranges = len(result.select(pl.col(f"{column_name}_range")).unique())
     assert (
         no_ranges == expected_no_ranges
-    ), f"Expected no ranges, but got: {no_ranges}"
+    ), f"Expected 1115 ranges, but got: {no_ranges}"
     assert (
         pytest.approx(
             result.select(pl.col(f"{column_name}_range"))
@@ -347,21 +348,22 @@ def test_range_over_symbol(
             .row(0)[0],
             0.01,
         )
-        == 223.88
+        == 5006.78
     )
 
 
-def test_range_over_window_index(
-    equity_historical_single_1y_window_index_3m_df, column_name: str = "close"
-):
+def test_range_over_window_index(equity_historical, column_name: str = "close"):
     """Test the range_ function with various column names and sort options."""
+
+    data = equity_historical.filter(pl.col("symbol") == "AAPL")
+
     result = range_(
-        data=equity_historical_single_1y_window_index_3m_df,
+        data=data,
         _column_name="close",
         _sort=True,
     )
     no_ranges = len(result.select(pl.col(f"{column_name}_range")).unique())
-    assert no_ranges == 4, f"Expected no ranges, but got: {no_ranges}"
+    assert no_ranges == 288, f"Expected 288 ranges, but got: {no_ranges}"
     assert (
         pytest.approx(
             result.select(pl.col(f"{column_name}_range"))
@@ -370,7 +372,7 @@ def test_range_over_window_index(
             .row(0)[0],
             0.01,
         )
-        == 122.42
+        == 1093.06
     )
 
 
@@ -378,73 +380,81 @@ def test_range_over_window_index(
 
 
 def test_std_over_symbol(
-    equity_historical_multiple_1y_df,
+    equity_historical,
     column_name: str = "close",
 ):
     """
     Test the std function with various column names.
 
     There is no window_index column added to the dataframe, so the
-    function should only calculate std over groups of symbols, of which there are 4.
+    function should only calculate std over groups of symbols, of which there are 5.
     """
+    data = equity_historical.drop("window_index")
+
     result = std(
-        data=equity_historical_multiple_1y_df,
+        data=data,
         _column_name=column_name,
     )
     no_stds = len(result.select(pl.col("close_std")).unique())
     std_sum = result.select(pl.col("close_std")).unique().sum().row(0)[0]
-    assert no_stds == 4
+    assert no_stds == 5
     assert (
-        pytest.approx(std_sum, 0.01) == 53.48
+        pytest.approx(std_sum, 0.01) == 178.63
     ), f"Expected std: 53.48, but got: {std_sum}"
 
 
-def test_std_over_window_index(equity_historical_single_1y_window_index_3m_df):
-    """Test the std function with a 3m window index."""
+def test_std_over_window_index(equity_historical):
+    """Test the std function with a 1m window index."""
+
+    data = equity_historical.filter(pl.col("symbol") == "AAPL")
+
     result = std(
-        data=equity_historical_single_1y_window_index_3m_df,
+        data=data,
         _column_name="close",
     )
     no_stds = len(result.select(pl.col("close_std")).unique())
     std_sum = result.select(pl.col("close_std")).unique().sum().row(0)[0]
-    assert no_stds == 4
+    assert no_stds == 288
     assert (
-        pytest.approx(std_sum, 0.01) == 34.48
+        pytest.approx(std_sum, 0.01) == 315.95
     ), f"Expected std: 34.48, but got: {std_sum}"
 
 
 # mean() TEST ================================================================
-def test_mean_over_window_index(equity_historical_single_1y_window_index_3m_df):
+def test_mean_over_symbol(equity_historical):
     """Test the mean function with a 3m window index."""
+    data = equity_historical.drop("window_index")
     result = mean(
-        data=equity_historical_single_1y_window_index_3m_df,
+        data=data,
         _column_name="close",
     )
 
     no_means = len(result.select("window_mean").unique())
-    assert no_means == 4
+    assert no_means == 5
 
     means_sum = result.select("window_mean").unique().sum().row(0)[0]
 
     assert (
-        pytest.approx(means_sum, 0.01) == 686.57
+        pytest.approx(means_sum, 0.01) == 150.61
     ), f"Expected mean: 686.57, but got: {means_sum}"
 
 
-def test_mean_over_window_index(equity_historical_multiple_1y_df):
-    """Test the mean function with a 3m window index."""
+def test_mean_over_window_index(equity_historical):
+    """Test the mean function with a 1m window index."""
+    data = equity_historical.filter(pl.col("symbol") == "AAPL")
+
     result = mean(
-        data=equity_historical_multiple_1y_df,
+        data=data,
         _column_name="close",
     )
 
     no_means = len(result.select("window_mean").unique())
-    assert no_means == 4
+    assert no_means == 288
 
     means_sum = result.select("window_mean").unique().sum().row(0)[0]
 
     assert (
-        pytest.approx(means_sum, 0.01) == 401.36
+        pytest.approx(means_sum, 0.01) == 9922.90
     ), f"Expected mean: 686.57, but got: {means_sum}"
 
 
