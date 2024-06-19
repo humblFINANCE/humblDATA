@@ -10,7 +10,9 @@ from humbldata.core.utils import plotly_theme  # noqa: F401
 
 
 def create_historical_plot(
-    data: pl.DataFrame, symbol: str, template: ChartTemplate
+    data: pl.DataFrame,
+    symbol: str,
+    template: ChartTemplate = ChartTemplate.plotly,
 ) -> go.Figure:
     """
     Generate a historical plot for a given symbol from the provided data.
@@ -69,7 +71,7 @@ def create_current_plot(
     data: pl.DataFrame,
     equity_data: pl.DataFrame,
     symbol: str,
-    template: ChartTemplate,
+    template: ChartTemplate = ChartTemplate.plotly,
 ) -> go.Figure:
     """
     Generate a current plot for a given symbol from the provided data and equity data.
@@ -141,7 +143,7 @@ def generate_plot_for_symbol(
     data: pl.DataFrame,
     equity_data: pl.DataFrame,
     symbol: str,
-    template: ChartTemplate,
+    template: ChartTemplate = ChartTemplate.plotly,
 ) -> Chart:
     """
     Generate a plot for a given symbol based on whether the data is historical or current.
@@ -173,7 +175,9 @@ def generate_plot_for_symbol(
 
 
 def generate_plots(
-    data: pl.LazyFrame, equity_data: pl.LazyFrame, template: ChartTemplate
+    data: pl.LazyFrame,
+    equity_data: pl.LazyFrame,
+    template: ChartTemplate = ChartTemplate.plotly,
 ) -> list[Chart]:
     """
     Context: Toolbox || Category: Technical || Subcategory: Mandelbrot Channel || **Command: generate_plots()**.
