@@ -13,8 +13,8 @@ from humbldata.toolbox.technical.mandelbrot_channel.view import (
 @pytest.fixture(params=["historical", "current"])
 def mandelbrot_data(request):
     """MandelbrotChannelData Output from `.mandelbrot()`."""
-    data_historical = pl.read_csv(
-        "tests\\unittests\\toolbox\\custom_data\\mandelbrot_channel_historical_data_multiple_4y.csv"
+    data_historical = pl.read_parquet(
+        "tests/test_data/mandelbrot_channel_historical.parquet"
     )
     if request.param == "current":
         out = data_historical.group_by("symbol").agg(pl.col("*").last())
@@ -59,7 +59,7 @@ def test_generate_plots(mandelbrot_data, request: FixtureRequest):
         plots = generate_plots(mandelbrot_data.lazy(), equity_data.lazy())
 
         assert isinstance(plots, list)
-        assert len(plots) == 2
+        assert len(plots) == 5
         for plot in plots:
             plot_title = plot.content.get("layout").get("title").get("text")
 
@@ -72,7 +72,7 @@ def test_generate_plots(mandelbrot_data, request: FixtureRequest):
         plots = generate_plots(mandelbrot_data.lazy(), equity_data.lazy())
 
         assert isinstance(plots, list)
-        assert len(plots) == 2
+        assert len(plots) == 5
         for plot in plots:
             plot_title = plot.content.get("layout").get("title").get("text")
 
