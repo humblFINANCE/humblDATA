@@ -146,7 +146,11 @@ def generate_plot_for_symbol(
     template: ChartTemplate = ChartTemplate.plotly,
 ) -> Chart:
     """
-    Generate a plot for a given symbol based on whether the data is historical or current.
+    Generate a plot for a specific symbol that is filtered from the original DF.
+
+    This function will check if the data provided is a Historical or Current
+    Mandelbrot Channel data. If it is historical, it will generate a historical
+    plot. If it is current, it will generate a current plot.
 
     Parameters
     ----------
