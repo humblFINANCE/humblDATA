@@ -142,6 +142,7 @@ def vol_buckets(
                 [lo_quantile, hi_quantile],
                 labels=["low", "mid", "high"],
                 left_closed=False,
+                allow_duplicates=True,
             )
             .over("symbol")
             .alias("vol_bucket")
