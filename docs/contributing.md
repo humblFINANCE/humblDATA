@@ -94,7 +94,7 @@ You must adhere to the strict guidelines of coding best practices. Here is a non
 
 If you want to add a function, first you must decide. What is the context, category and command? Once, you have done that you will need to do these 3 things:
 
-1. **Define `QueryParams` and `Data` Standard Model.**
+1. ### **Define `QueryParams` and `Data` Standard Model.**
 
     Put your new standard model in:
 
@@ -106,34 +106,110 @@ If you want to add a function, first you must decide. What is the context, categ
     ```
     ~\humbldata\src\humbldata\core\standard_models\<context>\<category>\<command>.py
     ```
-    You will then define two classes.
-    The `QueryParams` and the `Data`, the fields used to query the data and then the returned data fields, respectively.
-        ```py
+
+    You will then define two classes: `QueryParams` and `Data`. The fields used to query the data and then the returned data fields, respectively.
+
+    ```py
+    """
+    <Your Function> Standard Model.
+
+    Context: Toolbox || Category: Technical || Command: <Your Function>.
+
+    This module is used to define the QueryParams and Data model for the
+    <Your Function> command.
+    """
+    from humbldata.core.standard_models.abstract.data import Data
+    from humbldata.core.standard_models.abstract.query_params import QueryParams
+    class <YourFunc>QueryParams(QueryParams):
         """
-        <Your Function> Standard Model.
-
-        Context: Toolbox || Category: Technical || Command: <Your Function>.
-
-        This module is used to define the QueryParams and Data model for the
-        <Your Function> command.
+        QueryParam for the <Your Function> command.
         """
+    class <YourFunc>Data(Data):
+        """
+        Data model for the <Your Function> command.
+        """
+    ```
+2. ### **Add the Function Logic (model.py) to the `Context` module**
+
+    Each `<command>` has a `model.py`, `view.py` and `helper.py` file.
+
+    Add these files to the `Context` module.
+    ```py
+    humbldata/
+    ├── <context>/
+    │   ├── <category>/
+    │   │   ├── <your_func>/
+    │   │   │   ├── model.py
+    │   │   │   ├── view.py
+    │   │   │   └── helper.py
+
+    humbldata.<context>.<category>.<your_func>.model/view/helper.py
+
+    # i.e
+
+    humbldata/
+    ├── toolbox/
+    │   ├── technical/
+    │   │   ├── mandelbrot_channel/
+    │   │   │   ├── model.py
+    │   │   │   ├── view.py
+    │   │   │   └── helper.py
+
+    humbldata.toolbox.technical.mandelbrot_channel.model
+    ```
+
+     !!! tip It is common practice in the repo to prepend your logic function with `calc_...`.
+     So the function would be `calc_mandelbrot_channel`.
 
 
-        from humbldata.core.standard_models.abstract.data import Data
-        from humbldata.core.standard_models.abstract.query_params import QueryParams
+## 🧪 Adding a Test
 
-        class <YourFunc>QueryParams(QueryParams):
-            """
-            QueryParam for the <Your Function> command.
-            """
-        class <YourFunc>Data(Data):
-            """
-            Data model for the <Your Function> command.
-            """
-        ```
+### Test Requirements
+It is required to add tests to cover all the code that you add to the package. Here are the
+guidelines to help you organize the tests you need to add.
 
+#### Overview
+Tests are categorized into two main types:
+1. **Unit Tests**:
+   - These test individual units of functionality.
+   - They should be independent from other tests and external dependencies.
+2. **Integration Tests**:
+   - These test the combination of units working together.
+   - They verify full functionality and interaction between components.
 
+#### Test Organization
+The tests should be organized according to the CCCC framework: Core, Context, Category, Command. The directory structure for tests should reflect this organization.
 
+#### Directory Structure
+
+```
+tests/
+├── integration/
+│   ├── context/
+│   │   ├── category/
+│   │   │   ├── command/
+│   │   │   │   └── test_queryParams_data_fetcher.py
+│   │   │   │   └── test_view.py
+│   │   │   │   └── test_model.py
+│   │   ├── test_methods.py
+│   └── test_queryParams.py
+└── unittests/
+    ├── context/
+    │   ├── category/
+    │   │   ├── command/
+    │   │   │   └── test_helpers.py
+    │   │   │   └── test_view.py
+    │   │   │   └── test_model.py
+    │   │   ├── test_methods.py
+    ├── test_helpers.py
+```
+
+### Expectations for Test Creation
+- **Independence**: Ensure unit tests do not rely on external systems or other tests.
+- **Comprehensiveness**: Write tests to cover all possible edge cases.
+- **Clarity**: Name tests clearly to indicate what functionality they cover.
+- **Consistency**: Follow the CCCC framework for organizing tests.
+- **Documentation**: Document any non-trivial logic within the tests for future reference.
 
 
 ## 🙏 __Acknowledgment__
