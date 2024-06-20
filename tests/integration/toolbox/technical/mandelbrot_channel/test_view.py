@@ -52,41 +52,7 @@ def test_generate_plot_for_symbol(
         assert isinstance(plots, Chart)
 
 
-def test_generate_plots(mandelbrot_data, request: FixtureRequest):
-    """Test to check if routing the plot function is correctly generated."""
-    current_param = request.node.callspec.params.get("mandelbrot_data")
-
-    if current_param == "historical":
-        plots = generate_plots(mandelbrot_data.lazy(), equity_data.lazy())
-
-        assert isinstance(plots, list)
-        assert len(plots) == 5
-        for plot in plots:
-            plot_title = plot.content.get("layout").get("title").get("text")
-
-            assert "Historical Mandelbrot Channel" in plot_title
-            assert isinstance(plot, Chart)
-            assert isinstance(plot.content, dict)
-            assert isinstance(plot.fig, Figure)
-
-    if current_param == "current":
-        plots = generate_plots(mandelbrot_data.lazy(), equity_data.lazy())
-
-        assert isinstance(plots, list)
-        assert len(plots) == 5
-        for plot in plots:
-            plot_title = plot.content.get("layout").get("title").get("text")
-
-            assert "Current Mandelbrot Channel" in plot_title
-            assert isinstance(plot, Chart)
-            assert isinstance(plot.content, dict)
-            assert isinstance(plot.fig, Figure)
-
-
-@pytest.mark.parametrize("data_type", ["historical", "current"])
-def test_generate_plots(
-    mandelbrot_data, equity_data, request: FixtureRequest, data_type
-):
+def test_generate_plots(mandelbrot_data, equity_data, request: FixtureRequest):
     """Test to check if routing the plot function is correctly generated."""
     current_param = request.node.callspec.params.get("mandelbrot_data")
 

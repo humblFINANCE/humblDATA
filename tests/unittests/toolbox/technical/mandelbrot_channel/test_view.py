@@ -13,7 +13,9 @@ from humbldata.toolbox.technical.mandelbrot_channel.view import (
 @pytest.fixture(params=["historical", "current"])
 def mandelbrot_data(request):
     """MandelbrotChannelData Output from `.mandelbrot()`."""
-    data_historical = pl.read_parquet("tests/test_data/test_data.parquet")
+    data_historical = pl.read_parquet(
+        "tests/test_data/mandelbrot_channel_historical.parquet"
+    )
     if request.param == "current":
         out = data_historical.group_by("symbol").agg(pl.col("*").last())
     elif request.param == "historical":
