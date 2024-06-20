@@ -1,3 +1,25 @@
+## v1.3.0 (2024-06-20)
+
+### ✨ Features
+
+- add default selection of
+- **standard_models**: added  validation to
+- **standard_models**: added date validation to
+- **standard_models**: added new validator to  class for  param
+
+### ✅🤡🧪 Tests
+
+- updated all test data, all are passing
+- **integration**: fixed test for mandelbrot_channel integration
+- **test_data**: renamed and added a parquet file of historical mandelbrot
+- **updating**: replacing old test data with newtest data, simpler interface
+- **data**: added necessary data for tests to succeed
+
+### 📌➕⬇️ ➖⬆️  Dependencies
+
+- **update**: updated  to solve  error
+- **update**: updated
+
 ## v1.2.1 (2024-06-17)
 
 ### 🐛🚑️ Fixes
