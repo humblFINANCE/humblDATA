@@ -102,7 +102,7 @@ def calc_mandelbrot_channel(
     ```
     """
     # Setup ====================================================================
-    window_int = _window_format(window, _return_timedelta=True)
+    window_datetime = _window_format(window, _return_timedelta=True)
     sort_cols = _set_sort_cols(data, "symbol", "date")
 
     data = data.lazy()
@@ -148,7 +148,9 @@ def calc_mandelbrot_channel(
                 data7 = data7.rename({col: "realized_volatility"})
         # Step 8.2: Calculate Volatility Bucket Stats --------------------------
         data7 = vol_buckets(data=data7, lo_quantile=0.3, hi_quantile=0.65)
-        data7 = vol_filter(data7)
+        data7 = vol_filter(
+            data7
+        )  # removes rows that arent in the same vol bucket
 
     # Step X: Calculate RS -----------------------------------------------------
     data8 = data7.sort(sort_cols).with_columns(

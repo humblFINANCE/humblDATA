@@ -44,10 +44,10 @@ class Toolbox(ToolboxQueryParams):
 
     Parameter Notes
     -----
-    The Parameters (`symbol`, `interval`, `start_date`, `end_date`)
+    The parameters (`symbol`, `interval`, `start_date`, `end_date`)
     are the `ToolboxQueryParams`. They are used for data collection further
-    down the pipeline. to execute operations on core data sets.
-    This approach enables composable and standardized querying while
+    down the pipeline in other commands. Intended to execute operations on core
+    data sets. This approach enables composable and standardized querying while
     accommodating data-specific collection logic.
     """
 

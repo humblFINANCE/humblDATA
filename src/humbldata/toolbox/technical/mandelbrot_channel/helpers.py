@@ -52,8 +52,8 @@ def add_window_index(
     numerous 'windows', and statistics are calculated for each window.
     - The function adds a dummy `symbol` column if the data contains only one
     symbol, to avoid errors in the `group_by_dynamic()` function.
-    - It is utilized within the `log_mean()` function for window-based
-    calculations.
+    - It is utilized within the `log_mean()` and `calc_mandelbrot_channel()`
+    functions for window-based calculations.
 
     Examples
     --------
@@ -142,6 +142,7 @@ def vol_buckets(
                 [lo_quantile, hi_quantile],
                 labels=["low", "mid", "high"],
                 left_closed=False,
+                allow_duplicates=True,
             )
             .over("symbol")
             .alias("vol_bucket")
@@ -436,6 +437,8 @@ def price_range(
         .std()
         .alias(f"std_{_detrended_returns}")
     )
+    # if rv_adjustment isnt used, then use the most recent window will be used
+    # for calculating the price_range
     date_expr = pl.col("date").max()
     # ===========================================================================
 

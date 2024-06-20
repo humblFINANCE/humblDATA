@@ -13,8 +13,8 @@ from humbldata.toolbox.technical.mandelbrot_channel.view import (
 @pytest.fixture(params=["historical", "current"])
 def mandelbrot_data(request):
     """MandelbrotChannelData Output from `.mandelbrot()`."""
-    data_historical = pl.read_csv(
-        "tests\\unittests\\toolbox\\custom_data\\mandelbrot_channel_historical_data_multiple_4y.csv"
+    data_historical = pl.read_parquet(
+        "tests/test_data/mandelbrot_channel_historical.parquet"
     )
     if request.param == "current":
         out = data_historical.group_by("symbol").agg(pl.col("*").last())
@@ -23,13 +23,18 @@ def mandelbrot_data(request):
     return out
 
 
-def test_generate_plot_for_symbol(mandelbrot_data, request: FixtureRequest):
+@pytest.fixture()
+def equity_data(mandelbrot_data):
+    return mandelbrot_data.select("close_price", "date", "symbol").rename(
+        {"close_price": "close"}
+    )
+
+
+def test_generate_plot_for_symbol(
+    mandelbrot_data, equity_data, request: FixtureRequest
+):
     """Test to check if routing the plot function is correctly generated."""
     current_param = request.node.callspec.params.get("mandelbrot_data")
-
-    equity_data = mandelbrot_data.select(
-        "close_price", "date", "symbol"
-    ).rename({"close_price": "close"})
 
     if current_param == "historical":
         plots = generate_plot_for_symbol(
@@ -47,36 +52,19 @@ def test_generate_plot_for_symbol(mandelbrot_data, request: FixtureRequest):
         assert isinstance(plots, Chart)
 
 
-def test_generate_plots(mandelbrot_data, request: FixtureRequest):
+def test_generate_plots(mandelbrot_data, equity_data, request: FixtureRequest):
     """Test to check if routing the plot function is correctly generated."""
     current_param = request.node.callspec.params.get("mandelbrot_data")
 
-    equity_data = mandelbrot_data.select(
-        "close_price", "date", "symbol"
-    ).rename({"close_price": "close"})
+    plots = generate_plots(mandelbrot_data.lazy(), equity_data.lazy())
 
-    if current_param == "historical":
-        plots = generate_plots(mandelbrot_data.lazy(), equity_data.lazy())
-
-        assert isinstance(plots, list)
-        assert len(plots) == 2
-        for plot in plots:
-            plot_title = plot.content.get("layout").get("title").get("text")
-
-            assert "Historical Mandelbrot Channel" in plot_title
-            assert isinstance(plot, Chart)
-            assert isinstance(plot.content, dict)
-            assert isinstance(plot.fig, Figure)
-
-    if current_param == "current":
-        plots = generate_plots(mandelbrot_data.lazy(), equity_data.lazy())
-
-        assert isinstance(plots, list)
-        assert len(plots) == 2
-        for plot in plots:
-            plot_title = plot.content.get("layout").get("title").get("text")
-
-            assert "Current Mandelbrot Channel" in plot_title
-            assert isinstance(plot, Chart)
-            assert isinstance(plot.content, dict)
-            assert isinstance(plot.fig, Figure)
+    assert isinstance(plots, list)
+    assert len(plots) == 5
+    for plot in plots:
+        plot_title = plot.content.get("layout").get("title").get("text")
+        assert f"{current_param.capitalize()} Mandelbrot Channel" in plot_title
+        assert isinstance(plot, Chart)
+        assert isinstance(plot.content, dict)
+        assert isinstance(plot.fig, Figure)
+        assert plot.content.get("data") is not None
+        assert plot.content.get("layout") is not None

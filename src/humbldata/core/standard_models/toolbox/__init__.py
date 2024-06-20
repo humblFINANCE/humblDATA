@@ -142,6 +142,64 @@ class ToolboxQueryParams(QueryParams):
         # Convert all elements to uppercase, trim whitespace, and join them with a comma
         return [symbol.strip().upper() for symbol in v]
 
+    @field_validator("interval", mode="before", check_fields=False)
+    @classmethod
+    def validate_interval(cls, v: str) -> str:
+        """
+        Validate the interval format.
+
+        Parameters
+        ----------
+        v : str
+            The interval string to be validated.
+
+        Returns
+        -------
+        str
+            The validated interval string.
+
+        Raises
+        ------
+        ValueError
+            If the interval format is invalid.
+        """
+        import re
+
+        if not re.match(r"^\d*[smhdWMQY]$", v):
+            msg = "Invalid interval format. Must be a number followed by one of 's', 'm', 'h', 'd', 'W', 'M', 'Q', 'Y'."
+            raise ValueError(msg)
+        return v
+
+    @field_validator(
+        "start_date", "end_date", mode="before", check_fields=False
+    )
+    @classmethod
+    def validate_date_format(cls, v: str) -> str:
+        """
+        Validate the date format to ensure it is YYYY-MM-DD.
+
+        Parameters
+        ----------
+        v : str
+            The date string to be validated.
+
+        Returns
+        -------
+        str
+            The validated date string.
+
+        Raises
+        ------
+        ValueError
+            If the date format is invalid.
+        """
+        import re
+
+        if not re.match(r"^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$", v):
+            msg = "Invalid date format. Must be YYYY-MM-DD with MM between 01 and 12, and DD between 01 and 31."
+            raise ValueError(msg)
+        return v
+
 
 class ToolboxData(Data):
     """

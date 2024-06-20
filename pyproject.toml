@@ -53,7 +53,7 @@ python = ">=3.11,<3.12"
 polars = "^0.20.14"
 pyarrow = "^15.0.0"
 openbb = {extras = ["all"], version = "^4.1.4"}
-pandera = "0.19.0b0"
+pandera = "^0.19.0"
 
 [tool.poetry.group.test.dependencies]  # https://python-poetry.org/docs/master/managing-dependencies/
 commitizen = ">=3.2.1"

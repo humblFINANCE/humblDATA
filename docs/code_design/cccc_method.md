@@ -15,12 +15,15 @@ The point of CCCC is to make creation of Models, View & Controllers simpler.The 
 !!! tip "CCCC Explained"
 
     ??? abstract "`Core`"
-        The core of your app. Logic used in controllers goes here. This module is intended to contain sub-modules and functions that are not directly utilized from the package, but rather used in building the package itself. i.e The core will hold the `[standard_models]`(./standardization_framework.md), `utils` used in the humbldata package.
+        The core of your app. Logic used in controllers goes here. This module is intended to contain sub-modules and functions that are not directly utilized from the package, but rather used in building the package itself.
+
+        The core will hold the [standard_models](./standardization_framework.md), for all of the functions in the package.
+        The core will also hold modules like the `utils` module, that is used in the humbldata package itself, and not publicly exposed.
 
     ??? abstract "`Context`"
         This is a grouping of multiple categories. The highest level of modules should go here.
 
-        i.e `context` is a top-level directory that contains multiple `categories`. `humbldata.` is an example of a context. This directory is at the same level as the `core` directory. This context holds all the `categories` that are used to build the `toolbox`.
+        i.e `context` is a top-level directory that contains multiple `categories`. The `Toolbox` is an example of a context, becuase it contains `Technical`, `Quantitative` & `Fundamental` categories. This directory is at the same level as the `core` directory. This context holds all the `categories` that are used to build the `Toolbox`.
 
     ??? abstract "`Category`"
         This is the grouping of multiple commands that belongs to a context. Categories can be extended to as many <`sub-categories`> as needed.

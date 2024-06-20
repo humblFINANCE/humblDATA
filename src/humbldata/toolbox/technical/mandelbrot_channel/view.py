@@ -4,13 +4,15 @@ import plotly
 import plotly.graph_objs as go
 import polars as pl
 
-from humbldata.core.standard_models.abstract.chart import Chart
+from humbldata.core.standard_models.abstract.chart import Chart, ChartTemplate
 from humbldata.core.standard_models.abstract.humblobject import HumblObject
 from humbldata.core.utils import plotly_theme  # noqa: F401
 
 
 def create_historical_plot(
-    data: pl.DataFrame, symbol: str, template: str
+    data: pl.DataFrame,
+    symbol: str,
+    template: ChartTemplate = ChartTemplate.plotly,
 ) -> go.Figure:
     """
     Generate a historical plot for a given symbol from the provided data.
@@ -21,7 +23,7 @@ def create_historical_plot(
         The dataframe containing historical data including dates, bottom prices, close prices, and top prices.
     symbol : str
         The symbol for which the historical plot is to be generated.
-    template : str
+    template : ChartTemplate
         The template to be used for styling the plot.
 
     Returns
@@ -66,7 +68,10 @@ def create_historical_plot(
 
 
 def create_current_plot(
-    data: pl.DataFrame, equity_data: pl.DataFrame, symbol: str, template: str
+    data: pl.DataFrame,
+    equity_data: pl.DataFrame,
+    symbol: str,
+    template: ChartTemplate = ChartTemplate.plotly,
 ) -> go.Figure:
     """
     Generate a current plot for a given symbol from the provided data and equity data.
@@ -79,7 +84,7 @@ def create_current_plot(
         The dataframe containing current equity data including dates and close prices.
     symbol : str
         The symbol for which the current plot is to be generated.
-    template : str
+    template : ChartTemplate
         The template to be used for styling the plot.
 
     Returns
@@ -135,10 +140,17 @@ def is_historical_data(data: pl.DataFrame) -> bool:
 
 
 def generate_plot_for_symbol(
-    data: pl.DataFrame, equity_data: pl.DataFrame, symbol: str, template: str
+    data: pl.DataFrame,
+    equity_data: pl.DataFrame,
+    symbol: str,
+    template: ChartTemplate = ChartTemplate.plotly,
 ) -> Chart:
     """
-    Generate a plot for a given symbol based on whether the data is historical or current.
+    Generate a plot for a specific symbol that is filtered from the original DF.
+
+    This function will check if the data provided is a Historical or Current
+    Mandelbrot Channel data. If it is historical, it will generate a historical
+    plot. If it is current, it will generate a current plot.
 
     Parameters
     ----------
@@ -148,8 +160,9 @@ def generate_plot_for_symbol(
         The dataframe containing equity data for all symbols.
     symbol : str
         The symbol for which to generate the plot.
-    template : str
-        The template/theme to use for the plotly figure.
+    template : ChartTemplate
+        The template/theme to use for the plotly figure. Options are:
+        "humbl_light", "humbl_dark", "plotly_light", "plotly_dark", "ggplot2", "seaborn", "simple_white", "none"
 
     Returns
     -------
@@ -166,7 +179,9 @@ def generate_plot_for_symbol(
 
 
 def generate_plots(
-    data: pl.LazyFrame, equity_data: pl.LazyFrame, template: str
+    data: pl.LazyFrame,
+    equity_data: pl.LazyFrame,
+    template: ChartTemplate = ChartTemplate.plotly,
 ) -> list[Chart]:
     """
     Context: Toolbox || Category: Technical || Subcategory: Mandelbrot Channel || **Command: generate_plots()**.
@@ -179,7 +194,7 @@ def generate_plots(
         The LazyFrame containing the symbols and MandelbrotChannelData
     equity_data : pl.LazyFrame
         The LazyFrame containing equity data for the symbols.
-    template : str
+    template : ChartTemplate
         The template/theme to use for the plotly figure.
 
     Returns
