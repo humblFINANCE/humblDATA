@@ -39,10 +39,10 @@ from humbldata.toolbox.toolbox_helpers import (
 def calc_mandelbrot_channel(
     data: pl.DataFrame | pl.LazyFrame,
     window: str = "1m",
-    rv_adjustment: bool = True,
     rv_method: str = "std",
     rs_method: Literal["RS", "RS_mean", "RS_max", "RS_min"] = "RS",
     *,
+    rv_adjustment: bool = True,
     rv_grouped_mean: bool = True,
     live_price: bool = True,
     **kwargs,
