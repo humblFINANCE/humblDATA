@@ -41,6 +41,8 @@ class Toolbox(ToolboxQueryParams):
         The start date for the data query.
     end_date : str
         The end date for the data query.
+    provider : str, optional
+        The provider to use for the data query. Defaults to 'yfinance'.
 
     Parameter Notes
     -----
@@ -64,6 +66,9 @@ class Toolbox(ToolboxQueryParams):
         """
         The technical submodule of the Toolbox controller.
 
-        Access to all the technical indicators.
+        Access to all the technical indicators. WHen the Toolbox class is
+        instatiated the parameters are initialized with the ToolboxQueryParams
+        class, which hold all the fields needed for the context_params, like the
+        symbol, interval, start_date, and end_date.
         """
         return Technical(context_params=self)
