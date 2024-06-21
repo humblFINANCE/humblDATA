@@ -33,7 +33,12 @@ nav:
       - Toolbox: code_documentation/context/toolbox.md
     - Category: code_documentation/category.md
     - Command: code_documentation/command.md
-  - Contributing: contributing.md
+  - Contributing:
+    - contributing/index.md
+    - Best Practices: contributing/best_practices.md
+    - Code Standards: contributing/code_standards.md
+    - Adding a Function: contributing/adding_function.md
+    - Adding a Test: contributing/adding_test.md
   - Roadmap: roadmap.md
 
 
