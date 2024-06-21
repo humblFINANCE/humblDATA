@@ -11,7 +11,7 @@ from humbldata.toolbox.technical.technical_controller import Technical
 class Toolbox(ToolboxQueryParams):
     """
 
-    The top-level controller for all data analysis in the `humbldata` package.
+    A top-level <context> controller for data analysis tools in `humblDATA`.
 
     This module serves as the primary controller, routing user-specified
     ToolboxQueryParams as core arguments that are used to fetch time series
