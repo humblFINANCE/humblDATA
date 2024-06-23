@@ -69,21 +69,37 @@ def write_file(path: Path, content: str) -> None:
         The content to write to the file.
 
     """
-    with open(path, "w") as f:
-        f.write(textwrap.dedent(content))
+    with path.open("w") as file:
+        file.write(content)
+
+
+def clean_name(name: str) -> str:
+    """
+    Clean and format a name to follow CamelCase convention.
+
+    Parameters
+    ----------
+    name : str
+        The name to clean and format.
+
+    Returns
+    -------
+    str
+        The cleaned and formatted name.
+    """
+    return "".join(word.capitalize() for word in name.split("_"))
 
 
 def generate_context_files(project_root: Path, context: str) -> None:
     """
-    Generate the __init__.py file for a given context.
+    Generate the context files.
 
     Parameters
     ----------
     project_root : Path
-        The root directory of the project.
+        The root path of the project.
     context : str
-        The name of the context.
-
+        The context name.
     """
     file_path = (
         project_root
@@ -101,18 +117,18 @@ def generate_context_files(project_root: Path, context: str) -> None:
     This module defines the standard models for the {context.capitalize()} context.
     """
 
-    from pydantic import BaseModel, Field
+    from pydantic import BaseModel, Field, field_validator
 
-    class {context.capitalize()}QueryParams(BaseModel):
+    class {clean_name(context)}QueryParams(BaseModel):
         example_field: str = Field(..., description="An example field")
 
-        @validator('example_field')
+        @field_validator('example_field')
         def validate_example_field(cls, v):
             if len(v) < 3:
                 raise ValueError("example_field must be at least 3 characters long")
             return v
 
-    class {context.capitalize()}Data(BaseModel):
+    class {clean_name(context)}Data(BaseModel):
         result: str = Field(..., description="The result of the {context.capitalize()} operation")
     '''
     write_file(file_path, content)
@@ -122,107 +138,147 @@ def generate_command_files(
     project_root: Path, context: str, category: str, command: str
 ) -> None:
     """
-    Generate the __init__.py file for a given command.
+    Generate the command files.
 
     Parameters
     ----------
     project_root : Path
-        The root directory of the project.
+        The root path of the project.
     context : str
-        The name of the context.
+        The context name.
     category : str
-        The name of the category.
+        The category name.
     command : str
-        The name of the command.
-
+        The command name.
     """
     file_path = (
         project_root
         / "src"
         / "humbldata"
+        / "core"
+        / "standard_models"
         / context
         / category
-        / command
-        / "__init__.py"
+        / f"{command}.py"
     )
     content = f'''
     """
-    Context: {context.capitalize()} || Category: {category.capitalize()} || Command: {command.capitalize()}
+    {clean_name(command)} Standard Model.
 
-    This module defines the {command} command.
+    Context: {clean_name(context)} || Category: {clean_name(category)} || Command: {clean_name(command)}.
+
+    This module is used to define the QueryParams and Data model for the
+    {clean_name(command)} command.
     """
 
-    from pydantic import BaseModel, Field
+    from pydantic import BaseModel, Field, field_validator
 
-    class {command.capitalize()}QueryParams(BaseModel):
+    class {clean_name(command)}QueryParams(BaseModel):
         example_field: str = Field(..., description="An example field")
 
-        @validator('example_field')
+        @field_validator('example_field')
         def validate_example_field(cls, v):
             if len(v) < 3:
                 raise ValueError("example_field must be at least 3 characters long")
             return v
 
-    class {command.capitalize()}Data(BaseModel):
-        result: str = Field(..., description="The result of the {command.capitalize()} operation")
+    class {clean_name(command)}Data(BaseModel):
+        result: str = Field(..., description="The result of the {clean_name(command)} operation")
     '''
     write_file(file_path, content)
 
-
-def generate_context_controller(project_root: Path, context: str) -> None:
-    """
-    Generate the controller file for a given context.
-
-    Parameters
-    ----------
-    project_root : Path
-        The root directory of the project.
-    context : str
-        The name of the context.
-
-    """
-    file_path = project_root / "src" / "humbldata" / context / "controller.py"
-    content = f'''
-    """
-    Context: {context.capitalize()}
-
-    This module defines the controller for the {context.capitalize()} context.
-    """
-
-    def handle_request(query_params):
-        """
-        Handle a request for the {context.capitalize()} context.
-
-        Parameters
-        ----------
-        query_params : {context.capitalize()}QueryParams
-            The query parameters for the request.
-
-        Returns
-        -------
-        {context.capitalize()}Data
-            The result of the request.
-        """
-        return {context.capitalize()}Data(result="Success")
-    '''
-    write_file(file_path, content)
+    # Create __init__.py in the command directory
+    init_file_path = file_path.parent / "__init__.py"
+    write_file(init_file_path, "")
 
 
-def generate_category_controller(
+def generate_context_controller(
     project_root: Path, context: str, category: str
 ) -> None:
     """
-    Generate the controller file for a given category.
+    Generate the context controller file.
 
     Parameters
     ----------
     project_root : Path
-        The root directory of the project.
+        The root path of the project.
     context : str
-        The name of the context.
+        The context name.
     category : str
-        The name of the category.
+        The category name.
+    """
+    file_path = (
+        project_root
+        / "src"
+        / "humbldata"
+        / context
+        / f"{context}_controller.py"
+    )
+    content = f'''
+    """
+    **Context: {clean_name(context)}**.
 
+    The {clean_name(context)} Controller Module.
+    """
+
+    from humbldata.core.standard_models.{context} import {clean_name(context)}QueryParams
+    from humbldata.{context}.{category}.{category}_controller import {clean_name(category)}
+
+    class {clean_name(context)}({clean_name(context)}QueryParams):
+        """
+        A top-level {clean_name(category)} controller for data analysis tools in `humblDATA`.
+
+        This module serves as the primary controller, routing user-specified
+        {clean_name(context)}QueryParams as core arguments that are used to fetch time series
+        data.
+
+        The `{clean_name(context)}` controller also gives access to all sub-modules and their
+        functions.
+        """
+
+        def __init__(self, *args, **kwargs):
+            """
+            Initialize the {clean_name(context)} module.
+
+            This method does not take any parameters and does not return anything.
+            """
+            super().__init__(*args, **kwargs)
+
+        @property
+        def {clean_name(category).lower()}(self):
+            """
+            The {clean_name(category)} submodule of the {clean_name(context)} controller.
+
+            Access to all the {clean_name(category)} indicators. When the {clean_name(context)} class is
+            instantiated the parameters are initialized with the {clean_name(context)}QueryParams
+            class, which hold all the fields needed for the context_params, like the
+            symbol, interval, start_date, and end_date.
+            """
+            return {clean_name(category)}(context_params=self)
+    '''
+    write_file(file_path, content)
+
+    # Create __init__.py in the context directory
+    init_file_path = file_path.parent / "__init__.py"
+    write_file(init_file_path, "")
+
+
+def generate_category_controller(
+    project_root: Path, context: str, category: str, command: str
+) -> None:
+    """
+    Generate the category controller file.
+
+    Parameters
+    ----------
+    project_root : Path
+        The root path of the project.
+    context : str
+        The context name.
+    category : str
+        The category name.
+    command : str
+        The command name.
     """
     file_path = (
         project_root
@@ -230,96 +286,134 @@ def generate_category_controller(
         / "humbldata"
         / context
         / category
-        / "controller.py"
+        / f"{category}_controller.py"
     )
     content = f'''
     """
-    Context: {context.capitalize()} || Category: {category.capitalize()}
+    Context: {clean_name(context)} || **Category: {clean_name(category)}**.
 
-    This module defines the controller for the {category.capitalize()} category.
+    A controller to manage and compile all of the {clean_name(category)} models
+    available. This will be passed as a `@property` to the `{clean_name(context)}` class, giving
+    access to the {clean_name(category)} module and its functions.
     """
 
-    def handle_request(query_params):
-        """
-        Handle a request for the {category.capitalize()} category.
+    from humbldata.core.standard_models.{context} import {clean_name(context)}QueryParams
 
-        Parameters
+    class {clean_name(category)}:
+        """
+        Module for all {clean_name(category)} analysis.
+
+        Attributes
         ----------
-        query_params : {category.capitalize()}QueryParams
-            The query parameters for the request.
+        standard_params : {clean_name(context)}QueryParams
+            The standard query parameters for {clean_name(context)} data.
 
-        Returns
+        Methods
         -------
-        {category.capitalize()}Data
-            The result of the request.
+        example_method(command_params: {clean_name(command)}QueryParams)
+            Example method for the {clean_name(category)} controller.
         """
-        return {category.capitalize()}Data(result="Success")
+
+        def __init__(self, context_params: {clean_name(context)}QueryParams):
+            self.context_params = context_params
+
+        def example_method(self, command_params: {clean_name(command)}QueryParams):
+            """
+            Example method for the {clean_name(category)} controller.
+
+            Parameters
+            ----------
+            command_params : {clean_name(command)}QueryParams
+                The query parameters for the {clean_name(command)} command.
+
+            Returns
+            -------
+            str
+                Example result.
+            """
+            return "Example result"
     '''
     write_file(file_path, content)
+
+    # Create __init__.py in the category directory
+    init_file_path = file_path.parent / "__init__.py"
+    write_file(init_file_path, "")
 
 
 def generate_model(
     project_root: Path, context: str, category: str, command: str
 ) -> None:
     """
-    Generate the model file for a given command.
+    Generate the model file.
 
     Parameters
     ----------
     project_root : Path
-        The root directory of the project.
+        The root path of the project.
     context : str
-        The name of the context.
+        The context name.
     category : str
-        The name of the category.
+        The category name.
     command : str
-        The name of the command.
-
+        The command name.
     """
     file_path = (
         project_root
         / "src"
         / "humbldata"
+        / "core"
+        / "standard_models"
         / context
         / category
-        / command
-        / "model.py"
+        / f"{command}.py"
     )
     content = f'''
     """
-    Context: {context.capitalize()} || Category: {category.capitalize()} || Command: {command.capitalize()}
+    {clean_name(command)} Standard Model.
 
-    This module defines the model for the {command.capitalize()} command.
+    Context: {clean_name(context)} || Category: {clean_name(category)} || Command: {clean_name(command)}.
+
+    This module is used to define the QueryParams and Data model for the
+    {clean_name(command)} command.
     """
 
-    def dummy_function():
-        """
-        A dummy function for the {command} command.
+    from pydantic import BaseModel, Field, field_validator
 
-        This is a placeholder function to serve as an example.
-        """
-        return "Dummy function result"
+    class {clean_name(command)}QueryParams(BaseModel):
+        example_field: str = Field(..., description="An example field")
+
+        @field_validator('example_field')
+        def validate_example_field(cls, v):
+            if len(v) < 3:
+                raise ValueError("example_field must be at least 3 characters long")
+            return v
+
+    class {clean_name(command)}Data(BaseModel):
+        result: str = Field(..., description="The result of the {clean_name(command)} operation")
     '''
     write_file(file_path, content)
+
+    # Create __init__.py in the category directory
+    init_file_path = file_path.parent / "__init__.py"
+    write_file(init_file_path, "")
 
 
 def generate_view(
     project_root: Path, context: str, category: str, command: str
 ) -> None:
     """
-    Generate the view file for a given command.
+    Generate the view file.
 
     Parameters
     ----------
     project_root : Path
-        The root directory of the project.
+        The root path of the project.
     context : str
-        The name of the context.
+        The context name.
     category : str
-        The name of the category.
+        The category name.
     command : str
-        The name of the command.
-
+        The command name.
     """
     file_path = (
         project_root
@@ -327,44 +421,43 @@ def generate_view(
         / "humbldata"
         / context
         / category
-        / command
-        / "view.py"
+        / f"{command}_view.py"
     )
     content = f'''
     """
-    Context: {context.capitalize()} || Category: {category.capitalize()} || Command: {command.capitalize()}
+    {clean_name(command)} View.
 
-    This module defines the view for the {command.capitalize()} command.
+    Context: {clean_name(context)} || Category: {clean_name(category)} || Command: {clean_name(command)}.
+
+    This module is used to define the view for the {clean_name(command)} command.
     """
 
-    def render_view():
-        """
-        Render the view for the {command} command.
-
-        This is a dummy function to serve as an example.
-        """
-        return "View rendered"
+    def render_{command}():
+        return "Rendering {clean_name(command)} view"
     '''
     write_file(file_path, content)
+
+    # Create __init__.py in the category directory
+    init_file_path = file_path.parent / "__init__.py"
+    write_file(init_file_path, "")
 
 
 def generate_helpers(
     project_root: Path, context: str, category: str, command: str
 ) -> None:
     """
-    Generate the helpers file for a given command.
+    Generate the helpers file.
 
     Parameters
     ----------
     project_root : Path
-        The root directory of the project.
+        The root path of the project.
     context : str
-        The name of the context.
+        The context name.
     category : str
-        The name of the category.
+        The category name.
     command : str
-        The name of the command.
-
+        The command name.
     """
     file_path = (
         project_root
@@ -372,25 +465,25 @@ def generate_helpers(
         / "humbldata"
         / context
         / category
-        / command
-        / "helpers.py"
+        / f"{command}_helpers.py"
     )
     content = f'''
     """
-    Context: {context.capitalize()} || Category: {category.capitalize()} || Command: {command.capitalize()}
+    {clean_name(command)} Helpers.
 
-    Helper functions for the {command} command.
+    Context: {clean_name(context)} || Category: {clean_name(category)} || Command: {clean_name(command)}.
+
+    This module is used to define helper functions for the {clean_name(command)} command.
     """
 
     def helper_function():
-        """
-        A helper function for the {command} command.
-
-        This is a dummy function to serve as an example.
-        """
         return "Helper function result"
     '''
     write_file(file_path, content)
+
+    # Create __init__.py in the category directory
+    init_file_path = file_path.parent / "__init__.py"
+    write_file(init_file_path, "")
 
 
 def main() -> None:
@@ -434,7 +527,7 @@ def main() -> None:
     # Generate files
     generate_context_files(project_root, context)
     generate_command_files(project_root, context, category, command)
-    generate_context_controller(project_root, context)
+    generate_context_controller(project_root, context, category)
 
     # Generate category controllers for each level
     current_category = ""
@@ -442,7 +535,9 @@ def main() -> None:
         current_category = (
             f"{current_category}/{cat}" if current_category else cat
         )
-        generate_category_controller(project_root, context, current_category)
+        generate_category_controller(
+            project_root, context, current_category, command
+        )
 
     generate_model(project_root, context, category, command)
 
