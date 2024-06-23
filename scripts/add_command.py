@@ -101,37 +101,21 @@ def generate_context_files(project_root: Path, context: str) -> None:
     context : str
         The context name.
     """
-    file_path = (
-        project_root
-        / "src"
-        / "humbldata"
-        / "core"
-        / "standard_models"
-        / context
-        / "__init__.py"
-    )
+    file_path = project_root / "src" / "humbldata" / context / "__init__.py"
     content = f'''
-    """
-    Context: {context.capitalize()}
+"""
+**Context: {clean_name(context)}**.
 
-    This module defines the standard models for the {context.capitalize()} context.
-    """
+A category to group in the `{clean_name(context)}()`
 
-    from pydantic import BaseModel, Field, field_validator
+"""
 
-    class {clean_name(context)}QueryParams(BaseModel):
-        example_field: str = Field(..., description="An example field")
-
-        @field_validator('example_field')
-        def validate_example_field(cls, v):
-            if len(v) < 3:
-                raise ValueError("example_field must be at least 3 characters long")
-            return v
-
-    class {clean_name(context)}Data(BaseModel):
-        result: str = Field(..., description="The result of the {context.capitalize()} operation")
-    '''
+'''
     write_file(file_path, content)
+
+    # Create __init__.py in the context directory
+    init_file_path = file_path.parent / "__init__.py"
+    write_file(init_file_path, "")
 
 
 def generate_command_files(
@@ -155,39 +139,35 @@ def generate_command_files(
         project_root
         / "src"
         / "humbldata"
-        / "core"
-        / "standard_models"
         / context
         / category
+        / command
         / f"{command}.py"
     )
     content = f'''
-    """
-    {clean_name(command)} Standard Model.
+"""
+**Context: {clean_name(context)} || Category: {clean_name(category)} || Command: {clean_name(command)}**.
 
-    Context: {clean_name(context)} || Category: {clean_name(category)} || Command: {clean_name(command)}.
+The {clean_name(command)} Command Module.
+"""
 
-    This module is used to define the QueryParams and Data model for the
-    {clean_name(command)} command.
-    """
+from pydantic import BaseModel, Field, field_validator
 
-    from pydantic import BaseModel, Field, field_validator
+class {clean_name(command)}QueryParams(BaseModel):
+    example_field: str = Field(..., description="An example field")
 
-    class {clean_name(command)}QueryParams(BaseModel):
-        example_field: str = Field(..., description="An example field")
+    @field_validator('example_field')
+    def validate_example_field(cls, v):
+        if len(v) < 3:
+            raise ValueError("example_field must be at least 3 characters long")
+        return v
 
-        @field_validator('example_field')
-        def validate_example_field(cls, v):
-            if len(v) < 3:
-                raise ValueError("example_field must be at least 3 characters long")
-            return v
-
-    class {clean_name(command)}Data(BaseModel):
-        result: str = Field(..., description="The result of the {clean_name(command)} operation")
-    '''
+class {clean_name(command)}Data(BaseModel):
+    result: str = Field(..., description="The result of the {clean_name(command)} operation")
+'''
     write_file(file_path, content)
 
-    # Create __init__.py in the command directory
+    # Create __init__.py in the category directory
     init_file_path = file_path.parent / "__init__.py"
     write_file(init_file_path, "")
 
@@ -215,48 +195,47 @@ def generate_context_controller(
         / f"{context}_controller.py"
     )
     content = f'''
+"""
+**Context: {clean_name(context)}**.
+
+The {clean_name(context)} Controller Module.
+"""
+
+from humbldata.core.standard_models.{context} import {clean_name(context)}QueryParams
+
+class {clean_name(context)}({clean_name(context)}QueryParams):
     """
-    **Context: {clean_name(context)}**.
+    A top-level {clean_name(category)} controller for data analysis tools in `humblDATA`.
 
-    The {clean_name(context)} Controller Module.
+    This module serves as the primary controller, routing user-specified
+    {clean_name(context)}QueryParams as core arguments that are used to fetch time series
+    data.
+
+    The `{clean_name(context)}` controller also gives access to all sub-modules and their
+    functions.
     """
 
-    from humbldata.core.standard_models.{context} import {clean_name(context)}QueryParams
-    from humbldata.{context}.{category}.{category}_controller import {clean_name(category)}
-
-    class {clean_name(context)}({clean_name(context)}QueryParams):
+    def __init__(self, *args, **kwargs):
         """
-        A top-level {clean_name(category)} controller for data analysis tools in `humblDATA`.
+        Initialize the {clean_name(context)} module.
 
-        This module serves as the primary controller, routing user-specified
-        {clean_name(context)}QueryParams as core arguments that are used to fetch time series
-        data.
-
-        The `{clean_name(context)}` controller also gives access to all sub-modules and their
-        functions.
+        This method does not take any parameters and does not return anything.
         """
+        super().__init__(*args, **kwargs)
 
-        def __init__(self, *args, **kwargs):
-            """
-            Initialize the {clean_name(context)} module.
+    @property
+    def {clean_name(category).lower()}(self):
+        """
+        The {clean_name(category)} submodule of the {clean_name(context)} controller.
 
-            This method does not take any parameters and does not return anything.
-            """
-            super().__init__(*args, **kwargs)
-
-        @property
-        def {clean_name(category).lower()}(self):
-            """
-            The {clean_name(category)} submodule of the {clean_name(context)} controller.
-
-            Access to all the {clean_name(category)} indicators. When the {clean_name(context)} class is
-            instantiated the parameters are initialized with the {clean_name(context)}QueryParams
-            class, which hold all the fields needed for the context_params, like the
-            symbol, interval, start_date, and end_date.
-            """
-            return {clean_name(category)}(context_params=self)
-    '''
-    write_file(file_path, content)
+        Access to all the {clean_name(category)} indicators. When the {clean_name(context)} class is
+        instantiated the parameters are initialized with the {clean_name(context)}QueryParams
+        class, which hold all the fields needed for the context_params, like the
+        symbol, interval, start_date, and end_date.
+        """
+        return {clean_name(category)}(context_params=self)
+'''
+    write_file(file_path, content.strip())
 
     # Create __init__.py in the context directory
     init_file_path = file_path.parent / "__init__.py"
@@ -289,58 +268,58 @@ def generate_category_controller(
         / f"{category}_controller.py"
     )
     content = f'''
+"""
+**Context: {clean_name(context)} || Category: {clean_name(category)}**.
+
+The {clean_name(category)} Controller Module.
+"""
+
+from humbldata.core.standard_models.{context} import {clean_name(context)}QueryParams
+from humbldata.core.standard_models.{context}.{category}.{command} import (
+    {clean_name(command)}QueryParams,
+)
+
+
+class {clean_name(category)}QueryParams):
     """
-    Context: {clean_name(context)} || **Category: {clean_name(category)}**.
+    A {clean_name(category)} controller for data analysis tools in `humblDATA`.
 
-    A controller to manage and compile all of the {clean_name(category)} models
-    available. This will be passed as a `@property` to the `{clean_name(context)}` class, giving
-    access to the {clean_name(category)} module and its functions.
+    This module serves as the primary controller, routing user-specified
+    {clean_name(command)}QueryParams as core arguments that are used to fetch time series
+    data.
+
+    The `{clean_name(category)}` controller also gives access to all sub-modules and their
+    functions.
     """
 
-    from humbldata.core.standard_models.{context} import {clean_name(context)}QueryParams
-
-    class {clean_name(category)}:
+    def __init__(self, *args, **kwargs):
         """
-        Module for all {clean_name(category)} analysis.
+        Initialize the {clean_name(category)} module.
 
-        Attributes
-        ----------
-        standard_params : {clean_name(context)}QueryParams
-            The standard query parameters for {clean_name(context)} data.
-
-        Methods
-        -------
-        example_method(command_params: {clean_name(command)}QueryParams)
-            Example method for the {clean_name(category)} controller.
+        This method does not take any parameters and does not return anything.
         """
+        super().__init__(*args, **kwargs)
 
-        def __init__(self, context_params: {clean_name(context)}QueryParams):
-            self.context_params = context_params
+    @property
+    def {clean_name(command).lower()}(self):
+        """
+        The {clean_name(command)} submodule of the {clean_name(category)} controller.
 
-        def example_method(self, command_params: {clean_name(command)}QueryParams):
-            """
-            Example method for the {clean_name(category)} controller.
-
-            Parameters
-            ----------
-            command_params : {clean_name(command)}QueryParams
-                The query parameters for the {clean_name(command)} command.
-
-            Returns
-            -------
-            str
-                Example result.
-            """
-            return "Example result"
-    '''
-    write_file(file_path, content)
+        Access to all the {clean_name(command)} indicators. When the {clean_name(category)} class is
+        instantiated the parameters are initialized with the {clean_name(command)}QueryParams
+        class, which hold all the fields needed for the context_params, like the
+        symbol, interval, start_date, and end_date.
+        """
+        return {clean_name(command)}(context_params=self)
+'''
+    write_file(file_path, content.strip())
 
     # Create __init__.py in the category directory
     init_file_path = file_path.parent / "__init__.py"
     write_file(init_file_path, "")
 
 
-def generate_model(
+def generate_standard_model(
     project_root: Path, context: str, category: str, command: str
 ) -> None:
     """
@@ -368,29 +347,69 @@ def generate_model(
         / f"{command}.py"
     )
     content = f'''
+"""
+{clean_name(command)} Standard Model.
+
+Context: {clean_name(context)} || Category: {clean_name(category)} || Command: {clean_name(command)}.
+
+This module is used to define the QueryParams and Data model for the
+{clean_name(command)} command.
+"""
+
+from typing import Literal
+
+from pydantic import Field, field_validator
+
+from humbldata.core.standard_models.abstract.data import Data
+from humbldata.core.standard_models.abstract.query_params import QueryParams
+
+{clean_name(command).upper()}_QUERY_DESCRIPTIONS = {{
+    "example_field1": "Description for example field 1",
+    "example_field2": "Description for example field 2",
+}}
+
+
+class {clean_name(command)}QueryParams(QueryParams):
     """
-    {clean_name(command)} Standard Model.
+    QueryParams model for the {clean_name(command)} command, a Pydantic v2 model.
 
-    Context: {clean_name(context)} || Category: {clean_name(category)} || Command: {clean_name(command)}.
-
-    This module is used to define the QueryParams and Data model for the
-    {clean_name(command)} command.
+    Parameters
+    ----------
+    example_field1 : str
+        An example field.
+    example_field2 : bool
+        Another example field.
     """
 
-    from pydantic import BaseModel, Field, field_validator
+    example_field1: str = Field(
+        default="default_value",
+        title="Example Field 1",
+        description={clean_name(command).upper()}_QUERY_DESCRIPTIONS.get("example_field1", ""),
+    )
+    example_field2: bool = Field(
+        default=True,
+        title="Example Field 2",
+        description={clean_name(command).upper()}_QUERY_DESCRIPTIONS.get("example_field2", ""),
+    )
 
-    class {clean_name(command)}QueryParams(BaseModel):
-        example_field: str = Field(..., description="An example field")
+    @field_validator("example_field1", mode="after")
+    @classmethod
+    def validate_example_field1(cls, v: str) -> str:
+        # Add any validation logic here
+        return v
 
-        @field_validator('example_field')
-        def validate_example_field(cls, v):
-            if len(v) < 3:
-                raise ValueError("example_field must be at least 3 characters long")
-            return v
 
-    class {clean_name(command)}Data(BaseModel):
-        result: str = Field(..., description="The result of the {clean_name(command)} operation")
-    '''
+class {clean_name(command)}Data(Data):
+    """
+    Data model for the {clean_name(command)} command, a Pandera.Polars Model.
+
+    Parameters
+    ----------
+    # Add your data model parameters here
+    """
+
+    # Add your data model fields here
+'''
     write_file(file_path, content)
 
     # Create __init__.py in the category directory
@@ -421,20 +440,19 @@ def generate_view(
         / "humbldata"
         / context
         / category
-        / f"{command}_view.py"
+        / command
+        / "view.py"
     )
     content = f'''
-    """
-    {clean_name(command)} View.
+"""
+**Context: {clean_name(context)} || Category: {clean_name(category)} || Command: {clean_name(command)}**.
 
-    Context: {clean_name(context)} || Category: {clean_name(category)} || Command: {clean_name(command)}.
+The {clean_name(command)} View Module.
+"""
 
-    This module is used to define the view for the {clean_name(command)} command.
-    """
-
-    def render_{command}():
-        return "Rendering {clean_name(command)} view"
-    '''
+def render_view(data):
+    return f"Rendering view for {{data}}"
+'''
     write_file(file_path, content)
 
     # Create __init__.py in the category directory
@@ -465,20 +483,19 @@ def generate_helpers(
         / "humbldata"
         / context
         / category
-        / f"{command}_helpers.py"
+        / command
+        / "helpers.py"
     )
     content = f'''
-    """
-    {clean_name(command)} Helpers.
+"""
+**Context: {clean_name(context)} || Category: {clean_name(category)} || Command: {clean_name(command)}**.
 
-    Context: {clean_name(context)} || Category: {clean_name(category)} || Command: {clean_name(command)}.
+The {clean_name(command)} Helpers Module.
+"""
 
-    This module is used to define helper functions for the {clean_name(command)} command.
-    """
-
-    def helper_function():
-        return "Helper function result"
-    '''
+def helper_function():
+    return "Helper function result"
+'''
     write_file(file_path, content)
 
     # Create __init__.py in the category directory
@@ -539,7 +556,7 @@ def main() -> None:
             project_root, context, current_category, command
         )
 
-    generate_model(project_root, context, category, command)
+    generate_standard_model(project_root, context, category, command)
 
     if add_view:
         generate_view(project_root, context, category, command)

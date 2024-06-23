@@ -97,6 +97,10 @@
         {
             "folderPath": "humblDATA/src/humbldata/core/",
             "badge": "🕸️"
+        },
+        {
+            "folderPath": "humblDATA/src/humbldata/toolbox/",
+            "badge": "🧰"
         }
     ],
     "[typescript]": {
