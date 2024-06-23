@@ -33,6 +33,17 @@ def prompt_user() -> Tuple[str, str, str, bool, bool]:
     return context, category, command, add_view, add_helpers
 
 
+def get_project_root() -> Path:
+    current_path = Path.cwd()
+    while current_path != current_path.parent:
+        if (current_path / "src" / "humbldata").exists():
+            return current_path
+        current_path = current_path.parent
+    raise FileNotFoundError(
+        "Could not find project root containing src/humbldata"
+    )
+
+
 def create_directory(path: Path) -> None:
     """
     Create a directory and its parent directories if they don't exist.
@@ -43,7 +54,7 @@ def create_directory(path: Path) -> None:
         The path of the directory to create.
 
     """
-    Path(path).mkdir(parents=True, exist_ok=True)
+    path.mkdir(parents=True, exist_ok=True)
 
 
 def write_file(path: Path, content: str) -> None:
@@ -62,17 +73,27 @@ def write_file(path: Path, content: str) -> None:
         f.write(textwrap.dedent(content))
 
 
-def generate_context_files(context: str) -> None:
+def generate_context_files(project_root: Path, context: str) -> None:
     """
     Generate the __init__.py file for a given context.
 
     Parameters
     ----------
+    project_root : Path
+        The root directory of the project.
     context : str
         The name of the context.
 
     """
-    file_path = Path(f"humbldata/core/standard_models/{context}/__init__.py")
+    file_path = (
+        project_root
+        / "src"
+        / "humbldata"
+        / "core"
+        / "standard_models"
+        / context
+        / "__init__.py"
+    )
     content = f'''
     """
     Context: {context.capitalize()}
@@ -97,12 +118,16 @@ def generate_context_files(context: str) -> None:
     write_file(file_path, content)
 
 
-def generate_command_files(context: str, category: str, command: str) -> None:
+def generate_command_files(
+    project_root: Path, context: str, category: str, command: str
+) -> None:
     """
-    Generate the command file for a given context, category, and command.
+    Generate the __init__.py file for a given command.
 
     Parameters
     ----------
+    project_root : Path
+        The root directory of the project.
     context : str
         The name of the context.
     category : str
@@ -111,117 +136,138 @@ def generate_command_files(context: str, category: str, command: str) -> None:
         The name of the command.
 
     """
-    file_path = Path(
-        f"humbldata/core/standard_models/{context}/{category}/{command}.py"
+    file_path = (
+        project_root
+        / "src"
+        / "humbldata"
+        / context
+        / category
+        / command
+        / "__init__.py"
     )
     content = f'''
     """
     Context: {context.capitalize()} || Category: {category.capitalize()} || Command: {command.capitalize()}
 
-    This module defines the standard models for the {command.capitalize()} command.
+    This module defines the {command} command.
     """
 
     from pydantic import BaseModel, Field
 
     class {command.capitalize()}QueryParams(BaseModel):
-        example_param: str = Field(..., description="An example parameter for {command}")
+        example_field: str = Field(..., description="An example field")
 
-        @validator('example_param')
-        def validate_example_param(cls, v):
-            if not v.isalpha():
-                raise ValueError("example_param must contain only alphabetic characters")
+        @validator('example_field')
+        def validate_example_field(cls, v):
+            if len(v) < 3:
+                raise ValueError("example_field must be at least 3 characters long")
             return v
 
     class {command.capitalize()}Data(BaseModel):
-        result: str = Field(..., description="The result of the {command} operation")
+        result: str = Field(..., description="The result of the {command.capitalize()} operation")
     '''
     write_file(file_path, content)
 
 
-def generate_context_controller(context: str) -> None:
+def generate_context_controller(project_root: Path, context: str) -> None:
     """
-    Generate the context controller file for a given context.
+    Generate the controller file for a given context.
 
     Parameters
     ----------
+    project_root : Path
+        The root directory of the project.
     context : str
         The name of the context.
 
     """
-    file_path = Path(f"humbldata/{context}/{context}_controller.py")
+    file_path = project_root / "src" / "humbldata" / context / "controller.py"
     content = f'''
     """
     Context: {context.capitalize()}
 
-    The {context.capitalize()} Controller Module.
+    This module defines the controller for the {context.capitalize()} context.
     """
 
-    from humbldata.core.standard_models.{context} import {context.capitalize()}QueryParams
-
-    class {context.capitalize()}({context.capitalize()}QueryParams):
+    def handle_request(query_params):
         """
-        A top-level <context> controller for {context} in `humblDATA`.
+        Handle a request for the {context.capitalize()} context.
 
-        This module serves as the primary controller for the {context} context.
+        Parameters
+        ----------
+        query_params : {context.capitalize()}QueryParams
+            The query parameters for the request.
+
+        Returns
+        -------
+        {context.capitalize()}Data
+            The result of the request.
         """
-
-        def __init__(self, *args, **kwargs):
-            """
-            Initialize the {context.capitalize()} module.
-            """
-            super().__init__(*args, **kwargs)
-
-        # Add more methods as needed
+        return {context.capitalize()}Data(result="Success")
     '''
     write_file(file_path, content)
 
 
-def generate_category_controller(context: str, category: str) -> None:
+def generate_category_controller(
+    project_root: Path, context: str, category: str
+) -> None:
     """
-    Generate the category controller file for a given context and category.
+    Generate the controller file for a given category.
 
     Parameters
     ----------
+    project_root : Path
+        The root directory of the project.
     context : str
         The name of the context.
     category : str
         The name of the category.
 
     """
-    file_path = Path(f"humbldata/{context}/{category}/{category}_controller.py")
+    file_path = (
+        project_root
+        / "src"
+        / "humbldata"
+        / context
+        / category
+        / "controller.py"
+    )
     content = f'''
     """
     Context: {context.capitalize()} || Category: {category.capitalize()}
 
-    A controller to manage and compile all of the {category} models available.
+    This module defines the controller for the {category.capitalize()} category.
     """
 
-    from humbldata.core.standard_models.{context} import {context.capitalize()}QueryParams
-
-    class {category.capitalize()}:
+    def handle_request(query_params):
         """
-        Module for all {category} operations.
+        Handle a request for the {category.capitalize()} category.
 
-        Attributes
+        Parameters
         ----------
-        context_params : {context.capitalize()}QueryParams
-            The standard query parameters for {context} data.
+        query_params : {category.capitalize()}QueryParams
+            The query parameters for the request.
+
+        Returns
+        -------
+        {category.capitalize()}Data
+            The result of the request.
         """
-
-        def __init__(self, context_params: {context.capitalize()}QueryParams):
-            self.context_params = context_params
-
-        # Add more methods as needed
+        return {category.capitalize()}Data(result="Success")
     '''
     write_file(file_path, content)
 
 
-def generate_model(context: str, category: str, command: str) -> None:
+def generate_model(
+    project_root: Path, context: str, category: str, command: str
+) -> None:
     """
-    Generate the model file for a given context, category, and command.
+    Generate the model file for a given command.
 
     Parameters
     ----------
+    project_root : Path
+        The root directory of the project.
     context : str
         The name of the context.
     category : str
@@ -230,31 +276,43 @@ def generate_model(context: str, category: str, command: str) -> None:
         The name of the command.
 
     """
-    file_path = Path(f"humbldata/{context}/{category}/{command}/model.py")
+    file_path = (
+        project_root
+        / "src"
+        / "humbldata"
+        / context
+        / category
+        / command
+        / "model.py"
+    )
     content = f'''
     """
     Context: {context.capitalize()} || Category: {category.capitalize()} || Command: {command.capitalize()}
 
-    A command to perform {command} operations.
+    This module defines the model for the {command.capitalize()} command.
     """
 
-    def calc_{command}():
+    def dummy_function():
         """
-        Calculate the {command}.
+        A dummy function for the {command} command.
 
-        This is a dummy function to serve as an example.
+        This is a placeholder function to serve as an example.
         """
-        return "Result of {command} calculation"
+        return "Dummy function result"
     '''
     write_file(file_path, content)
 
 
-def generate_view(context: str, category: str, command: str) -> None:
+def generate_view(
+    project_root: Path, context: str, category: str, command: str
+) -> None:
     """
-    Generate the view file for a given context, category, and command.
+    Generate the view file for a given command.
 
     Parameters
     ----------
+    project_root : Path
+        The root directory of the project.
     context : str
         The name of the context.
     category : str
@@ -263,31 +321,43 @@ def generate_view(context: str, category: str, command: str) -> None:
         The name of the command.
 
     """
-    file_path = Path(f"humbldata/{context}/{category}/{command}/view.py")
+    file_path = (
+        project_root
+        / "src"
+        / "humbldata"
+        / context
+        / category
+        / command
+        / "view.py"
+    )
     content = f'''
     """
     Context: {context.capitalize()} || Category: {category.capitalize()} || Command: {command.capitalize()}
 
-    View module for the {command} command.
+    This module defines the view for the {command.capitalize()} command.
     """
 
-    def display_{command}_result(result):
+    def render_view():
         """
-        Display the result of the {command} operation.
+        Render the view for the {command} command.
 
         This is a dummy function to serve as an example.
         """
-        print(f"Result of {command}: {{result}}")
+        return "View rendered"
     '''
     write_file(file_path, content)
 
 
-def generate_helpers(context: str, category: str, command: str) -> None:
+def generate_helpers(
+    project_root: Path, context: str, category: str, command: str
+) -> None:
     """
-    Generate the helpers file for a given context, category, and command.
+    Generate the helpers file for a given command.
 
     Parameters
     ----------
+    project_root : Path
+        The root directory of the project.
     context : str
         The name of the context.
     category : str
@@ -296,7 +366,15 @@ def generate_helpers(context: str, category: str, command: str) -> None:
         The name of the command.
 
     """
-    file_path = Path(f"humbldata/{context}/{category}/{command}/helpers.py")
+    file_path = (
+        project_root
+        / "src"
+        / "humbldata"
+        / context
+        / category
+        / command
+        / "helpers.py"
+    )
     content = f'''
     """
     Context: {context.capitalize()} || Category: {category.capitalize()} || Command: {command.capitalize()}
@@ -319,29 +397,44 @@ def main() -> None:
     """
     Main function to orchestrate the creation of new command files and directories.
     """
+    project_root = get_project_root()
     context, category, command, add_view, add_helpers = prompt_user()
 
     # Split category into sub-categories
     categories = category.split("/")
 
     # Create directories
-    create_directory(Path(f"humbldata/core/standard_models/{context}"))
-    current_path = Path(f"humbldata/core/standard_models/{context}")
+    create_directory(
+        project_root
+        / "src"
+        / "humbldata"
+        / "core"
+        / "standard_models"
+        / context
+    )
+    current_path = (
+        project_root
+        / "src"
+        / "humbldata"
+        / "core"
+        / "standard_models"
+        / context
+    )
     for cat in categories:
         current_path = current_path / cat
         create_directory(current_path)
 
-    create_directory(Path(f"humbldata/{context}"))
-    current_path = Path(f"humbldata/{context}")
+    create_directory(project_root / "src" / "humbldata" / context)
+    current_path = project_root / "src" / "humbldata" / context
     for cat in categories:
         current_path = current_path / cat
         create_directory(current_path)
     create_directory(current_path / command)
 
     # Generate files
-    generate_context_files(context)
-    generate_command_files(context, category, command)
-    generate_context_controller(context)
+    generate_context_files(project_root, context)
+    generate_command_files(project_root, context, category, command)
+    generate_context_controller(project_root, context)
 
     # Generate category controllers for each level
     current_category = ""
@@ -349,14 +442,14 @@ def main() -> None:
         current_category = (
             f"{current_category}/{cat}" if current_category else cat
         )
-        generate_category_controller(context, current_category)
+        generate_category_controller(project_root, context, current_category)
 
-    generate_model(context, category, command)
+    generate_model(project_root, context, category, command)
 
     if add_view:
-        generate_view(context, category, command)
+        generate_view(project_root, context, category, command)
     if add_helpers:
-        generate_helpers(context, category, command)
+        generate_helpers(project_root, context, category, command)
 
     print("Files generated successfully!")
 
