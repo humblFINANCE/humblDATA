@@ -426,12 +426,12 @@ class {clean_name(context, case="PascalCase")}QueryParams(QueryParams):
         Another example field.
     """
 
-    example_field1: str = Field(
+    example_field1: str = pa.Field(
         default="default_value",
         title="Example Field 1",
         description="Description for example field 1",
     )
-    example_field2: int | None = Field(
+    example_field2: int | None = pa.Field(
         default=None,
         title="Example Field 2",
         description="Description for example field 2",
@@ -505,14 +505,14 @@ class {clean_name(command, case="PascalCase")}QueryParams(QueryParams):
         Another example field.
     """
 
-    example_field1: str = Field(
+    example_field1: str = pa.Field(
         default="default_value",
         title="Example Field 1",
         description={clean_name(command, case="PascalCase").upper()}_QUERY_DESCRIPTIONS.get("example_field1", ""),
     )
-    example_field2: bool = Field(
+    example_field2: bool = pa.Field(
         default=True,
-        title="Example Field 2",
+        title="Example pa.Field 2",
         description={clean_name(command, case="PascalCase").upper()}_QUERY_DESCRIPTIONS.get("example_field2", ""),
     )
 
