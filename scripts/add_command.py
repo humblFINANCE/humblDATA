@@ -90,7 +90,11 @@ def clean_name(name: str, case: str = "camelCase") -> str:
     str
         The cleaned and formatted name.
     """
-    words = name.split("_")
+    # Replace any non-alphanumeric characters (except underscores) with spaces
+    name = re.sub(r"[^\w\s]", " ", name)
+    # Split the name into words
+    words = name.split()
+
     if case.lower() == "camelcase":
         return words[0].lower() + "".join(
             word.capitalize() for word in words[1:]
@@ -120,7 +124,7 @@ def generate_context_files(project_root: Path, context: str) -> None:
     file_path = project_root / "src" / "humbldata" / context / "__init__.py"
     content = f'''
 """
-**Context: {clean_name(context)}**.
+**Context: {clean_name(context, case="PascalCase")}**.
 
 A category to group in the `{clean_name(context)}()`
 
@@ -162,16 +166,16 @@ def generate_command_files(
     )
     content = f'''
 """
-**Context: {clean_name(context)} || Category: {clean_name(category)} || Command: {clean_name(command, case="snake_case")}**.
+**Context: {clean_name(context, case="PascalCase")} || Category: {clean_name(category, case="PascalCase")} || Command: {clean_name(command, case="PascalCase")}**.
 
-The {clean_name(command)} Command Module.
+The {clean_name(command, case="PascalCase")} Command Module.
 """
 
 def {clean_name(command, case="snake_case")}():
     """
-    Context: {clean_name(context).capitalize()} || Category: {clean_name(category).capitalize()} ||| **Command: {clean_name(command, case="snake_case")}**.
+    Context: {clean_name(context, case="PascalCase")} || Category: {clean_name(category, case="PascalCase")} ||| **Command: {clean_name(command, case="PascalCase")}**.
 
-    Execute the {clean_name(command)} command.
+    Execute the {clean_name(command, case="PascalCase")} command.
 
     Parameters
     ----------
@@ -212,21 +216,21 @@ def generate_context_controller(
     )
     content = f'''
 """
-**Context: {clean_name(context).capitalize()}**.
+**Context: {clean_name(context, case="PascalCase")}**.
 
-The {clean_name(context)} Controller Module.
+The {clean_name(context, case="PascalCase")} Controller Module.
 """
 
-from humbldata.core.standard_models.{context.lower()} import {clean_name(context)}QueryParams
-from humbldata.{context.lower()}.{category.lower()}.{category.lower()}_controller import {clean_name(category).capitalize()}
+from humbldata.core.standard_models.{context.lower()} import {clean_name(context, case="PascalCase")}QueryParams
+from humbldata.{context.lower()}.{category.lower()}.{category.lower()}_controller import {clean_name(category, case="PascalCase")}
 
 
-class {clean_name(context).capitalize()}({clean_name(context)}QueryParams):
+class {clean_name(context, case="PascalCase")}({clean_name(context, case="PascalCase")}QueryParams):
     """
-    A top-level {clean_name(context)} controller for data analysis tools in `humblDATA`.
+    A top-level {clean_name(context, case="PascalCase")} controller for data analysis tools in `humblDATA`.
 
     This module serves as the primary controller, routing user-specified
-    {clean_name(context)}QueryParams as core arguments that are used to fetch time series
+    {clean_name(context, case="PascalCase")}QueryParams as core arguments that are used to fetch time series
     data.
 
     The `{clean_name(context)}` controller also gives access to all sub-modules and their
@@ -237,17 +241,17 @@ class {clean_name(context).capitalize()}({clean_name(context)}QueryParams):
 
     Submodules
     ----------
-    The `{clean_name(context).capitalize()}` controller is composed of the following submodules:
+    The `{clean_name(context, case="PascalCase")}` controller is composed of the following submodules:
 
     - `{category.lower()}`:
 
     Parameters
     ----------
-    # Add your {clean_name(category)}QueryParams parameters here
+    # Add your {clean_name(category, case="PascalCase")}QueryParams parameters here
 
     Parameter Notes
     -----
-    The parameters are the `{clean_name(context)}QueryParams`. They are used
+    The parameters are the `{clean_name(context, case="PascalCase")}QueryParams`. They are used
     for data collection further down the pipeline in other commands.
     Intended to execute operations on core data sets. This approach enables
     composable and standardized querying while accommodating data-specific
@@ -256,7 +260,7 @@ class {clean_name(context).capitalize()}({clean_name(context)}QueryParams):
 
     def __init__(self, *args, **kwargs):
         """
-        Initialize the {clean_name(context).capitalize()} module.
+        Initialize the {clean_name(context, case="PascalCase")} module.
 
         This method does not take any parameters and does not return anything.
         """
@@ -265,14 +269,14 @@ class {clean_name(context).capitalize()}({clean_name(context)}QueryParams):
     @property
     def {category.lower()}(self):
         """
-        The {category.lower()} submodule of the {clean_name(context).capitalize()} controller.
+        The {category.lower()} submodule of the {clean_name(context, case="PascalCase")} controller.
 
-        Access to all the {category} indicators. When the {clean_name(context)} class is
-        instantiated the parameters are initialized with the {clean_name(context)}QueryParams
+        Access to all the {clean_name(category, case="PascalCase")} indicators. When the {clean_name(context, case="PascalCase")} class is
+        instantiated the parameters are initialized with the {clean_name(context, case="PascalCase")}QueryParams
         class, which hold all the fields needed for the context_params, like the
         symbol, interval, start_date, and end_date.
         """
-        return {clean_name(category).capitalize()}(context_params=self)
+        return {clean_name(category, case="PascalCase")}(context_params=self)
 '''
     write_file(file_path, content.strip())
 
@@ -307,50 +311,50 @@ def generate_category_controller(
         / f"{category}_controller.py"
     )
     content = f'''
-"""Context: {clean_name(context).capitalize()} || **Category: {clean_name(category).capitalize()}**.
+"""Context: {clean_name(context, case="PascalCase")} || **Category: {clean_name(category, case="PascalCase")}**.
 
-A controller to manage and compile all of the {clean_name(category)} models
+A controller to manage and compile all of the {clean_name(category, case="PascalCase")} models
 available in the `{clean_name(context)}` context. This will be passed as a
 `@property` to the `{clean_name(context)}()` class, giving access to the
-{category} module and its functions.
+{clean_name(category, case="PascalCase")} module and its functions.
 """
-from humbldata.core.standard_models.{context.lower()} import {clean_name(context).capitalize()}QueryParams
+from humbldata.core.standard_models.{context.lower()} import {clean_name(context, case="PascalCase")}QueryParams
 from humbldata.core.standard_models.{context.lower()}.{category.lower()}.{clean_name(command, case="snake_case")} import (
-    {clean_name(command)}QueryParams,
+    {clean_name(command, case="PascalCase")}QueryParams,
 )
 
 
-class {clean_name(category.capitalize())}:
+class {clean_name(category, case="PascalCase")}:
     """
-    Module for all {clean_name(category)} analysis.
+    Module for all {clean_name(category, case="PascalCase")} analysis.
 
     Attributes
     ----------
-    context_params : {clean_name(context).capitalize()}QueryParams
+    context_params : {clean_name(context, case="PascalCase")}QueryParams
         The standard query parameters for {clean_name(context)} data.
 
     Methods
     -------
-    {clean_name(command, case="snake_case")}(command_params: {clean_name(command)}QueryParams)
-        Execute the {clean_name(command)} command.
+    {clean_name(command, case="snake_case")}(command_params: {clean_name(command, case="PascalCase")}QueryParams)
+        Execute the {clean_name(command, case="PascalCase")} command.
 
     """
 
-    def __init__(self, context_params: {clean_name(context).capitalize()}QueryParams):
+    def __init__(self, context_params: {clean_name(context, case="PascalCase")}QueryParams):
         self.context_params = context_params
 
-    def {clean_name(command, case="snake_case")}(self, **kwargs: {clean_name(command)}QueryParams):
+    def {clean_name(command, case="snake_case")}(self, **kwargs: {clean_name(command, case="PascalCase")}QueryParams):
         """
-        Execute the {clean_name(command)} command.
+        Execute the {clean_name(command, case="PascalCase")} command.
 
         Explain the functionality...
         """
         from humbldata.core.standard_models.{context.lower()}.{category.lower()}.{clean_name(command, case="snake_case")} import (
-            {clean_name(command).capitalize()}Fetcher,
+            {clean_name(command, case="PascalCase")}Fetcher,
         )
 
         # Instantiate the Fetcher with the query parameters
-        fetcher = {clean_name(command).capitalize()}Fetcher(
+        fetcher = {clean_name(command, case="PascalCase")}Fetcher(
             context_params=self.context_params, command_params=kwargs
         )
 
@@ -393,9 +397,9 @@ def generate_standard_model(
     )
     context_content = f'''
 """
-Context: {clean_name(context).capitalize()} || **Category: Standardized Framework Model**.
+Context: {clean_name(context, case="PascalCase")} || **Category: Standardized Framework Model**.
 
-This module defines the QueryParams and Data classes for the {clean_name(context)} context.
+This module defines the QueryParams and Data classes for the {clean_name(context, case="PascalCase")} context.
 """
 
 from typing import Optional
@@ -406,11 +410,11 @@ from humbldata.core.standard_models.abstract.data import Data
 from humbldata.core.standard_models.abstract.query_params import QueryParams
 
 
-class {clean_name(context).capitalize()}QueryParams(QueryParams):
+class {clean_name(context, case="PascalCase")}QueryParams(QueryParams):
     """
-    Query parameters for the {clean_name(context)}Controller.
+    Query parameters for the {clean_name(context, case="PascalCase")}Controller.
 
-    This class defines the query parameters used by the {clean_name(context)}Controller.
+    This class defines the query parameters used by the {clean_name(context, case="PascalCase")}Controller.
 
     Parameters
     ----------
@@ -437,9 +441,9 @@ class {clean_name(context).capitalize()}QueryParams(QueryParams):
         return v.upper()
 
 
-class {clean_name(context).capitalize()}Data(Data):
+class {clean_name(context, case="PascalCase")}Data(Data):
     """
-    The Data for the {clean_name(context).capitalize()}Controller.
+    The Data for the {clean_name(context, case="PascalCase")}Controller.
     """
 
     # Add your data model fields here
@@ -460,12 +464,12 @@ class {clean_name(context).capitalize()}Data(Data):
     )
     command_content = f'''
 """
-{clean_name(command)} Standard Model.
+{clean_name(command, case="PascalCase")} Standard Model.
 
-Context: {clean_name(context).capitalize()} || Category: {clean_name(category).capitalize()} || Command: {clean_name(command)}.
+Context: {clean_name(context, case="PascalCase")} || Category: {clean_name(category, case="PascalCase")} || Command: {clean_name(command, case="PascalCase")}.
 
 This module is used to define the QueryParams and Data model for the
-{clean_name(command)} command.
+{clean_name(command, case="PascalCase")} command.
 """
 
 from typing import Literal, TypeVar
@@ -477,19 +481,19 @@ from pydantic import Field, field_validator
 from humbldata.core.standard_models.abstract.data import Data
 from humbldata.core.standard_models.abstract.humblobject import HumblObject
 from humbldata.core.standard_models.abstract.query_params import QueryParams
-from humbldata.core.standard_models.{context} import {clean_name(context).capitalize()}QueryParams
+from humbldata.core.standard_models.{context} import {clean_name(context, case="PascalCase")}QueryParams
 
-Q = TypeVar("Q", bound={clean_name(context).capitalize()}QueryParams)
+Q = TypeVar("Q", bound={clean_name(context, case="PascalCase")}QueryParams)
 
-{clean_name(command).upper()}_QUERY_DESCRIPTIONS = {{
+{clean_name(command, case="PascalCase").upper()}_QUERY_DESCRIPTIONS = {{
     "example_field1": "Description for example field 1",
     "example_field2": "Description for example field 2",
 }}
 
 
-class {clean_name(command)}QueryParams(QueryParams):
+class {clean_name(command, case="PascalCase")}QueryParams(QueryParams):
     """
-    QueryParams model for the {clean_name(command)} command, a Pydantic v2 model.
+    QueryParams model for the {clean_name(command, case="PascalCase")} command, a Pydantic v2 model.
 
     Parameters
     ----------
@@ -502,12 +506,12 @@ class {clean_name(command)}QueryParams(QueryParams):
     example_field1: str = Field(
         default="default_value",
         title="Example Field 1",
-        description={clean_name(command).upper()}_QUERY_DESCRIPTIONS.get("example_field1", ""),
+        description={clean_name(command, case="PascalCase").upper()}_QUERY_DESCRIPTIONS.get("example_field1", ""),
     )
     example_field2: bool = Field(
         default=True,
         title="Example Field 2",
-        description={clean_name(command).upper()}_QUERY_DESCRIPTIONS.get("example_field2", ""),
+        description={clean_name(command, case="PascalCase").upper()}_QUERY_DESCRIPTIONS.get("example_field2", ""),
     )
 
     @field_validator("example_field1")
@@ -516,9 +520,9 @@ class {clean_name(command)}QueryParams(QueryParams):
         return v.upper()
 
 
-class {clean_name(command)}Data(Data):
+class {clean_name(command, case="PascalCase")}Data(Data):
     """
-    Data model for the {clean_name(command)} command, a Pandera.Polars Model.
+    Data model for the {clean_name(command, case="PascalCase")} command, a Pandera.Polars Model.
     """
 
     example_column: pl.Date = pa.Field(
@@ -527,22 +531,22 @@ class {clean_name(command)}Data(Data):
         description="Description for example column",
     )
 
-class {clean_name(command)}Fetcher:
+class {clean_name(command, case="PascalCase")}Fetcher:
     """
-    Fetcher for the {clean_name(command)} command.
+    Fetcher for the {clean_name(command, case="PascalCase")} command.
 
     Parameters
     ----------
-    context_params : {clean_name(context).capitalize()}QueryParams
-        The context parameters for the {clean_name(context).capitalize()} query.
-    command_params : {clean_name(command).capitalize()}QueryParams
-        The command-specific parameters for the {clean_name(command)} query.
+    context_params : {clean_name(context, case="PascalCase")}QueryParams
+        The context parameters for the {clean_name(context, case="PascalCase")} query.
+    command_params : {clean_name(command, case="PascalCase")}QueryParams
+        The command-specific parameters for the {clean_name(command, case="PascalCase")} query.
 
     Attributes
     ----------
-    context_params : {clean_name(context).capitalize()}QueryParams
+    context_params : {clean_name(context, case="PascalCase")}QueryParams
         Stores the context parameters passed during initialization.
-    command_params : {clean_name(command).capitalize()}QueryParams
+    command_params : {clean_name(command, case="PascalCase")}QueryParams
         Stores the command-specific parameters passed during initialization.
     data : pl.DataFrame
         The raw data extracted from the data provider, before transformation.
@@ -554,14 +558,14 @@ class {clean_name(command)}Fetcher:
     extract_data()
         Extracts the data from the provider and returns it as a Polars DataFrame.
     transform_data()
-        Transforms the command-specific data according to the {clean_name(command)} logic.
+        Transforms the command-specific data according to the {clean_name(command, case="PascalCase")} logic.
     fetch_data()
         Execute TET Pattern.
 
     Returns
     -------
     HumblObject
-        results : {clean_name(command)}Data
+        results : {clean_name(command, case="PascalCase")}Data
             Serializable results.
         provider : Literal['fmp', 'intrinio', 'polygon', 'tiingo', 'yfinance']
             Provider name.
@@ -569,26 +573,26 @@ class {clean_name(command)}Fetcher:
             List of warnings.
         chart : Optional[Chart]
             Chart object.
-        context_params : {clean_name(context).capitalize()}QueryParams
+        context_params : {clean_name(context, case="PascalCase")}QueryParams
             Context-specific parameters.
-        command_params : {clean_name(command).capitalize()}QueryParams
+        command_params : {clean_name(command, case="PascalCase")}QueryParams
             Command-specific parameters.
     """
 
     def __init__(
         self,
-        context_params: {clean_name(context).capitalize()}QueryParams,
-        command_params: {clean_name(command).capitalize()}QueryParams,
+        context_params: {clean_name(context, case="PascalCase")}QueryParams,
+        command_params: {clean_name(command, case="PascalCase")}QueryParams,
     ):
         """
-        Initialize the {clean_name(command)}Fetcher with context and command parameters.
+        Initialize the {clean_name(command, case="PascalCase")}Fetcher with context and command parameters.
 
         Parameters
         ----------
-        context_params : {clean_name(context).capitalize()}QueryParams
-            The context parameters for the {clean_name(context).capitalize()} query.
-        command_params : {clean_name(command).capitalize()}QueryParams
-            The command-specific parameters for the {clean_name(command).capitalize()} query.
+        context_params : {clean_name(context, case="PascalCase")}QueryParams
+            The context parameters for the {clean_name(context, case="PascalCase")} query.
+        command_params : {clean_name(command, case="PascalCase")}QueryParams
+            The command-specific parameters for the {clean_name(command, case="PascalCase")} query.
         """
         self.context_params = context_params
         self.command_params = command_params
@@ -597,17 +601,17 @@ class {clean_name(command)}Fetcher:
         """
         Transform the command-specific parameters into a query.
 
-        If command_params is not provided, it initializes a default {clean_name(command)}QueryParams object.
+        If command_params is not provided, it initializes a default {clean_name(command, case="PascalCase")}QueryParams object.
         """
         if not self.command_params:
             self.command_params = None
             # Set Default Arguments
-            self.command_params: {clean_name(command).capitalize()}QueryParams = (
-                {clean_name(command).capitalize()}QueryParams()
+            self.command_params: {clean_name(command, case="PascalCase")}QueryParams = (
+                {clean_name(command, case="PascalCase")}QueryParams()
             )
         else:
-            self.command_params: {clean_name(command).capitalize()}QueryParams = (
-                {clean_name(command).capitalize()}QueryParams(**self.command_params)
+            self.command_params: {clean_name(command, case="PascalCase")}QueryParams = (
+                {clean_name(command, case="PascalCase")}QueryParams(**self.command_params)
             )
 
     def extract_data(self):
@@ -625,7 +629,7 @@ class {clean_name(command)}Fetcher:
 
     def transform_data(self):
         """
-        Transform the command-specific data according to the {clean_name(command)} logic.
+        Transform the command-specific data according to the {clean_name(command, case="PascalCase")} logic.
 
         Returns
         -------
@@ -633,7 +637,7 @@ class {clean_name(command)}Fetcher:
             The transformed data as a Polars DataFrame
         """
         # Implement data transformation logic here
-        self.transformed_data = {clean_name(command).capitalize()}Data(self.data)
+        self.transformed_data = {clean_name(command, case="PascalCase")}Data(self.data)
         self.transformed_data = self.transformed_data.serialize()
         return self
 
@@ -700,9 +704,9 @@ def generate_helpers(
     )
     helpers_content = f'''
 """
-**Context: {clean_name(context)} || Category: {clean_name(category)} || Command: {clean_name(command)}**.
+**Context: {clean_name(context, case="PascalCase")} || Category: {clean_name(category, case="PascalCase")} || Command: {clean_name(command, case="PascalCase")}**.
 
-The {clean_name(command)} Helpers Module.
+The {clean_name(command, case="PascalCase")} Helpers Module.
 """
 
 def helper_function():
@@ -743,9 +747,9 @@ def generate_view(
     )
     view_content = f'''
 """
-**Context: {clean_name(context)} || Category: {clean_name(category)} || Command: {clean_name(command)}**.
+**Context: {clean_name(context, case="PascalCase")} || Category: {clean_name(category, case="PascalCase")} || Command: {clean_name(command, case="PascalCase")}**.
 
-The {clean_name(command)} View Module.
+The {clean_name(command, case="PascalCase")} View Module.
 """
 
 from typing import List
@@ -798,7 +802,7 @@ def generate_plots(
     template: ChartTemplate = ChartTemplate.plotly,
 ) -> List[Chart]:
     """
-    Context: {clean_name(context)} || Category: {clean_name(category)} || Command: {clean_name(command)} || **Function: generate_plots()**.
+    Context: {clean_name(context, case="PascalCase")} || Category: {clean_name(category, case="PascalCase")} || Command: {clean_name(command, case="PascalCase")} || **Function: generate_plots()**.
 
     Generate plots from the given dataframe.
 
@@ -835,6 +839,8 @@ def main() -> None:
     """
     project_root = get_project_root()
     context, category, command, add_view, add_helpers = prompt_user()
+
+    command = clean_name(command, case="snake_case")
 
     # Split category into sub-categories
     categories = category.split("/")
