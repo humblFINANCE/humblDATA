@@ -19,6 +19,7 @@ from humbldata.core.standard_models.abstract.errors import HumblDataError
 from humbldata.core.standard_models.abstract.query_params import QueryParams
 from humbldata.core.standard_models.abstract.tagged import Tagged
 from humbldata.core.standard_models.abstract.warnings import Warning_
+from humbldata.core.standard_models.portfolio import PortfolioQueryParams
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
 
 T = TypeVar("T")
@@ -81,7 +82,7 @@ class HumblObject(Tagged, Generic[T]):
         default_factory=dict,
         description="Extra info.",
     )
-    context_params: ToolboxQueryParams | None = Field(
+    context_params: ToolboxQueryParams | PortfolioQueryParams | None = Field(
         default_factory=ToolboxQueryParams,
         title="Context Parameters",
         description="Context parameters.",
