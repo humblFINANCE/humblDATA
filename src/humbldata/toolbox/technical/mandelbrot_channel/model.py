@@ -39,15 +39,16 @@ from humbldata.toolbox.toolbox_helpers import (
 def calc_mandelbrot_channel(
     data: pl.DataFrame | pl.LazyFrame,
     window: str = "1m",
-    rv_adjustment: bool = True,
     rv_method: str = "std",
     rs_method: Literal["RS", "RS_mean", "RS_max", "RS_min"] = "RS",
     *,
+    rv_adjustment: bool = True,
     rv_grouped_mean: bool = True,
     live_price: bool = True,
+    **kwargs,
 ) -> pl.LazyFrame:
     """
-    Context: Toolbox || Category: Technical || Sub-Category: Mandelbrot Channel || **Command: calc_mandelbrot_channel**.
+    Context: Toolbox || Category: Technical || **Command: calc_mandelbrot_channel**.
 
     This command calculates the Mandelbrot Channel for a given time series, utilizing various parameters to adjust the calculation. The Mandelbrot Channel provides insights into the volatility and price range of a stock over a specified window.
 
@@ -75,6 +76,9 @@ def calc_mandelbrot_channel(
     live_price: bool, default True
         Indicates whether to incorporate live price data into the calculation,
         which may extend the calculation time by 1-3 seconds.
+    **kwargs
+        Additional keyword arguments to pass to the function, if you want to
+        change the behavior or pass parameters to internal functions.
 
     Returns
     -------
@@ -186,6 +190,7 @@ async def acalc_mandelbrot_channel(
     *,
     rv_grouped_mean: bool = True,
     live_price: bool = True,
+    **kwargs,
 ) -> pl.DataFrame | pl.LazyFrame:
     """
     Context: Toolbox || Category: Technical || Sub-Category: Mandelbrot Channel || **Command: acalc_mandelbrot_channel**.
@@ -206,6 +211,7 @@ async def acalc_mandelbrot_channel(
         rs_method=rs_method,
         rv_grouped_mean=rv_grouped_mean,
         live_price=live_price,
+        **kwargs,
     )
 
 
@@ -218,6 +224,7 @@ async def _acalc_mandelbrot_channel_historical_engine(
     *,
     rv_grouped_mean: bool = True,
     live_price: bool = True,
+    **kwargs,
 ) -> pl.LazyFrame:
     """
     Context: Toolbox || Category: Technical || Sub-Category: Mandelbrot Channel || **Command: _calc_mandelbrot_channel_historical_engine**.
@@ -257,6 +264,7 @@ async def _acalc_mandelbrot_channel_historical_engine(
                 rs_method=rs_method,
                 rv_grouped_mean=rv_grouped_mean,
                 live_price=live_price,
+                **kwargs,
             )
         )
         for date in dates
@@ -284,6 +292,7 @@ def calc_mandelbrot_channel_historical(
     *,
     rv_grouped_mean: bool = True,
     live_price: bool = True,
+    **kwargs,
 ) -> pl.LazyFrame:
     """
     Context: Toolbox || Category: Technical || Sub-Category: Mandelbrot Channel || **Command: calc_mandelbrot_channel_historical**.
@@ -305,5 +314,6 @@ def calc_mandelbrot_channel_historical(
             rs_method=rs_method,
             rv_grouped_mean=rv_grouped_mean,
             live_price=live_price,
+            **kwargs,
         )
     )

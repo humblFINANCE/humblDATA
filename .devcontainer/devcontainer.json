@@ -27,7 +27,8 @@
                 "github.vscode-github-actions",
                 "github.codespaces",
                 "github.vscode-pull-request-github",
-                "ms-azuretools.vscode-docker"
+                "ms-azuretools.vscode-docker",
+                "esbenp.prettier-vscode"
             ],
             "settings": {
                 "coverage-gutters.coverageFileNames": [

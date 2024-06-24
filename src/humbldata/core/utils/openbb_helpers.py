@@ -13,7 +13,10 @@ import dotenv
 import polars as pl
 from openbb import obb
 
-from humbldata.core.utils.constants import OBB_EQUITY_PRICE_QUOTE_PROVIDERS
+from humbldata.core.utils.constants import (
+    OBB_EQUITY_PRICE_QUOTE_PROVIDERS,
+    OBB_EQUITY_PROFILE_PROVIDERS,
+)
 from humbldata.core.utils.env import Env
 
 
@@ -112,5 +115,41 @@ def get_latest_price(
         .lazy()
         .select(["symbol", "last_price"])
         .rename({"last_price": "recent_price"})
-        .collect()
+    )
+
+
+def get_sector(
+    symbols: str | list[str] | pl.Series,
+    provider: OBB_EQUITY_PROFILE_PROVIDERS | None = "yfinance",
+) -> pl.LazyFrame:
+    """
+    Context: Core || Category: Utils || Subcategory: OpenBB Helpers || **Command: get_sector**.
+
+    Retrieves the sector information for the given stock symbol(s) using OpenBB's equity profile data.
+
+    Parameters
+    ----------
+    symbols : str | list[str] | pl.Series
+        The stock symbol(s) to query for sector information. Accepts a single
+        symbol, a list of symbols, or a Polars Series of symbols.
+    provider : str | None, optional
+        The data provider to use for fetching sector information. If None, the default
+        provider will be used.
+
+    Returns
+    -------
+    pl.LazyFrame
+        A Polars LazyFrame with columns for the stock symbols ('symbol') and
+        their corresponding sectors ('sector').
+
+    Notes
+    -----
+    This function uses OpenBB's equity profile data to fetch sector information.
+    It returns a lazy frame for efficient processing, especially with large datasets.
+    """
+    return (
+        obb.equity.profile(symbols, provider=provider)
+        .to_polars()
+        .lazy()
+        .select(["symbol", "sector"])
     )

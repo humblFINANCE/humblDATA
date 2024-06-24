@@ -148,6 +148,10 @@ max-complexity = 10
 
 [tool.poe.tasks]  # https://github.com/nat-n/poethepoet
 
+[tool.poe.tasks.add_command]
+script = "scripts.add_command:main"
+help = "Generate boilerplate code for a new command"
+
 [tool.poe.tasks.docs]
 help = "Generate this package's docs using mkdocs"
 cmd = """

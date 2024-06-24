@@ -25,7 +25,6 @@ end_date : str
 """
 
 import datetime as dt
-from typing import Optional
 
 import pandera as pa
 import polars as pl
@@ -73,12 +72,19 @@ class ToolboxQueryParams(QueryParams):
         uppercase. If a list or set of symbols is provided, each symbol in the
         collection is converted to uppercase and returned as a comma-separated
         string.
+    validate_interval(cls, v: str) -> str
+        A Pydantic `@field_validator()` that validates the interval format.
+        Ensures the interval is a number followed by one of 's', 'm', 'h', 'd', 'W', 'M', 'Q', 'Y'.
+    validate_date_format(cls, v: str) -> str
+        A Pydantic `@field_validator()` that validates the date format to ensure it is YYYY-MM-DD.
 
     Raises
     ------
     ValueError
         If the `symbol` parameter is a list and not all elements are strings, or
         if `symbol` is not a string, list, or set.
+        If the `interval` format is invalid.
+        If the `date` format is invalid.
 
     Notes
     -----
