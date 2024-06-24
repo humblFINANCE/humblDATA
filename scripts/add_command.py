@@ -405,8 +405,6 @@ Context: {clean_name(context, case="PascalCase")} || **Category: {clean_name(cat
 This module defines the QueryParams and Data classes for the {clean_name(context, case="PascalCase")} context.
 """
 
-from typing import Optional
-
 from pydantic import Field, field_validator
 
 from humbldata.core.standard_models.abstract.data import Data
