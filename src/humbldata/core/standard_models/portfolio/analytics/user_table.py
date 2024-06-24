@@ -17,7 +17,9 @@ from humbldata.core.standard_models.abstract.data import Data
 from humbldata.core.standard_models.abstract.humblobject import HumblObject
 from humbldata.core.standard_models.abstract.query_params import QueryParams
 from humbldata.core.standard_models.portfolio import PortfolioQueryParams
-from humbldata.core.utils.openbb_helpers import get_latest_price
+from humbldata.core.utils.descriptions import QUERY_DESCRIPTIONS
+from humbldata.core.utils.openbb_helpers import get_latest_price, get_sector
+from humbldata.toolbox.toolbox_controller import Toolbox
 
 Q = TypeVar("Q", bound=PortfolioQueryParams)
 
@@ -36,18 +38,18 @@ class UserTableQueryParams(QueryParams):
     symbol : str | list[str] | set[str], default=""
         The symbol or ticker of the stock. You can pass multiple tickers like:
         "AAPL", "AAPL, MSFT" or ["AAPL", "MSFT"]. The input will be converted
-        to a comma separated string of uppercase symbols.
+        to a comma separated string of uppercase symbols : ['AAPL', 'MSFT']
     """
 
-    symbol: str = Field(
+    symbol: str | list[str] | set[str] = pa.Field(
         default="AAPL",
         title="Symbol",
         description="The stock symbol or ticker",
     )
-    example_field2: bool = Field(
-        default=True,
-        title="Example Field 2",
-        description=USERTABLE_QUERY_DESCRIPTIONS.get("example_field2", ""),
+    user_role: Literal["basic", "premium", "power", "admin"] = Field(
+        default="basic",
+        title="User Role",
+        description=QUERY_DESCRIPTIONS.get("user_role", ""),
     )
 
     @field_validator("symbol", mode="before", check_fields=False)
@@ -223,12 +225,29 @@ class UserTableFetcher:
         pl.DataFrame
             The extracted data as a Polars DataFrame.
         """
-        # Get last_price from OpenBB
+        # Setup Toolbox
+        # TODO: make different toolboxes for different user_roles
+        # TODO: have different date collection for different users
 
-        last_prices = get_latest_price(
+        toolbox = Toolbox(
+            symbol=self.context_params.symbol,
+            interval="1d",
+            start_date="2020-01-01",
+            end_date="2024-01-01",
+        )
+
+        # Get last_price from OpenBB
+        last_prices_df = get_latest_price(
             symbol=self.context_params.symbol,
             provider=self.context_params.provider,
         )
+        # Get Mandelbrot Data
+        mandelbrot_df = toolbox.technical.mandelbrot_channel(
+            window="1m", historical=True
+        )
+
+        # Get sector Data
+        sectors_df = get_sector(symbols=self.context_params.symbol)
 
         self.data = pl.DataFrame()
         return self
