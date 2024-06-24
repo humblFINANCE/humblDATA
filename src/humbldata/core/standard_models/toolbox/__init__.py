@@ -25,7 +25,6 @@ end_date : str
 """
 
 import datetime as dt
-from typing import Optional
 
 import pandera as pa
 import polars as pl
