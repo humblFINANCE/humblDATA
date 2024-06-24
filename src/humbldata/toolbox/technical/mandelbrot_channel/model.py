@@ -48,7 +48,7 @@ def calc_mandelbrot_channel(
     **kwargs,
 ) -> pl.LazyFrame:
     """
-    Context: Toolbox || Category: Technical || Sub-Category: Mandelbrot Channel || **Command: calc_mandelbrot_channel**.
+    Context: Toolbox || Category: Technical || **Command: calc_mandelbrot_channel**.
 
     This command calculates the Mandelbrot Channel for a given time series, utilizing various parameters to adjust the calculation. The Mandelbrot Channel provides insights into the volatility and price range of a stock over a specified window.
 

@@ -73,21 +73,37 @@ def write_file(path: Path, content: str) -> None:
         file.write(content)
 
 
-def clean_name(name: str) -> str:
+def clean_name(name: str, case: str = "camelCase") -> str:
     """
-    Clean and format a name to follow CamelCase convention.
+    Clean and format a name to follow the specified convention.
 
     Parameters
     ----------
     name : str
         The name to clean and format.
+    case : str
+        The case of formatting to apply. Can be "camelCase", "snake_case", or "PascalCase".
+        Defaults to "camelCase".
 
     Returns
     -------
     str
         The cleaned and formatted name.
     """
-    return "".join(word.capitalize() for word in name.split("_"))
+    words = name.split("_")
+    if case.lower() == "camelcase":
+        return words[0].lower() + "".join(
+            word.capitalize() for word in words[1:]
+        )
+    elif case.lower() == "snake_case":
+        return "_".join(word.lower() for word in words)
+    elif case.lower() == "pascalcase":
+        return "".join(word.capitalize() for word in words)
+    else:
+        msg = (
+            "Invalid case. Must be 'camelCase', 'snake_case', or 'PascalCase'."
+        )
+        raise ValueError(msg)
 
 
 def generate_context_files(project_root: Path, context: str) -> None:
@@ -142,28 +158,28 @@ def generate_command_files(
         / context
         / category
         / command
-        / f"{command}.py"
+        / "model.py"
     )
     content = f'''
 """
-**Context: {clean_name(context)} || Category: {clean_name(category)} || Command: {clean_name(command)}**.
+**Context: {clean_name(context)} || Category: {clean_name(category)} || Command: {clean_name(command, case="snake_case")}**.
 
 The {clean_name(command)} Command Module.
 """
 
-from pydantic import BaseModel, Field, field_validator
+def {clean_name(command, case="snake_case")}():
+    """
+    Context: {clean_name(context).capitalize()} || Category: {clean_name(category).capitalize()} ||| **Command: {clean_name(command, case="snake_case")}**.
 
-class {clean_name(command)}QueryParams(BaseModel):
-    example_field: str = Field(..., description="An example field")
+    Execute the {clean_name(command)} command.
 
-    @field_validator('example_field')
-    def validate_example_field(cls, v):
-        if len(v) < 3:
-            raise ValueError("example_field must be at least 3 characters long")
-        return v
+    Parameters
+    ----------
 
-class {clean_name(command)}Data(BaseModel):
-    result: str = Field(..., description="The result of the {clean_name(command)} operation")
+    Returns
+    -------
+    """
+    pass
 '''
     write_file(file_path, content)
 
@@ -196,16 +212,18 @@ def generate_context_controller(
     )
     content = f'''
 """
-**Context: {clean_name(context)}**.
+**Context: {clean_name(context).capitalize()}**.
 
 The {clean_name(context)} Controller Module.
 """
 
-from humbldata.core.standard_models.{context} import {clean_name(context)}QueryParams
+from humbldata.core.standard_models.{context.lower()} import {clean_name(context)}QueryParams
+from humbldata.{context.lower()}.{category.lower()}.{category.lower()}_controller import {clean_name(category).capitalize()}
 
-class {clean_name(context)}({clean_name(context)}QueryParams):
+
+class {clean_name(context).capitalize()}({clean_name(context)}QueryParams):
     """
-    A top-level {clean_name(category)} controller for data analysis tools in `humblDATA`.
+    A top-level {clean_name(context)} controller for data analysis tools in `humblDATA`.
 
     This module serves as the primary controller, routing user-specified
     {clean_name(context)}QueryParams as core arguments that are used to fetch time series
@@ -213,27 +231,48 @@ class {clean_name(context)}({clean_name(context)}QueryParams):
 
     The `{clean_name(context)}` controller also gives access to all sub-modules and their
     functions.
+
+    It is designed to facilitate the collection of data across various types such as
+    stocks, options, or alternative time series by requiring minimal input from the user.
+
+    Submodules
+    ----------
+    The `{clean_name(context).capitalize()}` controller is composed of the following submodules:
+
+    - `{category.lower()}`:
+
+    Parameters
+    ----------
+    # Add your {clean_name(category)}QueryParams parameters here
+
+    Parameter Notes
+    -----
+    The parameters are the `{clean_name(context)}QueryParams`. They are used
+    for data collection further down the pipeline in other commands.
+    Intended to execute operations on core data sets. This approach enables
+    composable and standardized querying while accommodating data-specific
+    collection logic.
     """
 
     def __init__(self, *args, **kwargs):
         """
-        Initialize the {clean_name(context)} module.
+        Initialize the {clean_name(context).capitalize()} module.
 
         This method does not take any parameters and does not return anything.
         """
         super().__init__(*args, **kwargs)
 
     @property
-    def {clean_name(category).lower()}(self):
+    def {category.lower()}(self):
         """
-        The {clean_name(category)} submodule of the {clean_name(context)} controller.
+        The {category.lower()} submodule of the {clean_name(context).capitalize()} controller.
 
-        Access to all the {clean_name(category)} indicators. When the {clean_name(context)} class is
+        Access to all the {category} indicators. When the {clean_name(context)} class is
         instantiated the parameters are initialized with the {clean_name(context)}QueryParams
         class, which hold all the fields needed for the context_params, like the
         symbol, interval, start_date, and end_date.
         """
-        return {clean_name(category)}(context_params=self)
+        return {clean_name(category).capitalize()}(context_params=self)
 '''
     write_file(file_path, content.strip())
 
@@ -268,49 +307,55 @@ def generate_category_controller(
         / f"{category}_controller.py"
     )
     content = f'''
-"""
-**Context: {clean_name(context)} || Category: {clean_name(category)}**.
+"""Context: {clean_name(context).capitalize()} || **Category: {clean_name(category).capitalize()}**.
 
-The {clean_name(category)} Controller Module.
+A controller to manage and compile all of the {clean_name(category)} models
+available in the `{clean_name(context)}` context. This will be passed as a
+`@property` to the `{clean_name(context)}()` class, giving access to the
+{category} module and its functions.
 """
-
-from humbldata.core.standard_models.{context} import {clean_name(context)}QueryParams
-from humbldata.core.standard_models.{context}.{category}.{command} import (
+from humbldata.core.standard_models.{context.lower()} import {clean_name(context).capitalize()}QueryParams
+from humbldata.core.standard_models.{context.lower()}.{category.lower()}.{clean_name(command, case="snake_case")} import (
     {clean_name(command)}QueryParams,
 )
 
 
-class {clean_name(category)}QueryParams):
+class {clean_name(category.capitalize())}:
     """
-    A {clean_name(category)} controller for data analysis tools in `humblDATA`.
+    Module for all {clean_name(category)} analysis.
 
-    This module serves as the primary controller, routing user-specified
-    {clean_name(command)}QueryParams as core arguments that are used to fetch time series
-    data.
+    Attributes
+    ----------
+    context_params : {clean_name(context).capitalize()}QueryParams
+        The standard query parameters for {clean_name(context)} data.
 
-    The `{clean_name(category)}` controller also gives access to all sub-modules and their
-    functions.
+    Methods
+    -------
+    {clean_name(command, case="snake_case")}(command_params: {clean_name(command)}QueryParams)
+        Execute the {clean_name(command)} command.
+
     """
 
-    def __init__(self, *args, **kwargs):
-        """
-        Initialize the {clean_name(category)} module.
+    def __init__(self, context_params: {clean_name(context).capitalize()}QueryParams):
+        self.context_params = context_params
 
-        This method does not take any parameters and does not return anything.
+    def {clean_name(command, case="snake_case")}(self, **kwargs: {clean_name(command)}QueryParams):
         """
-        super().__init__(*args, **kwargs)
+        Execute the {clean_name(command)} command.
 
-    @property
-    def {clean_name(command).lower()}(self):
+        Explain the functionality...
         """
-        The {clean_name(command)} submodule of the {clean_name(category)} controller.
+        from humbldata.core.standard_models.{context.lower()}.{category.lower()}.{clean_name(command, case="snake_case")} import (
+            {clean_name(command).capitalize()}Fetcher,
+        )
 
-        Access to all the {clean_name(command)} indicators. When the {clean_name(category)} class is
-        instantiated the parameters are initialized with the {clean_name(command)}QueryParams
-        class, which hold all the fields needed for the context_params, like the
-        symbol, interval, start_date, and end_date.
-        """
-        return {clean_name(command)}(context_params=self)
+        # Instantiate the Fetcher with the query parameters
+        fetcher = {clean_name(command).capitalize()}Fetcher(
+            context_params=self.context_params, command_params=kwargs
+        )
+
+        # Use the fetcher to get the data
+        return fetcher.fetch_data()
 '''
     write_file(file_path, content.strip())
 
@@ -323,7 +368,7 @@ def generate_standard_model(
     project_root: Path, context: str, category: str, command: str
 ) -> None:
     """
-    Generate the model file.
+    Generate the model files for both context and command.
 
     Parameters
     ----------
@@ -336,7 +381,74 @@ def generate_standard_model(
     command : str
         The command name.
     """
-    file_path = (
+    # Generate context standard model
+    context_file_path = (
+        project_root
+        / "src"
+        / "humbldata"
+        / "core"
+        / "standard_models"
+        / context
+        / "__init__.py"
+    )
+    context_content = f'''
+"""
+Context: {clean_name(context).capitalize()} || **Category: Standardized Framework Model**.
+
+This module defines the QueryParams and Data classes for the {clean_name(context)} context.
+"""
+
+from typing import Optional
+
+from pydantic import Field, field_validator
+
+from humbldata.core.standard_models.abstract.data import Data
+from humbldata.core.standard_models.abstract.query_params import QueryParams
+
+
+class {clean_name(context).capitalize()}QueryParams(QueryParams):
+    """
+    Query parameters for the {clean_name(context)}Controller.
+
+    This class defines the query parameters used by the {clean_name(context)}Controller.
+
+    Parameters
+    ----------
+    example_field1 : str
+        An example field.
+    example_field2 : Optional[int]
+        Another example field.
+    """
+
+    example_field1: str = Field(
+        default="default_value",
+        title="Example Field 1",
+        description="Description for example field 1",
+    )
+    example_field2: Optional[int] = Field(
+        default=None,
+        title="Example Field 2",
+        description="Description for example field 2",
+    )
+
+    @field_validator("example_field1")
+    @classmethod
+    def validate_example_field1(cls, v: str) -> str:
+        return v.upper()
+
+
+class {clean_name(context).capitalize()}Data(Data):
+    """
+    The Data for the {clean_name(context).capitalize()}Controller.
+    """
+
+    # Add your data model fields here
+    pass
+'''
+    write_file(context_file_path, context_content)
+
+    # Generate command standard model
+    command_file_path = (
         project_root
         / "src"
         / "humbldata"
@@ -346,22 +458,28 @@ def generate_standard_model(
         / category
         / f"{command}.py"
     )
-    content = f'''
+    command_content = f'''
 """
 {clean_name(command)} Standard Model.
 
-Context: {clean_name(context)} || Category: {clean_name(category)} || Command: {clean_name(command)}.
+Context: {clean_name(context).capitalize()} || Category: {clean_name(category).capitalize()} || Command: {clean_name(command)}.
 
 This module is used to define the QueryParams and Data model for the
 {clean_name(command)} command.
 """
 
-from typing import Literal
+from typing import Literal, TypeVar
 
+import pandera.polars as pa
+import polars as pl
 from pydantic import Field, field_validator
 
 from humbldata.core.standard_models.abstract.data import Data
+from humbldata.core.standard_models.abstract.humblobject import HumblObject
 from humbldata.core.standard_models.abstract.query_params import QueryParams
+from humbldata.core.standard_models.{context} import {clean_name(context).capitalize()}QueryParams
+
+Q = TypeVar("Q", bound={clean_name(context).capitalize()}QueryParams)
 
 {clean_name(command).upper()}_QUERY_DESCRIPTIONS = {{
     "example_field1": "Description for example field 1",
@@ -392,71 +510,165 @@ class {clean_name(command)}QueryParams(QueryParams):
         description={clean_name(command).upper()}_QUERY_DESCRIPTIONS.get("example_field2", ""),
     )
 
-    @field_validator("example_field1", mode="after")
+    @field_validator("example_field1")
     @classmethod
     def validate_example_field1(cls, v: str) -> str:
-        # Add any validation logic here
-        return v
+        return v.upper()
 
 
 class {clean_name(command)}Data(Data):
     """
     Data model for the {clean_name(command)} command, a Pandera.Polars Model.
-
-    Parameters
-    ----------
-    # Add your data model parameters here
     """
 
-    # Add your data model fields here
-'''
-    write_file(file_path, content)
-
-    # Create __init__.py in the category directory
-    init_file_path = file_path.parent / "__init__.py"
-    write_file(init_file_path, "")
-
-
-def generate_view(
-    project_root: Path, context: str, category: str, command: str
-) -> None:
-    """
-    Generate the view file.
-
-    Parameters
-    ----------
-    project_root : Path
-        The root path of the project.
-    context : str
-        The context name.
-    category : str
-        The category name.
-    command : str
-        The command name.
-    """
-    file_path = (
-        project_root
-        / "src"
-        / "humbldata"
-        / context
-        / category
-        / command
-        / "view.py"
+    example_column: pl.Date = pa.Field(
+        default=None,
+        title="Example Column",
+        description="Description for example column",
     )
-    content = f'''
-"""
-**Context: {clean_name(context)} || Category: {clean_name(category)} || Command: {clean_name(command)}**.
 
-The {clean_name(command)} View Module.
-"""
+class {clean_name(command)}Fetcher:
+    """
+    Fetcher for the {clean_name(command)} command.
 
-def render_view(data):
-    return f"Rendering view for {{data}}"
+    Parameters
+    ----------
+    context_params : {clean_name(context).capitalize()}QueryParams
+        The context parameters for the {clean_name(context).capitalize()} query.
+    command_params : {clean_name(command).capitalize()}QueryParams
+        The command-specific parameters for the {clean_name(command)} query.
+
+    Attributes
+    ----------
+    context_params : {clean_name(context).capitalize()}QueryParams
+        Stores the context parameters passed during initialization.
+    command_params : {clean_name(command).capitalize()}QueryParams
+        Stores the command-specific parameters passed during initialization.
+    data : pl.DataFrame
+        The raw data extracted from the data provider, before transformation.
+
+    Methods
+    -------
+    transform_query()
+        Transform the command-specific parameters into a query.
+    extract_data()
+        Extracts the data from the provider and returns it as a Polars DataFrame.
+    transform_data()
+        Transforms the command-specific data according to the {clean_name(command)} logic.
+    fetch_data()
+        Execute TET Pattern.
+
+    Returns
+    -------
+    HumblObject
+        results : {clean_name(command)}Data
+            Serializable results.
+        provider : Literal['fmp', 'intrinio', 'polygon', 'tiingo', 'yfinance']
+            Provider name.
+        warnings : Optional[List[Warning_]]
+            List of warnings.
+        chart : Optional[Chart]
+            Chart object.
+        context_params : {clean_name(context).capitalize()}QueryParams
+            Context-specific parameters.
+        command_params : {clean_name(command).capitalize()}QueryParams
+            Command-specific parameters.
+    """
+
+    def __init__(
+        self,
+        context_params: {clean_name(context).capitalize()}QueryParams,
+        command_params: {clean_name(command).capitalize()}QueryParams,
+    ):
+        """
+        Initialize the {clean_name(command)}Fetcher with context and command parameters.
+
+        Parameters
+        ----------
+        context_params : {clean_name(context).capitalize()}QueryParams
+            The context parameters for the {clean_name(context).capitalize()} query.
+        command_params : {clean_name(command).capitalize()}QueryParams
+            The command-specific parameters for the {clean_name(command).capitalize()} query.
+        """
+        self.context_params = context_params
+        self.command_params = command_params
+
+    def transform_query(self):
+        """
+        Transform the command-specific parameters into a query.
+
+        If command_params is not provided, it initializes a default {clean_name(command)}QueryParams object.
+        """
+        if not self.command_params:
+            self.command_params = None
+            # Set Default Arguments
+            self.command_params: {clean_name(command).capitalize()}QueryParams = (
+                {clean_name(command).capitalize()}QueryParams()
+            )
+        else:
+            self.command_params: {clean_name(command).capitalize()}QueryParams = (
+                {clean_name(command).capitalize()}QueryParams(**self.command_params)
+            )
+
+    def extract_data(self):
+        """
+        Extract the data from the provider and returns it as a Polars DataFrame.
+
+        Returns
+        -------
+        pl.DataFrame
+            The extracted data as a Polars DataFrame.
+        """
+        # Implement data extraction logic here
+        self.data = pl.DataFrame()
+        return self
+
+    def transform_data(self):
+        """
+        Transform the command-specific data according to the {clean_name(command)} logic.
+
+        Returns
+        -------
+        pl.DataFrame
+            The transformed data as a Polars DataFrame
+        """
+        # Implement data transformation logic here
+        self.transformed_data = {clean_name(command).capitalize()}Data(self.data)
+        self.transformed_data = self.transformed_data.serialize()
+        return self
+
+    def fetch_data(self):
+        """
+        Execute TET Pattern.
+
+        This method executes the query transformation, data fetching and
+        transformation process by first calling `transform_query` to prepare the query parameters, then
+        extracting the raw data using `extract_data` method, and finally
+        transforming the raw data using `transform_data` method.
+
+        Returns
+        -------
+        HumblObject
+            The HumblObject containing the transformed data and metadata.
+        """
+        self.transform_query()
+        self.extract_data()
+        self.transform_data()
+
+        return HumblObject(
+            results=self.transformed_data,
+            provider=self.context_params.provider,
+            warnings=None,
+            chart=None,
+            context_params=self.context_params,
+            command_params=self.command_params,
+        )
+
 '''
-    write_file(file_path, content)
+    write_file(command_file_path, command_content)
 
     # Create __init__.py in the category directory
-    init_file_path = file_path.parent / "__init__.py"
+    init_file_path = command_file_path.parent / "__init__.py"
     write_file(init_file_path, "")
 
 
@@ -464,7 +676,7 @@ def generate_helpers(
     project_root: Path, context: str, category: str, command: str
 ) -> None:
     """
-    Generate the helpers file.
+    Generate the helpers.py file for the command.
 
     Parameters
     ----------
@@ -477,7 +689,7 @@ def generate_helpers(
     command : str
         The command name.
     """
-    file_path = (
+    helpers_file_path = (
         project_root
         / "src"
         / "humbldata"
@@ -486,7 +698,7 @@ def generate_helpers(
         / command
         / "helpers.py"
     )
-    content = f'''
+    helpers_content = f'''
 """
 **Context: {clean_name(context)} || Category: {clean_name(category)} || Command: {clean_name(command)}**.
 
@@ -496,16 +708,130 @@ The {clean_name(command)} Helpers Module.
 def helper_function():
     return "Helper function result"
 '''
-    write_file(file_path, content)
+    write_file(helpers_file_path, helpers_content)
 
-    # Create __init__.py in the category directory
-    init_file_path = file_path.parent / "__init__.py"
+    # Create __init__.py in the command directory
+    init_file_path = helpers_file_path.parent / "__init__.py"
+    write_file(init_file_path, "")
+
+
+def generate_view(
+    project_root: Path, context: str, category: str, command: str
+) -> None:
+    """
+    Generate the view.py file for the command.
+
+    Parameters
+    ----------
+    project_root : Path
+        The root path of the project.
+    context : str
+        The context name.
+    category : str
+        The category name.
+    command : str
+        The command name.
+    """
+    view_file_path = (
+        project_root
+        / "src"
+        / "humbldata"
+        / context
+        / category
+        / command
+        / "view.py"
+    )
+    view_content = f'''
+"""
+**Context: {clean_name(context)} || Category: {clean_name(category)} || Command: {clean_name(command)}**.
+
+The {clean_name(command)} View Module.
+"""
+
+from typing import List
+
+import plotly.graph_objs as go
+import polars as pl
+
+from humbldata.core.standard_models.abstract.chart import Chart, ChartTemplate
+
+
+def create_example_plot(
+    data: pl.DataFrame,
+    template: ChartTemplate = ChartTemplate.plotly,
+) -> go.Figure:
+    """
+    Generate an example plot from the provided data.
+
+    Parameters
+    ----------
+    data : pl.DataFrame
+        The dataframe containing the data to be plotted.
+    template : ChartTemplate
+        The template to be used for styling the plot.
+
+    Returns
+    -------
+    go.Figure
+        A plotly figure object representing the example plot.
+    """
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=data.select("x_column").to_series(),
+            y=data.select("y_column").to_series(),
+            name="Example Data",
+            line=dict(color="blue"),
+        )
+    )
+    fig.update_layout(
+        title="Example Plot",
+        xaxis_title="X Axis",
+        yaxis_title="Y Axis",
+        template=template,
+    )
+    return fig
+
+
+def generate_plots(
+    data: pl.LazyFrame,
+    template: ChartTemplate = ChartTemplate.plotly,
+) -> List[Chart]:
+    """
+    Context: {clean_name(context)} || Category: {clean_name(category)} || Command: {clean_name(command)} || **Function: generate_plots()**.
+
+    Generate plots from the given dataframe.
+
+    Parameters
+    ----------
+    data : pl.LazyFrame
+        The LazyFrame containing the data to be plotted.
+    template : ChartTemplate
+        The template/theme to use for the plotly figure.
+
+    Returns
+    -------
+    List[Chart]
+        A list of Chart objects, each representing a plot.
+    """
+    collected_data = data.collect()
+    plot = create_example_plot(collected_data, template)
+    return [Chart(content=plot.to_plotly_json(), fig=plot)]
+'''
+    write_file(view_file_path, view_content)
+
+    # Create __init__.py in the command directory
+    init_file_path = view_file_path.parent / "__init__.py"
     write_file(init_file_path, "")
 
 
 def main() -> None:
     """
-    Main function to orchestrate the creation of new command files and directories.
+    Orchestrate the creation of new command files & directories.
+
+    This function ties together all the helper functions to create a new command.
+    This is to be used with `poethepoet` to create a new command.
+
     """
     project_root = get_project_root()
     context, category, command, add_view, add_helpers = prompt_user()

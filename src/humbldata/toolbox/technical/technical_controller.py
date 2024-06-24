@@ -17,7 +17,7 @@ class Technical:
 
     Attributes
     ----------
-    standard_params : ToolboxQueryParams
+    context_params : ToolboxQueryParams
         The standard query parameters for toolbox data.
 
     Methods
