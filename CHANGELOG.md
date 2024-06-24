@@ -1,3 +1,25 @@
+## v1.4.0 (2024-06-24)
+
+### ✨ Features
+
+- **user_table**: added  &  &
+- **poethepoet**: add a function to generate functions for
+
+### 🐛🚑️ Fixes
+
+- **get_latest_price**: 🚨 removed  so now returns a lazyframe
+- **content**: using  for models vs  from pydantic
+- **imports**: remove
+- **clean_name**: fixes name cleaning methods for PascalCase, snake_case, camelCase
+- **clean_name**: correclty converts text to
+- **poethepoet**:  now generating all files successfully
+- **path**: added  directory to path in function
+
+### ✅🤡🧪 Tests
+
+- **unittests**: added a template for a mocked unittest for
+- **Category: Technical**: added method testing to ensure correct parameter passing
+
 ## v1.3.0 (2024-06-20)
 
 ### ✨ Features
