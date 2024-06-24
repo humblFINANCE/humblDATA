@@ -1,7 +1,8 @@
 import os
-from pathlib import Path
+import re
 import textwrap
-from typing import Tuple, List
+from pathlib import Path
+from typing import List, Tuple
 
 
 def prompt_user() -> Tuple[str, str, str, bool, bool]:
@@ -92,6 +93,8 @@ def clean_name(name: str, case: str = "camelCase") -> str:
     """
     # Replace any non-alphanumeric characters (except underscores) with spaces
     name = re.sub(r"[^\w\s]", " ", name)
+    # Replace underscores with spaces
+    name = name.replace("_", " ")
     # Split the name into words
     words = name.split()
 
@@ -166,16 +169,16 @@ def generate_command_files(
     )
     content = f'''
 """
-**Context: {clean_name(context, case="PascalCase")} || Category: {clean_name(category, case="PascalCase")} || Command: {clean_name(command, case="PascalCase")}**.
+**Context: {clean_name(context, case="PascalCase")} || Category: {clean_name(category, case="PascalCase")} || Command: {clean_name(command, case="snake_case")}**.
 
-The {clean_name(command, case="PascalCase")} Command Module.
+The {clean_name(command, case="snake_case")} Command Module.
 """
 
 def {clean_name(command, case="snake_case")}():
     """
-    Context: {clean_name(context, case="PascalCase")} || Category: {clean_name(category, case="PascalCase")} ||| **Command: {clean_name(command, case="PascalCase")}**.
+    Context: {clean_name(context, case="PascalCase")} || Category: {clean_name(category, case="PascalCase")} ||| **Command: {clean_name(command, case="snake_case")}**.
 
-    Execute the {clean_name(command, case="PascalCase")} command.
+    Execute the {clean_name(command, case="snake_case")} command.
 
     Parameters
     ----------
@@ -397,7 +400,7 @@ def generate_standard_model(
     )
     context_content = f'''
 """
-Context: {clean_name(context, case="PascalCase")} || **Category: Standardized Framework Model**.
+Context: {clean_name(context, case="PascalCase")} || **Category: {clean_name(category, case="PascalCase")}**.
 
 This module defines the QueryParams and Data classes for the {clean_name(context, case="PascalCase")} context.
 """
@@ -420,7 +423,7 @@ class {clean_name(context, case="PascalCase")}QueryParams(QueryParams):
     ----------
     example_field1 : str
         An example field.
-    example_field2 : Optional[int]
+    example_field2 : int | None
         Another example field.
     """
 
@@ -429,7 +432,7 @@ class {clean_name(context, case="PascalCase")}QueryParams(QueryParams):
         title="Example Field 1",
         description="Description for example field 1",
     )
-    example_field2: Optional[int] = Field(
+    example_field2: int | None = Field(
         default=None,
         title="Example Field 2",
         description="Description for example field 2",
@@ -466,7 +469,7 @@ class {clean_name(context, case="PascalCase")}Data(Data):
 """
 {clean_name(command, case="PascalCase")} Standard Model.
 
-Context: {clean_name(context, case="PascalCase")} || Category: {clean_name(category, case="PascalCase")} || Command: {clean_name(command, case="PascalCase")}.
+Context: {clean_name(context, case="PascalCase")} || Category: {clean_name(category, case="PascalCase")} || Command: {clean_name(command, case="snake_case")}.
 
 This module is used to define the QueryParams and Data model for the
 {clean_name(command, case="PascalCase")} command.
@@ -522,7 +525,9 @@ class {clean_name(command, case="PascalCase")}QueryParams(QueryParams):
 
 class {clean_name(command, case="PascalCase")}Data(Data):
     """
-    Data model for the {clean_name(command, case="PascalCase")} command, a Pandera.Polars Model.
+    Data model for the {clean_name(command, case="snake_case")} command, a Pandera.Polars Model.
+
+    This Data model is used to validate data in the `.transform_data()` method of the `{clean_name(command, case="PascalCase")}Fetcher` class.
     """
 
     example_column: pl.Date = pa.Field(
@@ -629,7 +634,7 @@ class {clean_name(command, case="PascalCase")}Fetcher:
 
     def transform_data(self):
         """
-        Transform the command-specific data according to the {clean_name(command, case="PascalCase")} logic.
+        Transform the command-specific data according to the {clean_name(command, case="snake_case")} logic.
 
         Returns
         -------
@@ -704,7 +709,7 @@ def generate_helpers(
     )
     helpers_content = f'''
 """
-**Context: {clean_name(context, case="PascalCase")} || Category: {clean_name(category, case="PascalCase")} || Command: {clean_name(command, case="PascalCase")}**.
+**Context: {clean_name(context, case="PascalCase")} || Category: {clean_name(category, case="PascalCase")} || Command: {clean_name(command, case="snake_case")}**.
 
 The {clean_name(command, case="PascalCase")} Helpers Module.
 """
@@ -747,7 +752,7 @@ def generate_view(
     )
     view_content = f'''
 """
-**Context: {clean_name(context, case="PascalCase")} || Category: {clean_name(category, case="PascalCase")} || Command: {clean_name(command, case="PascalCase")}**.
+**Context: {clean_name(context, case="PascalCase")} || Category: {clean_name(category, case="PascalCase")} || Command: {clean_name(command, case="snake_case")}**.
 
 The {clean_name(command, case="PascalCase")} View Module.
 """
@@ -802,7 +807,7 @@ def generate_plots(
     template: ChartTemplate = ChartTemplate.plotly,
 ) -> List[Chart]:
     """
-    Context: {clean_name(context, case="PascalCase")} || Category: {clean_name(category, case="PascalCase")} || Command: {clean_name(command, case="PascalCase")} || **Function: generate_plots()**.
+    Context: {clean_name(context, case="PascalCase")} || Category: {clean_name(category, case="PascalCase")} || Command: {clean_name(command, case="snake_case")} || **Function: generate_plots()**.
 
     Generate plots from the given dataframe.
 
