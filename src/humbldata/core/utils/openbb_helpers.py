@@ -112,5 +112,4 @@ def get_latest_price(
         .lazy()
         .select(["symbol", "last_price"])
         .rename({"last_price": "recent_price"})
-        .collect()
     )
