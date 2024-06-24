@@ -171,7 +171,8 @@ def generate_command_files(
 """
 **Context: {clean_name(context, case="PascalCase")} || Category: {clean_name(category, case="PascalCase")} || Command: {clean_name(command, case="snake_case")}**.
 
-The {clean_name(command, case="snake_case")} Command Module.
+The {clean_name(command, case="snake_case")} Command Module. This is typically
+used in the `.transform_data()` method of the `{clean_name(command, case="PascalCase")}Fetcher` class.
 """
 
 def {clean_name(command, case="snake_case")}():

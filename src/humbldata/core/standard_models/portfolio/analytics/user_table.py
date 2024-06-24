@@ -1,4 +1,3 @@
-
 """
 UserTable Standard Model.
 
@@ -18,6 +17,7 @@ from humbldata.core.standard_models.abstract.data import Data
 from humbldata.core.standard_models.abstract.humblobject import HumblObject
 from humbldata.core.standard_models.abstract.query_params import QueryParams
 from humbldata.core.standard_models.portfolio import PortfolioQueryParams
+from humbldata.core.utils.openbb_helpers import get_latest_price
 
 Q = TypeVar("Q", bound=PortfolioQueryParams)
 
@@ -33,16 +33,16 @@ class UserTableQueryParams(QueryParams):
 
     Parameters
     ----------
-    example_field1 : str
-        An example field.
-    example_field2 : bool
-        Another example field.
+    symbol : str | list[str] | set[str], default=""
+        The symbol or ticker of the stock. You can pass multiple tickers like:
+        "AAPL", "AAPL, MSFT" or ["AAPL", "MSFT"]. The input will be converted
+        to a comma separated string of uppercase symbols.
     """
 
-    example_field1: str = Field(
-        default="default_value",
-        title="Example Field 1",
-        description=USERTABLE_QUERY_DESCRIPTIONS.get("example_field1", ""),
+    symbol: str = Field(
+        default="AAPL",
+        title="Symbol",
+        description="The stock symbol or ticker",
     )
     example_field2: bool = Field(
         default=True,
@@ -50,10 +50,33 @@ class UserTableQueryParams(QueryParams):
         description=USERTABLE_QUERY_DESCRIPTIONS.get("example_field2", ""),
     )
 
-    @field_validator("example_field1")
+    @field_validator("symbol", mode="before", check_fields=False)
     @classmethod
-    def validate_example_field1(cls, v: str) -> str:
-        return v.upper()
+    def upper_symbol(cls, v: str | list[str] | set[str]) -> str | list[str]:
+        """
+        Convert the stock symbol to uppercase.
+
+        Parameters
+        ----------
+        v : Union[str, List[str], Set[str]]
+            The stock symbol or collection of symbols to be converted.
+
+        Returns
+        -------
+        Union[str, List[str]]
+            The uppercase stock symbol or a comma-separated string of uppercase
+            symbols.
+        """
+        # If v is a string, split it by commas into a list. Otherwise, ensure it's a list.
+        v = v.split(",") if isinstance(v, str) else v
+
+        # Trim whitespace and check if all elements in the list are strings
+        if not all(isinstance(item.strip(), str) for item in v):
+            msg = "Every element in `symbol` list must be a `str`"
+            raise ValueError(msg)
+
+        # Convert all elements to uppercase, trim whitespace, and join them with a comma
+        return [symbol.strip().upper() for symbol in v]
 
 
 class UserTableData(Data):
@@ -63,11 +86,52 @@ class UserTableData(Data):
     This Data model is used to validate data in the `.transform_data()` method of the `UserTableFetcher` class.
     """
 
-    example_column: pl.Date = pa.Field(
+    symbol: pl.Utf8 = pa.Field(
         default=None,
-        title="Example Column",
-        description="Description for example column",
+        title="Symbol",
+        description="The stock symbol or ticker",
     )
+    last_price: pl.Float64 = pa.Field(
+        default=None,
+        title="Last Price",
+        description="The most recent price of the asset",
+    )
+    buy_price: pl.Float64 = pa.Field(
+        default=None,
+        title="Buy Price",
+        description="The recommended buy price for the asset",
+    )
+    sell_price: pl.Float64 = pa.Field(
+        default=None,
+        title="Sell Price",
+        description="The recommended sell price for the asset",
+    )
+    up_down: pl.Utf8 = pa.Field(
+        default=None,
+        title="Up/Down",
+        description="Indicator of price movement (up or down)",
+    )
+    risk_reward: pl.Float64 = pa.Field(
+        default=None,
+        title="Risk/Reward",
+        description="The risk-reward ratio for the asset",
+    )
+    asset_class: pl.Utf8 = pa.Field(
+        default=None,
+        title="Asset Class",
+        description="The class of the asset (e.g., equity, bond, commodity)",
+    )
+    sector: pl.Utf8 = pa.Field(
+        default=None,
+        title="Sector",
+        description="The sector to which the asset belongs",
+    )
+    humbl_suggestion: pl.Utf8 = pa.Field(
+        default=None,
+        title="humblSuggestion",
+        description="humbl's recommendation for the asset",
+    )
+
 
 class UserTableFetcher:
     """
@@ -144,12 +208,10 @@ class UserTableFetcher:
         if not self.command_params:
             self.command_params = None
             # Set Default Arguments
-            self.command_params: UserTableQueryParams = (
-                UserTableQueryParams()
-            )
+            self.command_params: UserTableQueryParams = UserTableQueryParams()
         else:
-            self.command_params: UserTableQueryParams = (
-                UserTableQueryParams(**self.command_params)
+            self.command_params: UserTableQueryParams = UserTableQueryParams(
+                **self.command_params
             )
 
     def extract_data(self):
@@ -161,7 +223,13 @@ class UserTableFetcher:
         pl.DataFrame
             The extracted data as a Polars DataFrame.
         """
-        # Implement data extraction logic here
+        # Get last_price from OpenBB
+
+        last_prices = get_latest_price(
+            symbol=self.context_params.symbol,
+            provider=self.context_params.provider,
+        )
+
         self.data = pl.DataFrame()
         return self
 
@@ -205,4 +273,3 @@ class UserTableFetcher:
             context_params=self.context_params,
             command_params=self.command_params,
         )
-

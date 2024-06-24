@@ -4,6 +4,8 @@ Context: Portfolio || **Category: Analytics**.
 This module defines the QueryParams and Data classes for the Portfolio context.
 """
 
+from typing import Literal
+
 from pydantic import Field, field_validator
 
 from humbldata.core.standard_models.abstract.data import Data
@@ -20,10 +22,21 @@ class PortfolioQueryParams(QueryParams):
 
     Parameters
     ----------
-    example_field1 : str
-        An example field.
-    example_field2 : int | None
-        Another example field.
+    symbol : str or list of str
+        The stock symbol(s) to query. Default is "AAPL".
+    provider : OBB_EQUITY_PRICE_HISTORICAL_PROVIDERS
+        The data provider for historical price data. Default is "yahoo".
+    user_role : {'basic', 'premium', 'power', 'admin'}
+        The role of the user. Default is "basic".
+
+    Attributes
+    ----------
+    symbol : str or list of str
+        The stock symbol(s) to query.
+    provider : OBB_EQUITY_PRICE_HISTORICAL_PROVIDERS
+        The data provider for historical price data.
+    user_role : str
+        The role of the user.
     """
 
     symbol: str | list[str] = Field(
@@ -35,6 +48,11 @@ class PortfolioQueryParams(QueryParams):
         default="yahoo",
         title="Provider",
         description=QUERY_DESCRIPTIONS.get("provider", ""),
+    )
+    user_role: Literal["basic", "premium", "power", "admin"] = Field(
+        default="basic",
+        title="User Role",
+        description=QUERY_DESCRIPTIONS.get("user_role", ""),
     )
 
     @field_validator("symbol", mode="before", check_fields=False)
