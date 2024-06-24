@@ -1,8 +1,8 @@
 
 """
-**Context: portfolio || Category: analytics || Command: user table**.
+**Context: Portfolio || Category: Analytics || Command: user_table**.
 
-The user table View Module.
+The UserTable View Module.
 """
 
 from typing import List
@@ -55,7 +55,7 @@ def generate_plots(
     template: ChartTemplate = ChartTemplate.plotly,
 ) -> List[Chart]:
     """
-    Context: portfolio || Category: analytics || Command: user table || **Function: generate_plots()**.
+    Context: Portfolio || Category: Analytics || Command: user_table || **Function: generate_plots()**.
 
     Generate plots from the given dataframe.
 

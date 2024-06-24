@@ -1,19 +1,19 @@
 """Context: Portfolio || **Category: Analytics**.
 
-A controller to manage and compile all of the analytics models
+A controller to manage and compile all of the Analytics models
 available in the `portfolio` context. This will be passed as a
 `@property` to the `portfolio()` class, giving access to the
-analytics module and its functions.
+Analytics module and its functions.
 """
 from humbldata.core.standard_models.portfolio import PortfolioQueryParams
-from humbldata.core.standard_models.portfolio.analytics.user table import (
-    user tableQueryParams,
+from humbldata.core.standard_models.portfolio.analytics.user_table import (
+    UserTableQueryParams,
 )
 
 
-class analytics:
+class Analytics:
     """
-    Module for all analytics analysis.
+    Module for all Analytics analysis.
 
     Attributes
     ----------
@@ -22,26 +22,26 @@ class analytics:
 
     Methods
     -------
-    user table(command_params: user tableQueryParams)
-        Execute the user table command.
+    user_table(command_params: UserTableQueryParams)
+        Execute the UserTable command.
 
     """
 
     def __init__(self, context_params: PortfolioQueryParams):
         self.context_params = context_params
 
-    def user table(self, **kwargs: user tableQueryParams):
+    def user_table(self, **kwargs: UserTableQueryParams):
         """
-        Execute the user table command.
+        Execute the UserTable command.
 
         Explain the functionality...
         """
-        from humbldata.core.standard_models.portfolio.analytics.user table import (
-            User tableFetcher,
+        from humbldata.core.standard_models.portfolio.analytics.user_table import (
+            UserTableFetcher,
         )
 
         # Instantiate the Fetcher with the query parameters
-        fetcher = User tableFetcher(
+        fetcher = UserTableFetcher(
             context_params=self.context_params, command_params=kwargs
         )
 

@@ -1,19 +1,19 @@
 """
 **Context: Portfolio**.
 
-The portfolio Controller Module.
+The Portfolio Controller Module.
 """
 
-from humbldata.core.standard_models.portfolio import portfolioQueryParams
+from humbldata.core.standard_models.portfolio import PortfolioQueryParams
 from humbldata.portfolio.analytics.analytics_controller import Analytics
 
 
-class Portfolio(portfolioQueryParams):
+class Portfolio(PortfolioQueryParams):
     """
-    A top-level portfolio controller for data analysis tools in `humblDATA`.
+    A top-level Portfolio controller for data analysis tools in `humblDATA`.
 
     This module serves as the primary controller, routing user-specified
-    portfolioQueryParams as core arguments that are used to fetch time series
+    PortfolioQueryParams as core arguments that are used to fetch time series
     data.
 
     The `portfolio` controller also gives access to all sub-modules and their
@@ -30,11 +30,11 @@ class Portfolio(portfolioQueryParams):
 
     Parameters
     ----------
-    # Add your analyticsQueryParams parameters here
+    # Add your AnalyticsQueryParams parameters here
 
     Parameter Notes
     -----
-    The parameters are the `portfolioQueryParams`. They are used
+    The parameters are the `PortfolioQueryParams`. They are used
     for data collection further down the pipeline in other commands.
     Intended to execute operations on core data sets. This approach enables
     composable and standardized querying while accommodating data-specific
@@ -54,8 +54,8 @@ class Portfolio(portfolioQueryParams):
         """
         The analytics submodule of the Portfolio controller.
 
-        Access to all the analytics indicators. When the portfolio class is
-        instantiated the parameters are initialized with the portfolioQueryParams
+        Access to all the Analytics indicators. When the Portfolio class is
+        instantiated the parameters are initialized with the PortfolioQueryParams
         class, which hold all the fields needed for the context_params, like the
         symbol, interval, start_date, and end_date.
         """

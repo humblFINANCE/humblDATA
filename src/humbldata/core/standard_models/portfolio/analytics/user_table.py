@@ -1,11 +1,11 @@
 
 """
-user table Standard Model.
+UserTable Standard Model.
 
-Context: Portfolio || Category: Analytics || Command: user table.
+Context: Portfolio || Category: Analytics || Command: user_table.
 
 This module is used to define the QueryParams and Data model for the
-user table command.
+UserTable command.
 """
 
 from typing import Literal, TypeVar
@@ -21,15 +21,15 @@ from humbldata.core.standard_models.portfolio import PortfolioQueryParams
 
 Q = TypeVar("Q", bound=PortfolioQueryParams)
 
-USER TABLE_QUERY_DESCRIPTIONS = {
+USERTABLE_QUERY_DESCRIPTIONS = {
     "example_field1": "Description for example field 1",
     "example_field2": "Description for example field 2",
 }
 
 
-class user tableQueryParams(QueryParams):
+class UserTableQueryParams(QueryParams):
     """
-    QueryParams model for the user table command, a Pydantic v2 model.
+    QueryParams model for the UserTable command, a Pydantic v2 model.
 
     Parameters
     ----------
@@ -42,12 +42,12 @@ class user tableQueryParams(QueryParams):
     example_field1: str = Field(
         default="default_value",
         title="Example Field 1",
-        description=USER TABLE_QUERY_DESCRIPTIONS.get("example_field1", ""),
+        description=USERTABLE_QUERY_DESCRIPTIONS.get("example_field1", ""),
     )
     example_field2: bool = Field(
         default=True,
         title="Example Field 2",
-        description=USER TABLE_QUERY_DESCRIPTIONS.get("example_field2", ""),
+        description=USERTABLE_QUERY_DESCRIPTIONS.get("example_field2", ""),
     )
 
     @field_validator("example_field1")
@@ -56,9 +56,11 @@ class user tableQueryParams(QueryParams):
         return v.upper()
 
 
-class user tableData(Data):
+class UserTableData(Data):
     """
-    Data model for the user table command, a Pandera.Polars Model.
+    Data model for the user_table command, a Pandera.Polars Model.
+
+    This Data model is used to validate data in the `.transform_data()` method of the `UserTableFetcher` class.
     """
 
     example_column: pl.Date = pa.Field(
@@ -67,22 +69,22 @@ class user tableData(Data):
         description="Description for example column",
     )
 
-class user tableFetcher:
+class UserTableFetcher:
     """
-    Fetcher for the user table command.
+    Fetcher for the UserTable command.
 
     Parameters
     ----------
     context_params : PortfolioQueryParams
         The context parameters for the Portfolio query.
-    command_params : User tableQueryParams
-        The command-specific parameters for the user table query.
+    command_params : UserTableQueryParams
+        The command-specific parameters for the UserTable query.
 
     Attributes
     ----------
     context_params : PortfolioQueryParams
         Stores the context parameters passed during initialization.
-    command_params : User tableQueryParams
+    command_params : UserTableQueryParams
         Stores the command-specific parameters passed during initialization.
     data : pl.DataFrame
         The raw data extracted from the data provider, before transformation.
@@ -94,14 +96,14 @@ class user tableFetcher:
     extract_data()
         Extracts the data from the provider and returns it as a Polars DataFrame.
     transform_data()
-        Transforms the command-specific data according to the user table logic.
+        Transforms the command-specific data according to the UserTable logic.
     fetch_data()
         Execute TET Pattern.
 
     Returns
     -------
     HumblObject
-        results : user tableData
+        results : UserTableData
             Serializable results.
         provider : Literal['fmp', 'intrinio', 'polygon', 'tiingo', 'yfinance']
             Provider name.
@@ -111,24 +113,24 @@ class user tableFetcher:
             Chart object.
         context_params : PortfolioQueryParams
             Context-specific parameters.
-        command_params : User tableQueryParams
+        command_params : UserTableQueryParams
             Command-specific parameters.
     """
 
     def __init__(
         self,
         context_params: PortfolioQueryParams,
-        command_params: User tableQueryParams,
+        command_params: UserTableQueryParams,
     ):
         """
-        Initialize the user tableFetcher with context and command parameters.
+        Initialize the UserTableFetcher with context and command parameters.
 
         Parameters
         ----------
         context_params : PortfolioQueryParams
             The context parameters for the Portfolio query.
-        command_params : User tableQueryParams
-            The command-specific parameters for the User table query.
+        command_params : UserTableQueryParams
+            The command-specific parameters for the UserTable query.
         """
         self.context_params = context_params
         self.command_params = command_params
@@ -137,17 +139,17 @@ class user tableFetcher:
         """
         Transform the command-specific parameters into a query.
 
-        If command_params is not provided, it initializes a default user tableQueryParams object.
+        If command_params is not provided, it initializes a default UserTableQueryParams object.
         """
         if not self.command_params:
             self.command_params = None
             # Set Default Arguments
-            self.command_params: User tableQueryParams = (
-                User tableQueryParams()
+            self.command_params: UserTableQueryParams = (
+                UserTableQueryParams()
             )
         else:
-            self.command_params: User tableQueryParams = (
-                User tableQueryParams(**self.command_params)
+            self.command_params: UserTableQueryParams = (
+                UserTableQueryParams(**self.command_params)
             )
 
     def extract_data(self):
@@ -165,7 +167,7 @@ class user tableFetcher:
 
     def transform_data(self):
         """
-        Transform the command-specific data according to the user table logic.
+        Transform the command-specific data according to the user_table logic.
 
         Returns
         -------
@@ -173,7 +175,7 @@ class user tableFetcher:
             The transformed data as a Polars DataFrame
         """
         # Implement data transformation logic here
-        self.transformed_data = User tableData(self.data)
+        self.transformed_data = UserTableData(self.data)
         self.transformed_data = self.transformed_data.serialize()
         return self
 

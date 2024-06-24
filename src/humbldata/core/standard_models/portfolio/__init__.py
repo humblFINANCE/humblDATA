@@ -1,8 +1,8 @@
 
 """
-Context: Portfolio || **Category: Standardized Framework Model**.
+Context: Portfolio || **Category: Analytics**.
 
-This module defines the QueryParams and Data classes for the portfolio context.
+This module defines the QueryParams and Data classes for the Portfolio context.
 """
 
 from typing import Optional
@@ -15,15 +15,15 @@ from humbldata.core.standard_models.abstract.query_params import QueryParams
 
 class PortfolioQueryParams(QueryParams):
     """
-    Query parameters for the portfolioController.
+    Query parameters for the PortfolioController.
 
-    This class defines the query parameters used by the portfolioController.
+    This class defines the query parameters used by the PortfolioController.
 
     Parameters
     ----------
     example_field1 : str
         An example field.
-    example_field2 : Optional[int]
+    example_field2 : int | None
         Another example field.
     """
 
@@ -32,7 +32,7 @@ class PortfolioQueryParams(QueryParams):
         title="Example Field 1",
         description="Description for example field 1",
     )
-    example_field2: Optional[int] = Field(
+    example_field2: int | None = Field(
         default=None,
         title="Example Field 2",
         description="Description for example field 2",
