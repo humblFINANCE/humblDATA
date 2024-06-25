@@ -10,6 +10,8 @@ OBB_EQUITY_PROFILE_PROVIDERS = Literal[
     "finviz", "fmp", "intrinio", "tmx", "yfinance"
 ]
 
+OBB_ETF_INFO_PROVIDERS = Literal["fmp", "intrinio", "tmx", "yfinance"]
+
 OBB_EQUITY_PRICE_HISTORICAL_PROVIDERS = Literal[
     "alpha_vantage",
     "cboe",

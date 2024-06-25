@@ -16,6 +16,7 @@ from openbb import obb
 from humbldata.core.utils.constants import (
     OBB_EQUITY_PRICE_QUOTE_PROVIDERS,
     OBB_EQUITY_PROFILE_PROVIDERS,
+    OBB_ETF_INFO_PROVIDERS,
 )
 from humbldata.core.utils.env import Env
 
@@ -171,7 +172,7 @@ async def aget_latest_price(
     )
 
 
-def get_sector(
+def get_equity_sector(
     symbols: str | list[str] | pl.Series,
     provider: OBB_EQUITY_PROFILE_PROVIDERS | None = "yfinance",
 ) -> pl.LazyFrame:
@@ -200,17 +201,15 @@ def get_sector(
     This function uses OpenBB's equity profile data to fetch sector information.
     It returns a lazy frame for efficient processing, especially with large datasets.
     """
-    results = (
+    return (
         obb.equity.profile(symbols, provider=provider)
         .to_polars()
         .lazy()
         .select(["symbol", "sector"])
     )
 
-    return results
 
-
-async def aget_sector(
+async def aget_equity_sector(
     symbols: str | list[str] | pl.Series,
     provider: OBB_EQUITY_PROFILE_PROVIDERS | None = "yfinance",
 ) -> pl.LazyFrame:
@@ -242,81 +241,45 @@ async def aget_sector(
     It returns a lazy frame for efficient processing, especially with large datasets.
     """
     loop = asyncio.get_event_loop()
-    result = await loop.run_in_executor(
-        None, lambda: obb.equity.profile(symbols, provider=provider)
-    )
+    try:
+        result = await loop.run_in_executor(
+            None, lambda: obb.equity.profile(symbols, provider=provider)
+        )
+        return result.to_polars().lazy().select(["symbol", "sector"])
+    except pl.exceptions.ColumnNotFoundError:
+        # If an error occurs, return a LazyFrame with symbol and null sector
+        if isinstance(symbols, str):
+            symbols = [symbols]
+        elif isinstance(symbols, pl.Series):
+            symbols = symbols.to_list()
+        return pl.LazyFrame(
+            {"symbol": symbols, "sector": [None] * len(symbols)}
+        )
 
-    return result.to_polars().lazy().select(["symbol", "sector"])
 
-def get_asset_class(
+async def aget_etf_category(
     symbols: str | list[str] | pl.Series,
-    provider: OBB_EQUITY_PROFILE_PROVIDERS | None = "yfinance",
+    provider: OBB_ETF_INFO_PROVIDERS | None = "yfinance",
 ) -> pl.LazyFrame:
     """
-    Asynchronous version of get_sector.
-
-    Context: Core || Category: Utils || Subcategory: OpenBB Helpers || **Command: get_sector_async**.
-
-    Retrieves the sector information for the given stock symbol(s) using OpenBB's equity profile data asynchronously.
+    Asynchronously retrieves the category information for the given ETF symbol(s).
 
     Parameters
     ----------
-    symbols : str | List[str] | pl.Series
-        The stock symbol(s) to query for sector information. Accepts a single
-        symbol, a list of symbols, or a Polars Series of symbols.
-    provider : str | None, optional
-        The data provider to use for fetching sector information. If None, the default
-        provider will be used.
+    symbols : str | list[str] | pl.Series
+        The ETF symbol(s) to query for category information.
+    provider : OBB_EQUITY_PROFILE_PROVIDERS | None, optional
+        The data provider to use. Default is "yfinance".
 
     Returns
     -------
     pl.LazyFrame
-        A Polars LazyFrame with columns for the stock symbols ('symbol') and
-        their corresponding sectors ('sector').
-
-    Notes
-    -----
-    This function uses OpenBB's equity profile data to fetch sector information.
-    It returns a lazy frame for efficient processing, especially with large datasets.
-    """
-
-
-    return pass
-
-async def aget_asset_class(
-    symbols: str | list[str] | pl.Series,
-    provider: OBB_EQUITY_PROFILE_PROVIDERS | None = "yfinance",
-) -> pl.LazyFrame:
-    """
-    Asynchronous version of get_sector.
-
-    Context: Core || Category: Utils || Subcategory: OpenBB Helpers || **Command: get_sector_async**.
-
-    Retrieves the sector information for the given stock symbol(s) using OpenBB's equity profile data asynchronously.
-
-    Parameters
-    ----------
-    symbols : str | List[str] | pl.Series
-        The stock symbol(s) to query for sector information. Accepts a single
-        symbol, a list of symbols, or a Polars Series of symbols.
-    provider : str | None, optional
-        The data provider to use for fetching sector information. If None, the default
-        provider will be used.
-
-    Returns
-    -------
-    pl.LazyFrame
-        A Polars LazyFrame with columns for the stock symbols ('symbol') and
-        their corresponding sectors ('sector').
-
-    Notes
-    -----
-    This function uses OpenBB's equity profile data to fetch sector information.
-    It returns a lazy frame for efficient processing, especially with large datasets.
+        A Polars LazyFrame with columns for the ETF symbols ('symbol') and
+        their corresponding categories ('category').
     """
     loop = asyncio.get_event_loop()
     result = await loop.run_in_executor(
-        None, lambda: obb.equity.profile(symbols, provider=provider)
+        None, lambda: obb.etf.info(symbols, provider=provider)
     )
 
-    return result.to_polars().lazy().select(["symbol", "sector"])
+    return result.to_polars().lazy().select(["symbol", "category"])

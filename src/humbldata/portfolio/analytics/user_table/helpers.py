@@ -9,15 +9,17 @@ from datetime import datetime, timedelta
 import pytz
 
 import polars as pl
+from humbldata.core.utils.constants import OBB_EQUITY_PROFILE_PROVIDERS
 
 from humbldata.core.utils.openbb_helpers import (
+    aget_etf_category,
     aget_latest_price,
-    aget_sector,
+    aget_equity_sector,
 )
 from humbldata.toolbox.toolbox_controller import Toolbox
 
 
-async def user_table_toolbox_generation(symbol: str, user_role: str) -> Toolbox:
+async def generate_user_table_toolbox(symbol: str, user_role: str) -> Toolbox:
     """
     Generate a Toolbox instance based on the user's role.
 
@@ -52,13 +54,60 @@ async def user_table_toolbox_generation(symbol: str, user_role: str) -> Toolbox:
         end_date=end_date.strftime("%Y-%m-%d"),
     )
 
+async def aget_sector_filter(
+    symbols: str | list[str] | pl.Series,
+    provider: OBB_EQUITY_PROFILE_PROVIDERS | None = "yfinance",
+) -> pl.LazyFrame:
+    """
+    Context: Portfolio || Category: Analytics || Command: User Table || **Command: aget_sector_filter**.
+
+    Retrieves sector information for given symbols, filling in ETF categories for symbols without sectors.
+
+    Parameters
+    ----------
+    symbols : str | list[str] | pl.Series
+        The symbols to query for sector/category information.
+    provider : OBB_EQUITY_PROFILE_PROVIDERS | None, optional
+        The data provider to use. Default is "yfinance".
+
+    Returns
+    -------
+    pl.LazyFrame
+        A Polars LazyFrame with columns for symbols and their corresponding sectors/categories.
+
+    Notes
+    -----
+    This function uses aget_equity_sector() to fetch sector information and aget_etf_category()
+    for symbols without sectors. It then combines the results.
+    """
+    # Get sector information
+    equity_sectors = await aget_equity_sector(symbols, provider)
+
+    # Identify symbols with null sectors
+    null_sector_symbols = equity_sectors.filter(pl.col("issue").is_null()).select(["symbol"]).collect().to_series().to_list()
+
+
+    # Get ETF categories for symbols with null sectors
+    if null_sector_symbols:
+        etf_info = await aget_etf_category(null_sector_symbols, provider)
+
+        # Combine sector and ETF information
+        combined_info = (
+            equity_sectors.filter(pl.col("sector").is_not_null())
+            .concat(etf_info.rename({"category": "sector"}))
+            .sort("symbol")
+        )
+    else:
+        combined_info = equity_sectors
+
+    return combined_info
+
 
 async def aggregate_user_table_data(symbols: str | list[str] | pl.Series):
     # Fetch data from all sources concurrently
     tasks = [
         aget_latest_price(symbol=symbols),
-        aget_sector(symbols=symbols),
-        fetch_data_source_3(),
+        aget_equity_sector(symbols=symbols),
     ]
     results = await asyncio.gather(*tasks)
 
