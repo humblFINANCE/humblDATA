@@ -1,3 +1,7 @@
+---
+icon: material/function-variant
+---
+
 ## ➕ Adding a Function
 
 If you want to add a function, first you must decide. What is the context, category and command? Once, you have done that you will need to do these 3 things:
@@ -70,3 +74,6 @@ If you want to add a function, first you must decide. What is the context, categ
 
      It is common practice in the repo to prepend your logic function, in the `model.py` file, with `calc_...`.
      So the function would be `calc_mandelbrot_channel`.
+     There are two main naming schemes for functions:
+     - `calc`: These are the functions that calculate raw data, heavy math, etc.
+     - `engine`: These are the functions that provide logic for the function, it could be aggregation of data, manipulation of data, but are less math focused and more like a pipeline to get data from one point to another.
