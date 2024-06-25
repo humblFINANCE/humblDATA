@@ -47,22 +47,22 @@ tests/
 ## 📝 Detailed List of All Tests
 ### Integration Tests
 - **Context: Toolbox**
-  - `test_queryParams.py` - test the `standard_models`
+    - `test_queryParams.py` - test the `standard_models`
 - **Category: Technical**
-  - `test_methods.py` - test the methods in the class, and ensure they pass the parameters and instantiate the class correctly
+    - `test_methods.py` - test the methods in the class, and ensure they pass the parameters and instantiate the class correctly
 - **Command: mandelbrot_channel**
-  - `test_queryParams_data_fetcher.py` - test the `fetcher` gets the data correctly and verify it with the standard_models. i.e `MandelbrotData()`
-  - `test_view.py` - test the charting visualization creates the right charts
-  - `test_model.py` - test logic of functions, uses live data to ensure function runs properly
+    - `test_queryParams_data_fetcher.py` - test the `fetcher` gets the data correctly and verify it with the standard_models. i.e `MandelbrotData()`
+    - `test_view.py` - test the charting visualization creates the right charts
+    - `test_model.py` - test logic of functions, uses live data to ensure function runs properly
 ### Unit Tests
 - **Context: Toolbox**
-  - `test_helpers.py` - test the `helpers` statically
+    - `test_helpers.py` - test the `helpers` statically
 - **Category: Technical**
-  - `test_methods.py` (mock) - test the `methods` but mock the classes so that there are no dependencies on classes actually instantiating themselves.
+    - `test_methods.py` (mock) - test the `methods` but mock the classes so that there are no dependencies on classes actually instantiating themselves.
 - **Command: mandelbrot_channel**
-  - `test_helpers.py` - test the `helpers` statically
-  - `test_view.py` - test the charting visualization returns the correct objects
-  - `test_model.py` - test the logic of functions and input validation
+    - `test_helpers.py` - test the `helpers` statically
+    - `test_view.py` - test the charting visualization returns the correct objects
+    - `test_model.py` - test the logic of functions and input validation
 
 !!! tip Use `__init__.py` files to group tests together.
 
