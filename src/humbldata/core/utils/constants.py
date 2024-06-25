@@ -21,3 +21,14 @@ OBB_EQUITY_PRICE_HISTORICAL_PROVIDERS = Literal[
     "tradier",
     "yfinance",
 ]
+
+ASSET_CLASSES = Literal[
+    "fixed_income",
+    "foreign_exchange",
+    "equity",
+    "commodity",
+    "cash",
+    "crypto",
+    "gold",
+    "credit",
+]
