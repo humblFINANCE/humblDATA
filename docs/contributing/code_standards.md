@@ -1,3 +1,7 @@
+---
+icon: material/file-code
+---
+
 ## 🐍 __Code Standards__
 ### 🪺PEP Guidelines
 You must adhere to the strict guidelines of coding best practices. Here is a non-exhaustive list of the most important guidelines to follow:

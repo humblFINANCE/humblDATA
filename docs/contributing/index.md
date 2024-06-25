@@ -1,3 +1,7 @@
+---
+icon: material/hand-heart
+---
+
 ## 🎯 __Expectations for Contributors__
 
 Here is a set of guidelines that you should follow:

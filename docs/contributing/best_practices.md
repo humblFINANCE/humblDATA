@@ -1,3 +1,7 @@
+---
+icon: material/star
+---
+
 ## 🏆 __Best Practices__
 
 - Review Platform Dependencies: Before adding any dependency, ensure it aligns with the Platform's existing dependencies.
