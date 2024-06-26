@@ -163,13 +163,25 @@ async def aget_latest_price(
     result = await loop.run_in_executor(
         None, lambda: obb.equity.price.quote(symbol, provider=provider)
     )
+    out = result.to_polars().lazy()
+    if {"last_price", "prev_close"}.issubset(out.columns):
+        out = out.select(
+            [
+                pl.when(pl.col("asset_type") == "ETF")
+                .then(pl.col("prev_close"))
+                .otherwise(pl.col("last_price"))
+                .alias("last_price"),
+                pl.col("symbol"),
+            ]
+        )
+    elif "last_price" not in out.columns:
+        out = out.select(
+            pl.col("symbol"), pl.col("prev_close").alias("last_price")
+        )
+    else:
+        out = out.select(pl.col("symbol"), pl.col("last_price"))
 
-    return (
-        result.to_polars()
-        .lazy()
-        .select(["symbol", "last_price"])
-        .rename({"last_price": "recent_price"})
-    )
+    return out
 
 
 def get_equity_sector(
