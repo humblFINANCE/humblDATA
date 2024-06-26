@@ -1,6 +1,6 @@
 """A module to contain all project-wide constants."""
 
-from typing import Literal
+from typing import Dict, Literal
 
 OBB_EQUITY_PRICE_QUOTE_PROVIDERS = Literal[
     "cboe", "fmp", "intrinio", "tmx", "tradier", "yfinance"
@@ -25,12 +25,48 @@ OBB_EQUITY_PRICE_HISTORICAL_PROVIDERS = Literal[
 ]
 
 ASSET_CLASSES = Literal[
-    "fixed_income",
-    "foreign_exchange",
-    "equity",
-    "commodity",
-    "cash",
-    "crypto",
-    "gold",
-    "credit",
+    "Fixed income",
+    "Foreign exchange",
+    "Equity",
+    "Commodity",
+    "Cash",
+    "Crypto",
+    "Gold",
+    "Credit",
 ]
+EQUITY_SECTORS = Literal[
+    "Communication Services",
+    "Consumer Cyclical",
+    "Consumer Defensive",
+    "Energy",
+    "Financials",
+    "Health Care",
+    "Industrials",
+    "Technology",
+    "Materials",
+    "Real Estate",
+    "Utilities",
+]
+EQUITY_SECTOR_MAPPING: dict[str, EQUITY_SECTORS] = {
+    "Communication Services": "Communication Services",
+    "Communications": "Communication Services",
+    "Communication": "Communication Services",
+    "Consumer Cyclical": "Consumer Cyclical",
+    "Consumer Discretionary": "Consumer Cyclical",
+    "Consumer Defensive": "Consumer Defensive",
+    "Consumer Staples": "Consumer Defensive",
+    "Energy": "Energy",
+    "Equity Energy": "Energy",
+    "Financials": "Financials",
+    "Financial Service": "Financials",
+    "Financial": "Financials",
+    "Health Care": "Health Care",
+    "Healthcare": "Health Care",
+    "Industrials": "Industrials",
+    "Technology": "Technology",
+    "Tech": "Technology",
+    "Materials": "Materials",
+    "Basic Materials": "Materials",
+    "Real Estate": "Real Estate",
+    "Utilities": "Utilities",
+}

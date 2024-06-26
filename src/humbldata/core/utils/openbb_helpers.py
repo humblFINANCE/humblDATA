@@ -201,12 +201,18 @@ def get_equity_sector(
     This function uses OpenBB's equity profile data to fetch sector information.
     It returns a lazy frame for efficient processing, especially with large datasets.
     """
-    return (
-        obb.equity.profile(symbols, provider=provider)
-        .to_polars()
-        .lazy()
-        .select(["symbol", "sector"])
-    )
+    try:
+        result = obb.equity.profile(symbols, provider=provider)
+        return result.to_polars().select(["symbol", "sector"]).lazy()
+    except pl.exceptions.ColumnNotFoundError:
+        # If an error occurs, return a LazyFrame with symbol and null sector
+        if isinstance(symbols, str):
+            symbols = [symbols]
+        elif isinstance(symbols, pl.Series):
+            symbols = symbols.to_list()
+        return pl.LazyFrame(
+            {"symbol": symbols, "sector": [None] * len(symbols)}
+        )
 
 
 async def aget_equity_sector(
@@ -239,13 +245,19 @@ async def aget_equity_sector(
     -----
     This function uses OpenBB's equity profile data to fetch sector information.
     It returns a lazy frame for efficient processing, especially with large datasets.
+    If you just pass an ETF to the `obb.equity.profile` function, it will throw
+    return data without the NULL columns (sector column included) and only
+    returns columns where there is data, so we need to handle that edge case.
+    If an ETF is included with an equity, it will return a NULL sector column,
+    so we can select the sector column from the ETF data and return it as a
+    NULL sector for the equity.
     """
     loop = asyncio.get_event_loop()
     try:
         result = await loop.run_in_executor(
             None, lambda: obb.equity.profile(symbols, provider=provider)
         )
-        return result.to_polars().lazy().select(["symbol", "sector"])
+        return result.to_polars().select(["symbol", "sector"]).lazy()
     except pl.exceptions.ColumnNotFoundError:
         # If an error occurs, return a LazyFrame with symbol and null sector
         if isinstance(symbols, str):
@@ -257,12 +269,15 @@ async def aget_equity_sector(
         )
 
 
-async def aget_etf_category(
+async def aget_etf_sector(
     symbols: str | list[str] | pl.Series,
     provider: OBB_ETF_INFO_PROVIDERS | None = "yfinance",
 ) -> pl.LazyFrame:
     """
-    Asynchronously retrieves the category information for the given ETF symbol(s).
+    Asynchronously retrieves the sector information for the given ETF symbol(s).
+
+    This function uses the `obb.etf.info` function and selects the `category`
+    column to get the sector information.
 
     Parameters
     ----------
@@ -282,4 +297,9 @@ async def aget_etf_category(
         None, lambda: obb.etf.info(symbols, provider=provider)
     )
 
-    return result.to_polars().lazy().select(["symbol", "category"])
+    return (
+        result.to_polars()
+        .lazy()
+        .select(["symbol", "category"])
+        .rename({"category": "sector"})
+    )
