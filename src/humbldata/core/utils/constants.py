@@ -1,6 +1,7 @@
 """A module to contain all project-wide constants."""
 
 from typing import Dict, Literal
+import re
 
 OBB_EQUITY_PRICE_QUOTE_PROVIDERS = Literal[
     "cboe", "fmp", "intrinio", "tmx", "tradier", "yfinance"
@@ -25,8 +26,8 @@ OBB_EQUITY_PRICE_HISTORICAL_PROVIDERS = Literal[
 ]
 
 ASSET_CLASSES = Literal[
-    "Fixed income",
-    "Foreign exchange",
+    "Fixed Income",
+    "Foreign Exchange",
     "Equity",
     "Commodity",
     "Cash",
@@ -34,6 +35,31 @@ ASSET_CLASSES = Literal[
     "Gold",
     "Credit",
 ]
+ASSET_CLASS_MAPPING: dict[str, ASSET_CLASSES] = {
+    "Fixed Income": "Fixed Income",
+    "Ultrashort Bond": "Fixed Income",
+    "Bond": "Fixed Income",
+    r".*\s?Bond.*": "Fixed Income",
+    "Foreign Exchange": "Foreign Exchange",
+    "Single Currency": "Foreign Exchange",
+    "Forex": "Foreign Exchange",
+    "FX": "Foreign Exchange",
+    "Equity": "Equity",
+    "Stocks": "Equity",
+    "Commodity": "Commodity",
+    "Commodities": "Commodity",
+    r".*Commodities.*": "Commodity",
+    "Cash": "Cash",
+    "Money Market": "Cash",
+    "Crypto": "Crypto",
+    "Digital Assets": "Crypto",
+    "Cryptocurrency": "Crypto",
+    "Gold": "Gold",
+    "Precious Metals": "Gold",
+    "Credit": "Credit",
+    "Debt": "Credit",
+}
+
 GICS_SECTORS = Literal[
     "Communication Services",
     "Consumer Cyclical",

@@ -16,37 +16,12 @@ from humbldata.core.utils.constants import (
     OBB_EQUITY_PROFILE_PROVIDERS,
 )
 from humbldata.core.utils.openbb_helpers import (
+    aget_asset_class,
     aget_equity_sector,
     aget_etf_sector,
     aget_latest_price,
 )
 from humbldata.toolbox.toolbox_controller import Toolbox
-
-
-def normalize_sector(sector: str) -> GICS_SECTORS:
-    """
-    Normalize the given sector to a standard GICS_SECTORS value.
-
-    Parameters
-    ----------
-    sector : str
-        The sector to normalize.
-
-    Returns
-    -------
-    GICS_SECTORS
-        The normalized sector.
-
-    Raises
-    ------
-    ValueError
-        If the sector cannot be normalized to a known GICS_SECTORS value.
-    """
-    normalized = GICS_SECTOR_MAPPING.get(sector)
-    if normalized is None:
-        msg = f"Unknown sector: '{sector}'. Valid sectors are: {', '.join(set(GICS_SECTOR_MAPPING.values()))}"
-        raise HumblDataError(msg)
-    return normalized
 
 
 async def generate_user_table_toolbox(symbol: str, user_role: str) -> Toolbox:
@@ -129,7 +104,7 @@ async def aget_sector_filter(
     if etf_symbols:
         etf_sectors = await aget_etf_sector(etf_symbols, provider="yfinance")
 
-        # Combine sector and ETF information
+        # Normalize Sectors to GICS_SECTORS
         etf_sectors = etf_sectors.with_columns(
             pl.col("sector").replace(GICS_SECTOR_MAPPING)
         )
@@ -145,6 +120,20 @@ async def aget_sector_filter(
         out_sectors = equity_sectors
 
     return out_sectors
+
+
+async def aget_asset_class_filter(
+    symbols: str | list[str] | pl.Series,
+) -> pl.LazyFrame:
+    """
+    Context: Portfolio || Category: Analytics || Command: User Table || **Command: aget_asset_class_filter**.
+
+    This function takes in a list of symbols and returns a LazyFrame with the
+    asset class for each symbol, normalized to standard ASSET_CLASSES and
+    renamed to 'asset_class'.
+    """
+    out = await aget_asset_class(symbols)
+    return out
 
 
 async def aggregate_user_table_data(symbols: str | list[str] | pl.Series):

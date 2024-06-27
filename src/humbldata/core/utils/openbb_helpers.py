@@ -346,3 +346,84 @@ async def aget_etf_sector(
             {"symbol": symbols, "sector": [None] * len(symbols)}
         )
     return out
+
+
+def normalize_asset_class(data: pl.LazyFrame) -> pl.LazyFrame:
+    """
+    Normalize the asset class in the given LazyFrame to standard ASSET_CLASSES values.
+
+    This function uses string replacement to standardize asset class names in
+    the 'asset_class' column of the input LazyFrame. This function is intended to
+    be used with the data output from `obb.etf.info`.
+
+    Parameters
+    ----------
+    data : pl.LazyFrame
+        The input LazyFrame containing a 'category' column to be normalized.
+
+    Returns
+    -------
+    pl.LazyFrame
+        A new LazyFrame with the 'asset_class' column normalized.
+
+    Notes
+    -----
+    This function assumes that the input LazyFrame has an 'asset_class' column.
+    If the column doesn't exist, the function will return the input LazyFrame unchanged.
+    """
+    out = data.with_columns(
+        pl.col("category")
+        .str.replace(
+            r"^(?:\w+\s){0,2}\w*\bBond\b\w*(?:\s\w+){0,2}$", "Fixed Income"
+        )
+        .str.replace(r".*Commodities.*", "Commodity")
+        .str.replace(r".*Digital.*", "Crypto")
+        .str.replace(r".*Currency.*", "Foreign Exchange")
+        .str.replace(r".*Equity.*", "Equity")
+    )
+
+    return out
+
+
+async def aget_asset_class(
+    symbols: str | list[str] | pl.Series,
+    provider: OBB_ETF_INFO_PROVIDERS | None = "yfinance",
+) -> pl.LazyFrame:
+    """
+    Asynchronously retrieves the asset class for the given symbol(s).
+
+    This...
+    """
+    loop = asyncio.get_event_loop()
+    try:
+        result = await loop.run_in_executor(
+            None, lambda: obb.etf.info(symbols, provider=provider)
+        )
+        out = (
+            result.to_polars()
+            .select(["symbol", "category"])
+            .lazy()
+            .pipe(normalize_asset_class)
+            .rename({"category": "asset_class"})
+        )
+        # Create a LazyFrame with all input symbols
+        all_symbols = pl.LazyFrame({"symbol": symbols})
+
+        # Left join to include all input symbols, filling missing sectors with null
+        out = all_symbols.join(out, on="symbol", how="left").with_columns(
+            [
+                pl.when(pl.col("asset_class").is_null())
+                .then(pl.lit("Equity"))
+                .otherwise(pl.col("asset_class"))
+                .alias("asset_class")
+            ]
+        )
+    except OpenBBError:
+        if isinstance(symbols, str):
+            symbols = [symbols]
+        elif isinstance(symbols, pl.Series):
+            symbols = symbols.to_list()
+        return pl.LazyFrame(
+            {"symbol": symbols, "asset_class": ["Equity"] * len(symbols)}
+        )
+    return out
