@@ -329,7 +329,7 @@ async def aget_etf_sector(
         all_symbols = pl.LazyFrame({"symbol": symbols})
 
         # Left join to include all input symbols, filling missing sectors with null
-        return all_symbols.join(out, on="symbol", how="left").with_columns(
+        out = all_symbols.join(out, on="symbol", how="left").with_columns(
             [
                 pl.when(pl.col("sector").is_null())
                 .then(None)
