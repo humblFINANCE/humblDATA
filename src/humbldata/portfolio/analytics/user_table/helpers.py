@@ -69,9 +69,10 @@ async def generate_user_table_toolbox(symbol: str, user_role: str) -> Toolbox:
 
     start_date_mapping = {
         "anonymous": end_date - timedelta(days=365),
-        "basic": end_date - timedelta(days=730),
+        "peon": end_date - timedelta(days=730),
         "premium": end_date - timedelta(days=1825),
         "power": end_date - timedelta(days=7300),
+        "permanent": end_date - timedelta(days=7300),
     }
 
     start_date = start_date_mapping.get(
