@@ -10,6 +10,7 @@ import logging
 import warnings
 
 import dotenv
+from openbb_core.app.model.abstract.error import OpenBBError
 import polars as pl
 from openbb import obb
 
@@ -238,9 +239,9 @@ async def aget_equity_sector(
 
     Retrieves the sector information for the given stock symbol(s) using
     OpenBB's equity profile data asynchronously. If an ETF is passed, it will
-    return a NULL sector for the symbol. The sector retruned hasn't been
-    normalized to EQUITY_SECTORS, it is the raw OpenBB secctor output.
-    Sectors are normalized to EQUITY_SECTORS in the `aet_sector_filter` function.
+    return a NULL sector for the symbol. The sector returned hasn't been
+    normalized to GICS_SECTORS, it is the raw OpenBB sector output.
+    Sectors are normalized to GICS_SECTORS in the `aet_sector_filter` function.
 
     Parameters
     ----------
@@ -296,13 +297,15 @@ async def aget_etf_sector(
     This function uses the `obb.etf.info` function and selects the `category`
     column to get the sector information. This function does not handle EQUITY's
     symbols that are not ETF's the same way that `aget_equity_sector` does.
+    The sector returned hasn't been
+    normalized to GICS_SECTORS, it is the raw OpenBB sector output.
+    Sectors are normalized to GICS_SECTORS in the `aet_sector_filter` function.
 
     Parameters
     ----------
     symbols : str | list[str] | pl.Series
         The ETF symbol(s) to query for category information.
     provider : OBB_EQUITY_PROFILE_PROVIDERS | None, optional
-        The data provider to use. Default is "yfinance".
 
     Returns
     -------
@@ -311,13 +314,23 @@ async def aget_etf_sector(
         their corresponding categories ('category').
     """
     loop = asyncio.get_event_loop()
-    result = await loop.run_in_executor(
-        None, lambda: obb.etf.info(symbols, provider=provider)
-    )
 
-    return (
-        result.to_polars()
-        .lazy()
-        .select(["symbol", "category"])
-        .rename({"category": "sector"})
-    )
+    try:
+        result = await loop.run_in_executor(
+            None, lambda: obb.etf.info(symbols, provider=provider)
+        )
+        out = (
+            result.to_polars()
+            .lazy()
+            .select(["symbol", "category"])
+            .rename({"category": "sector"})
+        )
+    except OpenBBError:
+        if isinstance(symbols, str):
+            symbols = [symbols]
+        elif isinstance(symbols, pl.Series):
+            symbols = symbols.to_list()
+        return pl.LazyFrame(
+            {"symbol": symbols, "sector": [None] * len(symbols)}
+        )
+    return out

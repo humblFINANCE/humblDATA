@@ -11,7 +11,7 @@ import polars as pl
 
 from humbldata.core.standard_models.abstract.errors import HumblDataError
 from humbldata.core.utils.constants import (
-    EQUITY_SECTOR_MAPPING,
+    GICS_SECTOR_MAPPING,
     GICS_SECTORS,
     OBB_EQUITY_PROFILE_PROVIDERS,
 )
@@ -42,9 +42,9 @@ def normalize_sector(sector: str) -> GICS_SECTORS:
     ValueError
         If the sector cannot be normalized to a known GICS_SECTORS value.
     """
-    normalized = EQUITY_SECTOR_MAPPING.get(sector)
+    normalized = GICS_SECTOR_MAPPING.get(sector)
     if normalized is None:
-        msg = f"Unknown sector: '{sector}'. Valid sectors are: {', '.join(set(EQUITY_SECTOR_MAPPING.values()))}"
+        msg = f"Unknown sector: '{sector}'. Valid sectors are: {', '.join(set(GICS_SECTOR_MAPPING.values()))}"
         raise HumblDataError(msg)
     return normalized
 
@@ -131,7 +131,7 @@ async def aget_sector_filter(
 
         # Combine sector and ETF information
         etf_sectors = etf_sectors.with_columns(
-            pl.col("sector").replace(EQUITY_SECTOR_MAPPING)
+            pl.col("sector").replace(GICS_SECTOR_MAPPING)
         )
 
         # If all symbols are ETFs, return the ETF sectors (no need to combine)

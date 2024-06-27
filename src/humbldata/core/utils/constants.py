@@ -47,7 +47,7 @@ GICS_SECTORS = Literal[
     "Real Estate",
     "Utilities",
 ]
-EQUITY_SECTOR_MAPPING: dict[str, GICS_SECTORS] = {
+GICS_SECTOR_MAPPING: dict[str, GICS_SECTORS] = {
     "Communication Services": "Communication Services",
     "Communications": "Communication Services",
     "Communication": "Communication Services",
