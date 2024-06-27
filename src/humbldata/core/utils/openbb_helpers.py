@@ -10,9 +10,9 @@ import logging
 import warnings
 
 import dotenv
-from openbb_core.app.model.abstract.error import OpenBBError
 import polars as pl
 from openbb import obb
+from openbb_core.app.model.abstract.error import OpenBBError
 
 from humbldata.core.utils.constants import (
     OBB_EQUITY_PRICE_QUOTE_PROVIDERS,
@@ -324,6 +324,18 @@ async def aget_etf_sector(
             .lazy()
             .select(["symbol", "category"])
             .rename({"category": "sector"})
+        )
+        # Create a LazyFrame with all input symbols
+        all_symbols = pl.LazyFrame({"symbol": symbols})
+
+        # Left join to include all input symbols, filling missing sectors with null
+        return all_symbols.join(out, on="symbol", how="left").with_columns(
+            [
+                pl.when(pl.col("sector").is_null())
+                .then(None)
+                .otherwise(pl.col("sector"))
+                .alias("sector")
+            ]
         )
     except OpenBBError:
         if isinstance(symbols, str):
