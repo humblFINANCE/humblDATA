@@ -136,7 +136,7 @@ async def aget_asset_class_filter(
     renamed to 'asset_class'.
     """
     out = await aget_asset_class(symbols, provider=provider)
-    return out
+    return out.pipe(normalize_asset_class).rename({"category": "asset_class"})
 
 
 async def aggregate_user_table_data(symbols: str | list[str] | pl.Series):

@@ -427,11 +427,9 @@ async def aget_asset_class(
             None, lambda: obb.etf.info(symbols, provider=provider)
         )
         out = (
-            result.to_polars()
-            .select(["symbol", "category"])
-            .lazy()
-            .pipe(normalize_asset_class)
-            .rename({"category": "asset_class"})
+            result.to_polars().select(["symbol", "category"]).lazy()
+            # .pipe(normalize_asset_class)
+            # .rename({"category": "asset_class"})
         )
         # Create a LazyFrame with all input symbols
         all_symbols = pl.LazyFrame({"symbol": symbols})
@@ -439,10 +437,10 @@ async def aget_asset_class(
         # Left join to include all input symbols, filling missing sectors with null
         out = all_symbols.join(out, on="symbol", how="left").with_columns(
             [
-                pl.when(pl.col("asset_class").is_null())
+                pl.when(pl.col("category").is_null())
                 .then(pl.lit("Equity"))
-                .otherwise(pl.col("asset_class"))
-                .alias("asset_class")
+                .otherwise(pl.col("category"))
+                .alias("category")
             ]
         )
     except OpenBBError:
@@ -451,6 +449,6 @@ async def aget_asset_class(
         elif isinstance(symbols, pl.Series):
             symbols = symbols.to_list()
         return pl.LazyFrame(
-            {"symbol": symbols, "asset_class": ["Equity"] * len(symbols)}
+            {"symbol": symbols, "category": ["Equity"] * len(symbols)}
         )
     return out
