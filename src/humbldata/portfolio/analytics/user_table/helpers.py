@@ -12,7 +12,7 @@ import polars as pl
 from humbldata.core.standard_models.abstract.errors import HumblDataError
 from humbldata.core.utils.constants import (
     EQUITY_SECTOR_MAPPING,
-    EQUITY_SECTORS,
+    GICS_SECTORS,
     OBB_EQUITY_PROFILE_PROVIDERS,
 )
 from humbldata.core.utils.openbb_helpers import (
@@ -23,9 +23,9 @@ from humbldata.core.utils.openbb_helpers import (
 from humbldata.toolbox.toolbox_controller import Toolbox
 
 
-def normalize_sector(sector: str) -> EQUITY_SECTORS:
+def normalize_sector(sector: str) -> GICS_SECTORS:
     """
-    Normalize the given sector to a standard EQUITY_SECTORS value.
+    Normalize the given sector to a standard GICS_SECTORS value.
 
     Parameters
     ----------
@@ -34,13 +34,13 @@ def normalize_sector(sector: str) -> EQUITY_SECTORS:
 
     Returns
     -------
-    EQUITY_SECTORS
+    GICS_SECTORS
         The normalized sector.
 
     Raises
     ------
     ValueError
-        If the sector cannot be normalized to a known EQUITY_SECTORS value.
+        If the sector cannot be normalized to a known GICS_SECTORS value.
     """
     normalized = EQUITY_SECTOR_MAPPING.get(sector)
     if normalized is None:

@@ -34,7 +34,7 @@ ASSET_CLASSES = Literal[
     "Gold",
     "Credit",
 ]
-EQUITY_SECTORS = Literal[
+GICS_SECTORS = Literal[
     "Communication Services",
     "Consumer Cyclical",
     "Consumer Defensive",
@@ -47,7 +47,7 @@ EQUITY_SECTORS = Literal[
     "Real Estate",
     "Utilities",
 ]
-EQUITY_SECTOR_MAPPING: dict[str, EQUITY_SECTORS] = {
+EQUITY_SECTOR_MAPPING: dict[str, GICS_SECTORS] = {
     "Communication Services": "Communication Services",
     "Communications": "Communication Services",
     "Communication": "Communication Services",
