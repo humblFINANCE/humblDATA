@@ -236,7 +236,11 @@ async def aget_equity_sector(
 
     Context: Core || Category: Utils || Subcategory: OpenBB Helpers || **Command: get_sector_async**.
 
-    Retrieves the sector information for the given stock symbol(s) using OpenBB's equity profile data asynchronously.
+    Retrieves the sector information for the given stock symbol(s) using
+    OpenBB's equity profile data asynchronously. If an ETF is passed, it will
+    return a NULL sector for the symbol. The sector retruned hasn't been
+    normalized to EQUITY_SECTORS, it is the raw OpenBB secctor output.
+    Sectors are normalized to EQUITY_SECTORS in the `aet_sector_filter` function.
 
     Parameters
     ----------
@@ -257,6 +261,7 @@ async def aget_equity_sector(
     -----
     This function uses OpenBB's equity profile data to fetch sector information.
     It returns a lazy frame for efficient processing, especially with large datasets.
+
     If you just pass an ETF to the `obb.equity.profile` function, it will throw
     return data without the NULL columns (sector column included) and only
     returns columns where there is data, so we need to handle that edge case.
@@ -289,7 +294,8 @@ async def aget_etf_sector(
     Asynchronously retrieves the sector information for the given ETF symbol(s).
 
     This function uses the `obb.etf.info` function and selects the `category`
-    column to get the sector information.
+    column to get the sector information. This function does not handle EQUITY's
+    symbols that are not ETF's the same way that `aget_equity_sector` does.
 
     Parameters
     ----------
