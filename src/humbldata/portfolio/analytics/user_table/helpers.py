@@ -14,12 +14,14 @@ from humbldata.core.utils.constants import (
     GICS_SECTOR_MAPPING,
     GICS_SECTORS,
     OBB_EQUITY_PROFILE_PROVIDERS,
+    OBB_ETF_INFO_PROVIDERS,
 )
 from humbldata.core.utils.openbb_helpers import (
     aget_asset_class,
     aget_equity_sector,
     aget_etf_sector,
     aget_latest_price,
+    normalize_asset_class,
 )
 from humbldata.toolbox.toolbox_controller import Toolbox
 
@@ -124,6 +126,7 @@ async def aget_sector_filter(
 
 async def aget_asset_class_filter(
     symbols: str | list[str] | pl.Series,
+    provider: OBB_ETF_INFO_PROVIDERS | None = "yfinance",
 ) -> pl.LazyFrame:
     """
     Context: Portfolio || Category: Analytics || Command: User Table || **Command: aget_asset_class_filter**.
@@ -132,7 +135,7 @@ async def aget_asset_class_filter(
     asset class for each symbol, normalized to standard ASSET_CLASSES and
     renamed to 'asset_class'.
     """
-    out = await aget_asset_class(symbols)
+    out = await aget_asset_class(symbols, provider=provider)
     return out
 
 

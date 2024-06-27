@@ -392,7 +392,34 @@ async def aget_asset_class(
     """
     Asynchronously retrieves the asset class for the given symbol(s).
 
-    This...
+    This function fetches asset class information for the provided symbols using the specified provider.
+    It normalizes the asset classes and handles potential errors, defaulting to "Equity" for unknown symbols.
+
+    Parameters
+    ----------
+    symbols : str | list[str] | pl.Series
+        The symbol or symbols for which to retrieve asset class information.
+    provider : OBB_ETF_INFO_PROVIDERS | None, optional
+        The data provider to use for fetching ETF information. Defaults to "yfinance".
+
+    Returns
+    -------
+    pl.LazyFrame
+        A LazyFrame containing two columns:
+        - 'symbol': The input symbols.
+        - 'asset_class': The corresponding asset classes, normalized to standard values.
+
+    Raises
+    ------
+    OpenBBError
+        If there's an error fetching data from the provider. In this case, it returns a LazyFrame
+        with all asset classes set to "Equity".
+
+    Notes
+    -----
+    - The function uses OpenBB's ETF info functionality to fetch the initial data.
+    - Asset classes are normalized using the `normalize_asset_class` function.
+    - If a symbol's asset class is not found, it defaults to "Equity".
     """
     loop = asyncio.get_event_loop()
     try:
