@@ -92,7 +92,7 @@ class ToolboxQueryParams(QueryParams):
 
     """
 
-    symbols: str | list[str] | pl.Series = Field(
+    symbols: str | list[str] = Field(
         default="AAPL",
         title="Symbols/Tickers",
         description=QUERY_DESCRIPTIONS.get("symbols", ""),
@@ -122,9 +122,7 @@ class ToolboxQueryParams(QueryParams):
 
     @field_validator("symbol", mode="before", check_fields=False)
     @classmethod
-    def upper_symbol(
-        cls, v: str | list[str] | set[str] | pl.Series
-    ) -> str | list[str]:
+    def upper_symbol(cls, v: str | list[str] | set[str]) -> str | list[str]:
         """
         Convert the stock symbol to uppercase.
 

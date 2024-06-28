@@ -40,7 +40,7 @@ class PortfolioQueryParams(QueryParams):
         The role of the user.
     """
 
-    symbols: str | list[str] | pl.Series = Field(
+    symbols: str | list[str] = Field(
         default="AAPL",
         title="Symbols",
         description=QUERY_DESCRIPTIONS.get("symbols", ""),
