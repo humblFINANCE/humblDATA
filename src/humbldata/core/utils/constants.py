@@ -90,7 +90,6 @@ GICS_SECTOR_MAPPING: dict[str, GICS_SECTORS] = {
     "Healthcare": "Health Care",
     "Industrials": "Industrials",
     "Technology": "Technology",
-    "Tech": "Technology",
     "Materials": "Materials",
     "Basic Materials": "Materials",
     "Real Estate": "Real Estate",

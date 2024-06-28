@@ -70,7 +70,15 @@ async def aget_sector_filter(
     """
     Context: Portfolio || Category: Analytics || Command: User Table || **Command: aget_sector_filter**.
 
-    Retrieves sector information for given symbols, filling in ETF categories for symbols without sectors.
+    Retrieves sector information for given symbols, filling in the ETF sector
+    with the `obb.etf.info` category column from `aget_etf_sector`. This function
+    also normalizes the sector to GICS_SECTORS via the
+    `.replace(GICS_SECTOR_MAPPING)` method, and renames the `category` column to
+    `sector`. The normalization is different from the normalization in
+    `aget_asset_class_filter` in that this function uses `.str.replace()` to
+    normalize the sector, while `aget_asset_class_filter` uses `.replace()`.
+    Using `.str.replace()` allows for Regex matching, but this method since all
+    values are known is slightly more performant.
 
     Parameters
     ----------
@@ -107,7 +115,7 @@ async def aget_sector_filter(
         etf_sectors = await aget_etf_sector(etf_symbols, provider="yfinance")
 
         # Normalize Sectors to GICS_SECTORS
-        etf_sectors = etf_sectors.with_columns(
+        etf_sectors = etf_sectors.rename({"category": "sector"}).with_columns(
             pl.col("sector").replace(GICS_SECTOR_MAPPING)
         )
 
@@ -132,8 +140,14 @@ async def aget_asset_class_filter(
     Context: Portfolio || Category: Analytics || Command: User Table || **Command: aget_asset_class_filter**.
 
     This function takes in a list of symbols and returns a LazyFrame with the
-    asset class for each symbol, normalized to standard ASSET_CLASSES and
-    renamed to 'asset_class'.
+    asset class for each symbol. Unlike aget_sector_filter, this function
+    normalizes the asset class using the normalize_asset_class() method, which
+    employs `.str.replace()` for Regex matching. This approach allows for more
+    flexible pattern matching but may be slightly less performant than the
+    direct `.replace()` method used in aget_sector_filter.
+
+    The function also renames the 'category' column to 'asset_class'. The
+    normalization process maps the asset classes to standard ASSET_CLASSES values.
     """
     out = await aget_asset_class(symbols, provider=provider)
     return out.pipe(normalize_asset_class).rename({"category": "asset_class"})

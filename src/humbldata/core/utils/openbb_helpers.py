@@ -295,11 +295,11 @@ async def aget_etf_sector(
     Asynchronously retrieves the sector information for the given ETF symbol(s).
 
     This function uses the `obb.etf.info` function and selects the `category`
-    column to get the sector information. This function does not handle EQUITY's
+    column to get the sector information. This function handles EQUITY
     symbols that are not ETF's the same way that `aget_equity_sector` does.
-    The sector returned hasn't been
-    normalized to GICS_SECTORS, it is the raw OpenBB sector output.
-    Sectors are normalized to GICS_SECTORS in the `aet_sector_filter` function.
+    The sector returned (under the OpenBB column name `category`) hasn't been
+    normalized to GICS_SECTORS, it is the raw OpenBB category output.
+    Sectors are normalized to GICS_SECTORS in the `aget_sector_filter` function.
 
     Parameters
     ----------
@@ -319,22 +319,17 @@ async def aget_etf_sector(
         result = await loop.run_in_executor(
             None, lambda: obb.etf.info(symbols, provider=provider)
         )
-        out = (
-            result.to_polars()
-            .lazy()
-            .select(["symbol", "category"])
-            .rename({"category": "sector"})
-        )
+        out = result.to_polars().lazy().select(["symbol", "category"])
         # Create a LazyFrame with all input symbols
         all_symbols = pl.LazyFrame({"symbol": symbols})
 
         # Left join to include all input symbols, filling missing sectors with null
         out = all_symbols.join(out, on="symbol", how="left").with_columns(
             [
-                pl.when(pl.col("sector").is_null())
+                pl.when(pl.col("category").is_null())
                 .then(None)
-                .otherwise(pl.col("sector"))
-                .alias("sector")
+                .otherwise(pl.col("category"))
+                .alias("category")
             ]
         )
     except OpenBBError:
@@ -343,7 +338,7 @@ async def aget_etf_sector(
         elif isinstance(symbols, pl.Series):
             symbols = symbols.to_list()
         return pl.LazyFrame(
-            {"symbol": symbols, "sector": [None] * len(symbols)}
+            {"symbol": symbols, "category": [None] * len(symbols)}
         )
     return out
 
@@ -392,8 +387,9 @@ async def aget_asset_class(
     """
     Asynchronously retrieves the asset class for the given symbol(s).
 
-    This function fetches asset class information for the provided symbols using the specified provider.
-    It normalizes the asset classes and handles potential errors, defaulting to "Equity" for unknown symbols.
+    This function fetches asset class information for the provided symbols using
+    the specified provider. It normalizes the asset classes and handles
+    potential errors, defaulting to "Equity" for unknown symbols.
 
     Parameters
     ----------
@@ -426,11 +422,7 @@ async def aget_asset_class(
         result = await loop.run_in_executor(
             None, lambda: obb.etf.info(symbols, provider=provider)
         )
-        out = (
-            result.to_polars().select(["symbol", "category"]).lazy()
-            # .pipe(normalize_asset_class)
-            # .rename({"category": "asset_class"})
-        )
+        out = result.to_polars().select(["symbol", "category"]).lazy()
         # Create a LazyFrame with all input symbols
         all_symbols = pl.LazyFrame({"symbol": symbols})
 
