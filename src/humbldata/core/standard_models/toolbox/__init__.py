@@ -92,7 +92,7 @@ class ToolboxQueryParams(QueryParams):
 
     """
 
-    symbol: str | list[str] = Field(
+    symbol: str | list[str] | pl.Series = Field(
         default="AAPL",
         title="Symbol/Ticker",
         description=QUERY_DESCRIPTIONS.get("symbol", ""),
