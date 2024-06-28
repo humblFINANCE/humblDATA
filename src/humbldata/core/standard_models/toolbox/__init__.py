@@ -122,7 +122,9 @@ class ToolboxQueryParams(QueryParams):
 
     @field_validator("symbol", mode="before", check_fields=False)
     @classmethod
-    def upper_symbol(cls, v: str | list[str] | set[str]) -> str | list[str]:
+    def upper_symbol(
+        cls, v: str | list[str] | set[str] | pl.Series
+    ) -> str | list[str]:
         """
         Convert the stock symbol to uppercase.
 
