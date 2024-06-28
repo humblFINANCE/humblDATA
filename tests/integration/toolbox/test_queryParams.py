@@ -24,8 +24,8 @@ from humbldata.core.utils.constants import OBB_EQUITY_PRICE_HISTORICAL_PROVIDERS
 )
 def test_toolbox_symbol_validator(input, expected):
     """Test symbol validation and conversion to uppercase."""
-    toolbox = ToolboxQueryParams(symbol=input)
-    assert toolbox.symbol == expected
+    toolbox = ToolboxQueryParams(symbols=input)
+    assert toolbox.symbols == expected
 
 
 @pytest.mark.parametrize(

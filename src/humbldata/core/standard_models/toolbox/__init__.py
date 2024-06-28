@@ -120,7 +120,7 @@ class ToolboxQueryParams(QueryParams):
         description=QUERY_DESCRIPTIONS.get("provider", ""),
     )
 
-    @field_validator("symbol", mode="before", check_fields=False)
+    @field_validator("symbols", mode="before", check_fields=False)
     @classmethod
     def upper_symbol(cls, v: str | list[str] | set[str]) -> str | list[str]:
         """

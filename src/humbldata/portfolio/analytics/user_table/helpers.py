@@ -158,6 +158,7 @@ async def aggregate_user_table_data(symbols: str | list[str] | pl.Series):
     tasks = [
         aget_latest_price(symbol=symbols),
         aget_sector_filter(symbols=symbols),
+        aget_asset_class_filter(symbols=symbols),
     ]
     lazyframes = await asyncio.gather(*tasks)
 

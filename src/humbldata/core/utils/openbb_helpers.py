@@ -319,7 +319,7 @@ async def aget_etf_sector(
         result = await loop.run_in_executor(
             None, lambda: obb.etf.info(symbols, provider=provider)
         )
-        out = result.to_polars().lazy().select(["symbol", "category"])
+        out = result.to_polars().select(["symbol", "category"]).lazy()
         # Create a LazyFrame with all input symbols
         all_symbols = pl.LazyFrame({"symbol": symbols})
 
@@ -348,35 +348,45 @@ def normalize_asset_class(data: pl.LazyFrame) -> pl.LazyFrame:
     Normalize the asset class in the given LazyFrame to standard ASSET_CLASSES values.
 
     This function uses string replacement to standardize asset class names in
-    the 'asset_class' column of the input LazyFrame. This function is intended to
-    be used with the data output from `obb.etf.info`.
+    the 'category' column of the input LazyFrame.
 
     Parameters
     ----------
     data : pl.LazyFrame
-        The input LazyFrame containing a 'category' column to be normalized.
+        The input LazyFrame containing 'symbol' and 'category' columns to be normalized.
 
     Returns
     -------
     pl.LazyFrame
-        A new LazyFrame with the 'asset_class' column normalized.
+        A new LazyFrame with the 'category' column normalized to standard asset classes.
 
     Notes
     -----
-    This function assumes that the input LazyFrame has an 'asset_class' column.
-    If the column doesn't exist, the function will return the input LazyFrame unchanged.
+    This function assumes that the input LazyFrame has 'symbol' and 'category' columns.
+    If these columns don't exist, the function may raise an error.
     """
     out = data.with_columns(
-        pl.col("category")
-        .str.replace(
-            r"^(?:\w+\s){0,2}\w*\bBond\b\w*(?:\s\w+){0,2}$", "Fixed Income"
+        pl.when(pl.col("symbol").is_in(["GLD", "FGDL", "BGLD"]))
+        .then(pl.lit("Foreign Exchange"))
+        .when(pl.col("symbol").is_in(["UUP", "UDN", "USDU"]))
+        .then(pl.lit("Cash"))
+        .when(pl.col("symbol").is_in(["BITI", "ETHU", "ZZZ"]))
+        .then(pl.lit("Crypto"))
+        .when(pl.col("symbol").is_in(["BDRY", "LNGG", "AMPD", "USOY"]))
+        .then(pl.lit("Commodity"))
+        .otherwise(
+            pl.col("category")
+            .str.replace(
+                r"^(?:\w+\s){0,2}\w*\bBond\b\w*(?:\s\w+){0,2}$", "Fixed Income"
+            )
+            .str.replace(r".*Commodities.*", "Commodity")
+            .str.replace(r".*Digital.*", "Crypto")
+            .str.replace(r".*Currency.*", "Foreign Exchange")
+            .str.replace(r".*Equity.*", "Equity")
+            .str.replace("Utilities", "Equity")
         )
-        .str.replace(r".*Commodities.*", "Commodity")
-        .str.replace(r".*Digital.*", "Crypto")
-        .str.replace(r".*Currency.*", "Foreign Exchange")
-        .str.replace(r".*Equity.*", "Equity")
+        .alias("category")
     )
-
     return out
 
 
@@ -426,7 +436,7 @@ async def aget_asset_class(
         # Create a LazyFrame with all input symbols
         all_symbols = pl.LazyFrame({"symbol": symbols})
 
-        # Left join to include all input symbols, filling missing sectors with null
+        # Left join to include all input symbols, filling missing categories with 'Equity'
         out = all_symbols.join(out, on="symbol", how="left").with_columns(
             [
                 pl.when(pl.col("category").is_null())
