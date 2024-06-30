@@ -10,6 +10,9 @@ from datetime import datetime, timedelta
 import polars as pl
 
 from humbldata.core.standard_models.abstract.errors import HumblDataError
+from humbldata.core.standard_models.portfolio.analytics.etf_category import (
+    ETFCategoryData,
+)
 from humbldata.core.utils.constants import (
     GICS_SECTOR_MAPPING,
     GICS_SECTORS,
@@ -17,16 +20,16 @@ from humbldata.core.utils.constants import (
     OBB_ETF_INFO_PROVIDERS,
 )
 from humbldata.core.utils.openbb_helpers import (
-    aget_asset_class,
     aget_equity_sector,
-    aget_etf_sector,
+    aget_etf_category,
     aget_latest_price,
-    normalize_asset_class,
 )
 from humbldata.toolbox.toolbox_controller import Toolbox
 
 
-async def generate_user_table_toolbox(symbol: str, user_role: str) -> Toolbox:
+async def generate_user_table_toolbox(
+    symbols: str | list[str], user_role: str
+) -> Toolbox:
     """
     Generate a Toolbox instance based on the user's role.
 
@@ -56,7 +59,7 @@ async def generate_user_table_toolbox(symbol: str, user_role: str) -> Toolbox:
         user_role.lower(), end_date - timedelta(days=365)
     )
     return Toolbox(
-        symbol=symbol,
+        symbols=symbols,
         interval="1d",
         start_date=start_date.strftime("%Y-%m-%d"),
         end_date=end_date.strftime("%Y-%m-%d"),
@@ -66,6 +69,7 @@ async def generate_user_table_toolbox(symbol: str, user_role: str) -> Toolbox:
 async def aget_sector_filter(
     symbols: str | list[str] | pl.Series,
     provider: OBB_EQUITY_PROFILE_PROVIDERS | None = "yfinance",
+    etf_data: ETFCategoryData | None = None,
 ) -> pl.LazyFrame:
     """
     Context: Portfolio || Category: Analytics || Command: User Table || **Command: aget_sector_filter**.
@@ -112,19 +116,28 @@ async def aget_sector_filter(
 
     # Get ETF categories for symbols with null sectors
     if etf_symbols:
-        etf_sectors = await aget_etf_sector(etf_symbols, provider="yfinance")
+        if etf_data is None:
+            etf_categories = await aget_etf_category(
+                etf_symbols, provider="yfinance"
+            )
+        else:
+            # Remove columns with NULL (incoming equity symbols from ETF_DATA)
+            # since only etf symbols are collected from logic above
+            # Validation
+            etf_data = etf_data.filter(pl.col("category").is_not_null())
+            etf_categories = ETFCategoryData(etf_data)
 
         # Normalize Sectors to GICS_SECTORS
-        etf_sectors = etf_sectors.rename({"category": "sector"}).with_columns(
-            pl.col("sector").replace(GICS_SECTOR_MAPPING)
-        )
+        etf_categories = etf_categories.rename(
+            {"category": "sector"}
+        ).with_columns(pl.col("sector").replace(GICS_SECTOR_MAPPING))
 
         # If all symbols are ETFs, return the ETF sectors (no need to combine)
         if etf_symbols == symbols:
-            out_sectors = etf_sectors
+            out_sectors = etf_categories
         else:
             out_sectors = pl.concat(
-                [equity_sectors, etf_sectors], how="vertical"
+                [equity_sectors, etf_categories], how="vertical"
             )
     else:
         out_sectors = equity_sectors
@@ -132,9 +145,57 @@ async def aget_sector_filter(
     return out_sectors
 
 
+def normalize_asset_class(data: pl.LazyFrame) -> pl.LazyFrame:
+    """
+    Normalize the asset class in the given LazyFrame to standard ASSET_CLASSES values.
+
+    This function uses string replacement to standardize asset class names in
+    the 'category' column of the input LazyFrame.
+
+    Parameters
+    ----------
+    data : pl.LazyFrame
+        The input LazyFrame containing 'symbol' and 'category' columns to be normalized.
+
+    Returns
+    -------
+    pl.LazyFrame
+        A new LazyFrame with the 'category' column normalized to standard asset classes.
+
+    Notes
+    -----
+    This function assumes that the input LazyFrame has 'symbol' and 'category' columns.
+    If these columns don't exist, the function may raise an error.
+    """
+    out = data.with_columns(
+        pl.when(pl.col("symbol").is_in(["GLD", "FGDL", "BGLD"]))
+        .then(pl.lit("Foreign Exchange"))
+        .when(pl.col("symbol").is_in(["UUP", "UDN", "USDU"]))
+        .then(pl.lit("Cash"))
+        .when(pl.col("symbol").is_in(["BITI", "ETHU", "ZZZ"]))
+        .then(pl.lit("Crypto"))
+        .when(pl.col("symbol").is_in(["BDRY", "LNGG", "AMPD", "USOY"]))
+        .then(pl.lit("Commodity"))
+        .otherwise(
+            pl.col("category")
+            .str.replace(
+                r"^(?:\w+\s){0,2}\w*\bBond\b\w*(?:\s\w+){0,2}$", "Fixed Income"
+            )
+            .str.replace(r".*Commodities.*", "Commodity")
+            .str.replace(r".*Digital.*", "Crypto")
+            .str.replace(r".*Currency.*", "Foreign Exchange")
+            .str.replace(r".*Equity.*", "Equity")
+            .str.replace("Utilities", "Equity")
+        )
+        .alias("category")
+    )
+    return out
+
+
 async def aget_asset_class_filter(
     symbols: str | list[str] | pl.Series,
     provider: OBB_ETF_INFO_PROVIDERS | None = "yfinance",
+    etf_data: ETFCategoryData | None = None,
 ) -> pl.LazyFrame:
     """
     Context: Portfolio || Category: Analytics || Command: User Table || **Command: aget_asset_class_filter**.
@@ -149,19 +210,50 @@ async def aget_asset_class_filter(
     The function also renames the 'category' column to 'asset_class'. The
     normalization process maps the asset classes to standard ASSET_CLASSES values.
     """
-    out = await aget_asset_class(symbols, provider=provider)
+    if etf_data is None:
+        out = await aget_etf_category(symbols, provider=provider)
+    else:
+        out = ETFCategoryData(etf_data)
+    out = out.with_columns(
+        [
+            pl.when(pl.col("category").is_null())
+            .then(pl.lit("Equity"))
+            .otherwise(pl.col("category"))
+            .alias("category")
+        ]
+    )
     return out.pipe(normalize_asset_class).rename({"category": "asset_class"})
 
 
 async def aggregate_user_table_data(symbols: str | list[str] | pl.Series):
-    # Fetch data from all sources concurrently
+    # First, fetch ETF data
+    etf_data = await aget_etf_category(symbols=symbols)
+    toolbox = await generate_user_table_toolbox(
+        symbols=symbols, user_role="anonymous"
+    )
+    mandelbrot = toolbox.technical.mandelbrot_channel().to_polars(collect=False)
+    # Fetch data from all sources concurrently, passing etf_data where needed
     tasks = [
         aget_latest_price(symbol=symbols),
-        aget_sector_filter(symbols=symbols),
-        aget_asset_class_filter(symbols=symbols),
+        aget_sector_filter(symbols=symbols, etf_data=etf_data),
+        aget_asset_class_filter(symbols=symbols, etf_data=etf_data),
     ]
     lazyframes = await asyncio.gather(*tasks)
 
     # Combine all DataFrames into a single LazyFrame
-    out = pl.concat(lazyframes, how="align").lazy()
+    out = (
+        pl.concat(lazyframes, how="align")
+        .lazy()
+        .join(mandelbrot, on="symbol", how="left")
+    ).select(
+        [
+            "date",
+            "symbol",
+            "bottom_price",
+            "recent_price",
+            "top_price",
+            "sector",
+            "asset_class",
+        ]
+    )
     return out
