@@ -287,12 +287,12 @@ async def aget_equity_sector(
         )
 
 
-async def aget_etf_sector(
+async def aget_etf_category(
     symbols: str | list[str] | pl.Series,
     provider: OBB_ETF_INFO_PROVIDERS | None = "yfinance",
 ) -> pl.LazyFrame:
     """
-    Asynchronously retrieves the sector information for the given ETF symbol(s).
+    Asynchronously retrieves the category information for the given ETF symbol(s).
 
     This function uses the `obb.etf.info` function and selects the `category`
     column to get the sector information. This function handles EQUITY
@@ -387,70 +387,4 @@ def normalize_asset_class(data: pl.LazyFrame) -> pl.LazyFrame:
         )
         .alias("category")
     )
-    return out
-
-
-async def aget_asset_class(
-    symbols: str | list[str] | pl.Series,
-    provider: OBB_ETF_INFO_PROVIDERS | None = "yfinance",
-) -> pl.LazyFrame:
-    """
-    Asynchronously retrieves the asset class for the given symbol(s).
-
-    This function fetches asset class information for the provided symbols using
-    the specified provider. It normalizes the asset classes and handles
-    potential errors, defaulting to "Equity" for unknown symbols.
-
-    Parameters
-    ----------
-    symbols : str | list[str] | pl.Series
-        The symbol or symbols for which to retrieve asset class information.
-    provider : OBB_ETF_INFO_PROVIDERS | None, optional
-        The data provider to use for fetching ETF information. Defaults to "yfinance".
-
-    Returns
-    -------
-    pl.LazyFrame
-        A LazyFrame containing two columns:
-        - 'symbol': The input symbols.
-        - 'asset_class': The corresponding asset classes, normalized to standard values.
-
-    Raises
-    ------
-    OpenBBError
-        If there's an error fetching data from the provider. In this case, it returns a LazyFrame
-        with all asset classes set to "Equity".
-
-    Notes
-    -----
-    - The function uses OpenBB's ETF info functionality to fetch the initial data.
-    - Asset classes are normalized using the `normalize_asset_class` function.
-    - If a symbol's asset class is not found, it defaults to "Equity".
-    """
-    loop = asyncio.get_event_loop()
-    try:
-        result = await loop.run_in_executor(
-            None, lambda: obb.etf.info(symbols, provider=provider)
-        )
-        out = result.to_polars().select(["symbol", "category"]).lazy()
-        # Create a LazyFrame with all input symbols
-        all_symbols = pl.LazyFrame({"symbol": symbols})
-
-        # Left join to include all input symbols, filling missing categories with 'Equity'
-        out = all_symbols.join(out, on="symbol", how="left").with_columns(
-            [
-                pl.when(pl.col("category").is_null())
-                .then(pl.lit("Equity"))
-                .otherwise(pl.col("category"))
-                .alias("category")
-            ]
-        )
-    except OpenBBError:
-        if isinstance(symbols, str):
-            symbols = [symbols]
-        elif isinstance(symbols, pl.Series):
-            symbols = symbols.to_list()
-        return pl.LazyFrame(
-            {"symbol": symbols, "category": ["Equity"] * len(symbols)}
-        )
     return out

@@ -17,9 +17,8 @@ from humbldata.core.utils.constants import (
     OBB_ETF_INFO_PROVIDERS,
 )
 from humbldata.core.utils.openbb_helpers import (
-    aget_asset_class,
     aget_equity_sector,
-    aget_etf_sector,
+    aget_etf_category,
     aget_latest_price,
     normalize_asset_class,
 )
@@ -112,19 +111,21 @@ async def aget_sector_filter(
 
     # Get ETF categories for symbols with null sectors
     if etf_symbols:
-        etf_sectors = await aget_etf_sector(etf_symbols, provider="yfinance")
+        etf_categories = await aget_etf_category(
+            etf_symbols, provider="yfinance"
+        )
 
         # Normalize Sectors to GICS_SECTORS
-        etf_sectors = etf_sectors.rename({"category": "sector"}).with_columns(
-            pl.col("sector").replace(GICS_SECTOR_MAPPING)
-        )
+        etf_categories = etf_categories.rename(
+            {"category": "sector"}
+        ).with_columns(pl.col("sector").replace(GICS_SECTOR_MAPPING))
 
         # If all symbols are ETFs, return the ETF sectors (no need to combine)
         if etf_symbols == symbols:
-            out_sectors = etf_sectors
+            out_sectors = etf_categories
         else:
             out_sectors = pl.concat(
-                [equity_sectors, etf_sectors], how="vertical"
+                [equity_sectors, etf_categories], how="vertical"
             )
     else:
         out_sectors = equity_sectors
@@ -149,7 +150,15 @@ async def aget_asset_class_filter(
     The function also renames the 'category' column to 'asset_class'. The
     normalization process maps the asset classes to standard ASSET_CLASSES values.
     """
-    out = await aget_asset_class(symbols, provider=provider)
+    out = await aget_etf_category(symbols, provider=provider)
+    out = out.with_columns(
+        [
+            pl.when(pl.col("category").is_null())
+            .then(pl.lit("Equity"))
+            .otherwise(pl.col("category"))
+            .alias("category")
+        ]
+    )
     return out.pipe(normalize_asset_class).rename({"category": "asset_class"})
 
 
