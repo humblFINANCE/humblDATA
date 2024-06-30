@@ -34,7 +34,7 @@ class UserTableQueryParams(QueryParams):
         to a comma separated string of uppercase symbols : ['AAPL', 'MSFT']
     """
 
-    symbol: str | list[str] | set[str] = pa.Field(
+    symbols: str | list[str] | set[str] = pa.Field(
         default="AAPL",
         title="Symbol",
         description=QUERY_DESCRIPTIONS.get("symbol", ""),
@@ -45,7 +45,7 @@ class UserTableQueryParams(QueryParams):
         description=QUERY_DESCRIPTIONS.get("user_role", ""),
     )
 
-    @field_validator("symbol", mode="before", check_fields=False)
+    @field_validator("symbols", mode="before", check_fields=False)
     @classmethod
     def upper_symbol(cls, v: str | list[str] | set[str]) -> str | list[str]:
         """
@@ -81,7 +81,7 @@ class UserTableData(Data):
     This Data model is used to validate data in the `.transform_data()` method of the `UserTableFetcher` class.
     """
 
-    symbol: pl.Utf8 = pa.Field(
+    symbols: pl.Utf8 = pa.Field(
         default=None,
         title="Symbol",
         description=QUERY_DESCRIPTIONS.get("symbol", ""),

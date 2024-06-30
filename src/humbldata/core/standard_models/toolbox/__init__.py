@@ -137,7 +137,7 @@ class ToolboxQueryParams(QueryParams):
             The uppercase stock symbol or a comma-separated string of uppercase
             symbols.
         """
-        # If v is a string, split it by commas into a list. Otherwise, ensure it's a list.
+        # If v is a string, split it by commas into a list. Otherwie, ensure it's a list.
         v = v.split(",") if isinstance(v, str) else v
 
         # Trim whitespace and check if all elements in the list are strings

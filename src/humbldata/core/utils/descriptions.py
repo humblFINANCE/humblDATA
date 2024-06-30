@@ -38,4 +38,5 @@ DATA_DESCRIPTIONS = {
     "risk_reward_ratio": "The risk-reward ratio for the asset",
     "asset_class": "The class of the asset (e.g., equity, bond, commodity)",
     "humbl_suggestion": "humbl's recommendation for the asset",
+    "category": "The category/sector of the asset from `obb.etf.info()`",
 }

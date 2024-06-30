@@ -1,6 +1,7 @@
 """A wrapper around OpenBB Data Standardized Model to use with humbldata."""
 
 import pandera.polars as pa
+import polars as pl
 
 
 class Data(pa.DataFrameModel):
