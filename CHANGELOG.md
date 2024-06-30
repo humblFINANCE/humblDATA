@@ -1,3 +1,18 @@
+## v1.5.0 (2024-06-30)
+
+### ✨ Features
+
+- **aget_latest_price**: collects  for etf and
+
+### 🐛🚑️ Fixes
+
+- **QueryParams**: removed  for field typing
+- **upper_symbol validator**: added pl.Series typing
+- **ToolboxQueryParams**: added  type to valid symbols input
+- **aget...filter**: renaming columns and nnormalizing category in the filter
+- **aget_etf_sector**: asigning result to
+- **aget_etf_sector**: now retunrs clean data if it gets an ETF or EQUITY symbol
+
 ## v1.4.0 (2024-06-24)
 
 ### ✨ Features
