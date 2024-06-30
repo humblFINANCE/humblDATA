@@ -27,7 +27,9 @@ from humbldata.core.utils.openbb_helpers import (
 from humbldata.toolbox.toolbox_controller import Toolbox
 
 
-async def generate_user_table_toolbox(symbol: str, user_role: str) -> Toolbox:
+async def generate_user_table_toolbox(
+    symbols: str | list[str], user_role: str
+) -> Toolbox:
     """
     Generate a Toolbox instance based on the user's role.
 
@@ -57,7 +59,7 @@ async def generate_user_table_toolbox(symbol: str, user_role: str) -> Toolbox:
         user_role.lower(), end_date - timedelta(days=365)
     )
     return Toolbox(
-        symbol=symbol,
+        symbols=symbols,
         interval="1d",
         start_date=start_date.strftime("%Y-%m-%d"),
         end_date=end_date.strftime("%Y-%m-%d"),
@@ -226,7 +228,10 @@ async def aget_asset_class_filter(
 async def aggregate_user_table_data(symbols: str | list[str] | pl.Series):
     # First, fetch ETF data
     etf_data = await aget_etf_category(symbols=symbols)
-
+    toolbox = await generate_user_table_toolbox(
+        symbols=symbols, user_role="anonymous"
+    )
+    mandelbrot = toolbox.technical.mandelbrot_channel().to_polars(collect=False)
     # Fetch data from all sources concurrently, passing etf_data where needed
     tasks = [
         aget_latest_price(symbol=symbols),
@@ -236,5 +241,19 @@ async def aggregate_user_table_data(symbols: str | list[str] | pl.Series):
     lazyframes = await asyncio.gather(*tasks)
 
     # Combine all DataFrames into a single LazyFrame
-    out = pl.concat(lazyframes, how="align").lazy()
+    out = (
+        pl.concat(lazyframes, how="align")
+        .lazy()
+        .join(mandelbrot, on="symbol", how="left")
+    ).select(
+        [
+            "date",
+            "symbol",
+            "bottom_price",
+            "recent_price",
+            "top_price",
+            "sector",
+            "asset_class",
+        ]
+    )
     return out

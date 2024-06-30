@@ -324,7 +324,7 @@ class MandelbrotChannelFetcher:
         """
         self.equity_historical_data: pl.LazyFrame = (
             obb.equity.price.historical(
-                symbol=self.context_params.symbol,
+                symbol=self.context_params.symbols,
                 start_date=self.context_params.start_date,
                 end_date=self.context_params.end_date,
                 provider=self.context_params.provider,
@@ -335,10 +335,10 @@ class MandelbrotChannelFetcher:
             .lazy()
         ).drop(["dividend", "split_ratio"])
 
-        if len(self.context_params.symbol) == 1:
+        if len(self.context_params.symbols) == 1:
             self.equity_historical_data = (
                 self.equity_historical_data.with_columns(
-                    symbol=pl.lit(self.context_params.symbol[0])
+                    symbol=pl.lit(self.context_params.symbols[0])
                 )
             )
         return self
