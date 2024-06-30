@@ -4,7 +4,7 @@ __docformat__ = "numpy"
 import functools
 import logging
 from collections.abc import Callable
-from typing import Any, Optional
+from typing import Any
 
 
 # Assuming get_current_system() and DEBUG_MODE are defined elsewhere

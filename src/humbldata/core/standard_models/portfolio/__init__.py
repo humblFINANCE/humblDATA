@@ -6,6 +6,7 @@ This module defines the QueryParams and Data classes for the Portfolio context.
 
 from typing import Literal
 
+import polars as pl
 from pydantic import Field, field_validator
 
 from humbldata.core.standard_models.abstract.data import Data
@@ -39,10 +40,10 @@ class PortfolioQueryParams(QueryParams):
         The role of the user.
     """
 
-    symbol: str | list[str] = Field(
+    symbols: str | list[str] = Field(
         default="AAPL",
-        title="Symbol",
-        description=QUERY_DESCRIPTIONS.get("symbol", ""),
+        title="Symbols",
+        description=QUERY_DESCRIPTIONS.get("symbols", ""),
     )
     provider: OBB_EQUITY_PRICE_HISTORICAL_PROVIDERS = Field(
         default="yahoo",
@@ -55,7 +56,7 @@ class PortfolioQueryParams(QueryParams):
         description=QUERY_DESCRIPTIONS.get("user_role", ""),
     )
 
-    @field_validator("symbol", mode="before", check_fields=False)
+    @field_validator("symbols", mode="before", check_fields=False)
     @classmethod
     def upper_symbol(cls, v: str | list[str] | set[str]) -> str | list[str]:
         """

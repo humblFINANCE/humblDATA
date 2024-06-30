@@ -92,10 +92,10 @@ class ToolboxQueryParams(QueryParams):
 
     """
 
-    symbol: str | list[str] = Field(
+    symbols: str | list[str] = Field(
         default="AAPL",
-        title="Symbol/Ticker",
-        description=QUERY_DESCRIPTIONS.get("symbol", ""),
+        title="Symbols/Tickers",
+        description=QUERY_DESCRIPTIONS.get("symbols", ""),
     )
     interval: str | None = Field(
         default="1d",
@@ -120,7 +120,7 @@ class ToolboxQueryParams(QueryParams):
         description=QUERY_DESCRIPTIONS.get("provider", ""),
     )
 
-    @field_validator("symbol", mode="before", check_fields=False)
+    @field_validator("symbols", mode="before", check_fields=False)
     @classmethod
     def upper_symbol(cls, v: str | list[str] | set[str]) -> str | list[str]:
         """
@@ -137,7 +137,7 @@ class ToolboxQueryParams(QueryParams):
             The uppercase stock symbol or a comma-separated string of uppercase
             symbols.
         """
-        # If v is a string, split it by commas into a list. Otherwise, ensure it's a list.
+        # If v is a string, split it by commas into a list. Otherwie, ensure it's a list.
         v = v.split(",") if isinstance(v, str) else v
 
         # Trim whitespace and check if all elements in the list are strings

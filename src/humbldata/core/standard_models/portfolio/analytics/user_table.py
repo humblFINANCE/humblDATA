@@ -18,15 +18,8 @@ from humbldata.core.standard_models.abstract.humblobject import HumblObject
 from humbldata.core.standard_models.abstract.query_params import QueryParams
 from humbldata.core.standard_models.portfolio import PortfolioQueryParams
 from humbldata.core.utils.descriptions import QUERY_DESCRIPTIONS
-from humbldata.core.utils.openbb_helpers import get_latest_price, get_sector
-from humbldata.toolbox.toolbox_controller import Toolbox
 
 Q = TypeVar("Q", bound=PortfolioQueryParams)
-
-USERTABLE_QUERY_DESCRIPTIONS = {
-    "example_field1": "Description for example field 1",
-    "example_field2": "Description for example field 2",
-}
 
 
 class UserTableQueryParams(QueryParams):
@@ -41,10 +34,10 @@ class UserTableQueryParams(QueryParams):
         to a comma separated string of uppercase symbols : ['AAPL', 'MSFT']
     """
 
-    symbol: str | list[str] | set[str] = pa.Field(
+    symbols: str | list[str] | set[str] = pa.Field(
         default="AAPL",
         title="Symbol",
-        description="The stock symbol or ticker",
+        description=QUERY_DESCRIPTIONS.get("symbol", ""),
     )
     user_role: Literal["basic", "premium", "power", "admin"] = Field(
         default="basic",
@@ -52,7 +45,7 @@ class UserTableQueryParams(QueryParams):
         description=QUERY_DESCRIPTIONS.get("user_role", ""),
     )
 
-    @field_validator("symbol", mode="before", check_fields=False)
+    @field_validator("symbols", mode="before", check_fields=False)
     @classmethod
     def upper_symbol(cls, v: str | list[str] | set[str]) -> str | list[str]:
         """
@@ -88,50 +81,55 @@ class UserTableData(Data):
     This Data model is used to validate data in the `.transform_data()` method of the `UserTableFetcher` class.
     """
 
-    symbol: pl.Utf8 = pa.Field(
+    symbols: pl.Utf8 = pa.Field(
         default=None,
         title="Symbol",
-        description="The stock symbol or ticker",
+        description=QUERY_DESCRIPTIONS.get("symbol", ""),
     )
     last_price: pl.Float64 = pa.Field(
         default=None,
         title="Last Price",
-        description="The most recent price of the asset",
+        description=QUERY_DESCRIPTIONS.get("last_price", ""),
     )
     buy_price: pl.Float64 = pa.Field(
         default=None,
         title="Buy Price",
-        description="The recommended buy price for the asset",
+        description=QUERY_DESCRIPTIONS.get("buy_price", ""),
     )
     sell_price: pl.Float64 = pa.Field(
         default=None,
         title="Sell Price",
-        description="The recommended sell price for the asset",
+        description=QUERY_DESCRIPTIONS.get("sell_price", ""),
     )
-    up_down: pl.Utf8 = pa.Field(
+    upside: pl.Float64 = pa.Field(
         default=None,
-        title="Up/Down",
-        description="Indicator of price movement (up or down)",
+        title="Upside",
+        description="The potential upside of the asset",
     )
-    risk_reward: pl.Float64 = pa.Field(
+    downside: pl.Float64 = pa.Field(
         default=None,
-        title="Risk/Reward",
-        description="The risk-reward ratio for the asset",
+        title="Downside",
+        description="The potential downside of the asset",
+    )
+    risk_reward_ratio: pl.Float64 = pa.Field(
+        default=None,
+        title="Risk/Reward Ratio",
+        description=QUERY_DESCRIPTIONS.get("risk_reward_ratio", ""),
     )
     asset_class: pl.Utf8 = pa.Field(
         default=None,
         title="Asset Class",
-        description="The class of the asset (e.g., equity, bond, commodity)",
+        description=QUERY_DESCRIPTIONS.get("asset_class", ""),
     )
     sector: pl.Utf8 = pa.Field(
         default=None,
         title="Sector",
-        description="The sector to which the asset belongs",
+        description=QUERY_DESCRIPTIONS.get("sector", ""),
     )
     humbl_suggestion: pl.Utf8 = pa.Field(
         default=None,
         title="humblSuggestion",
-        description="humbl's recommendation for the asset",
+        description=QUERY_DESCRIPTIONS.get("humbl_suggestion", ""),
     )
 
 
@@ -224,31 +222,8 @@ class UserTableFetcher:
         -------
         pl.DataFrame
             The extracted data as a Polars DataFrame.
+
         """
-        # Setup Toolbox
-        # TODO: make different toolboxes for different user_roles
-        # TODO: have different date collection for different users
-
-        toolbox = Toolbox(
-            symbol=self.context_params.symbol,
-            interval="1d",
-            start_date="2020-01-01",
-            end_date="2024-01-01",
-        )
-
-        # Get last_price from OpenBB
-        last_prices_df = get_latest_price(
-            symbol=self.context_params.symbol,
-            provider=self.context_params.provider,
-        )
-        # Get Mandelbrot Data
-        mandelbrot_df = toolbox.technical.mandelbrot_channel(
-            window="1m", historical=True
-        )
-
-        # Get sector Data
-        sectors_df = get_sector(symbols=self.context_params.symbol)
-
         self.data = pl.DataFrame()
         return self
 
