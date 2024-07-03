@@ -295,23 +295,6 @@ class HumblObject(Tagged, Generic[T]):
         """
         Check if the results are empty.
 
-        Parameters
-        ----------
-        equity_data : bool, optional
-            A flag to specify whether to use equity-specific data for the
-            check. Default is False.
-
-        Returns
-        -------
-        bool
-            True if the results are empty, False otherwise.
-        """
-        return self.to_polars(collect=True, equity_data=equity_data).is_empty()
-
-    def is_empty(self, equity_data: bool = False) -> bool:
-        """
-        Check if the results are empty.
-
         Returns
         -------
         bool
