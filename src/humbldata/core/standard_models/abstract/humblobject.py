@@ -267,6 +267,47 @@ class HumblObject(Tagged, Generic[T]):
             name=name
         )
 
+    def to_json(self, equity_data: bool = False) -> str:
+        """
+        Convert the results to a JSON string.
+
+        Parameters
+        ----------
+        equity_data : bool, optional
+            A flag to specify whether to use equity-specific data for the
+            conversion. Default is False.
+
+        Returns
+        -------
+        str
+            The results as a JSON string.
+        """
+        import json
+
+        # TODO: add support for pl.write_json
+        return json.dumps(
+            self.to_polars(collect=True, equity_data=equity_data).to_dict(
+                as_series=False
+            )
+        )
+
+    def is_empty(self, equity_data: bool = False) -> bool:
+        """
+        Check if the results are empty.
+
+        Parameters
+        ----------
+        equity_data : bool, optional
+            A flag to specify whether to use equity-specific data for the
+            check. Default is False.
+
+        Returns
+        -------
+        bool
+            True if the results are empty, False otherwise.
+        """
+        return self.to_polars(collect=True, equity_data=equity_data).is_empty()
+
     def is_empty(self, equity_data: bool = False) -> bool:
         """
         Check if the results are empty.
