@@ -199,7 +199,10 @@ class HumblObject(Tagged, Generic[T]):
         return self.to_polars(collect=True, equity_data=equity_data).to_numpy()
 
     def to_dict(
-        self, row_wise: bool = False, equity_data: bool = False
+        self,
+        row_wise: bool = False,
+        equity_data: bool = False,
+        as_series: bool = True,
     ) -> dict | list[dict]:
         """
         Transform the stored data into a dictionary or a list of dictionaries.
@@ -224,6 +227,10 @@ class HumblObject(Tagged, Generic[T]):
             conversion. This parameter allows for flexibility in handling
             different types of data stored within the object. Default is
             False.
+        as_series : bool, optional
+            If True, the method returns a pl.Series with values as Series. If
+            False, the method returns a dict with values as List[Any].
+            Default is True.
 
         Returns
         -------
@@ -234,7 +241,9 @@ class HumblObject(Tagged, Generic[T]):
             return self.to_polars(
                 collect=True, equity_data=equity_data
             ).to_dicts()
-        return self.to_polars(collect=True, equity_data=equity_data).to_dict()
+        return self.to_polars(collect=True, equity_data=equity_data).to_dict(
+            as_series=as_series
+        )
 
     def to_arrow(self, equity_data: bool = False) -> pa.Table:
         """
@@ -283,13 +292,19 @@ class HumblObject(Tagged, Generic[T]):
             The results as a JSON string.
         """
         import json
+        from datetime import date, datetime
 
-        # TODO: add support for pl.write_json
-        return json.dumps(
-            self.to_polars(collect=True, equity_data=equity_data).to_dict(
-                as_series=False
-            )
+        def json_serial(obj):
+            """JSON serializer for objects not serializable by default json code."""
+            if isinstance(obj, datetime | date):
+                return obj.isoformat()
+            msg = f"Type {type(obj)} not serializable"
+            raise TypeError(msg)
+
+        data = self.to_polars(collect=True, equity_data=equity_data).to_dict(
+            as_series=False
         )
+        return json.dumps(data, default=json_serial)
 
     def is_empty(self, equity_data: bool = False) -> bool:
         """
