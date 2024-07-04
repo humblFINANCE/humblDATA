@@ -225,6 +225,78 @@ async def aget_asset_class_filter(
     return out.pipe(normalize_asset_class).rename({"category": "asset_class"})
 
 
+def calc_up_down_pct(
+    data: pl.LazyFrame,
+    recent_price_col: str = "recent_price",
+    bottom_price_col: str = "bottom_price",
+    top_price_col: str = "top_price",
+    output_col: str = "ud_pct",
+    ratio_col: str = "ud_ratio",
+) -> pl.LazyFrame:
+    """
+    Calculate the up and down percentages for price movements and express them as a ratio.
+
+    This function computes the percentage change from the recent price to the bottom price,
+    and from the recent price to the top price. The results are combined into a single string
+    column, and the ratio is provided in a separate column.
+
+    Parameters
+    ----------
+    df : pl.DataFrame
+        Input DataFrame containing price data.
+    recent_price_col : str, optional
+        Name of the column containing recent prices. Default is "recent_price".
+    bottom_price_col : str, optional
+        Name of the column containing bottom prices. Default is "bottom_price".
+    top_price_col : str, optional
+        Name of the column containing top prices. Default is "top_price".
+    output_col : str, optional
+        Name of the output column for price percentages. Default is "price_percentages".
+    ratio_col : str, optional
+        Name of the output column for the up/down ratio. Default is "ud_ratio".
+
+    Returns
+    -------
+    pl.DataFrame
+        DataFrame with additional columns containing the calculated price percentages and ratio.
+
+    Notes
+    -----
+    The output column will contain strings in the format "-X.XX / +Y.YY", where X.XX is the
+    percentage decrease from recent to bottom price, and Y.YY is the percentage increase from
+    recent to top price. The ratio column will contain the ratio of these two percentages.
+    """
+    return data.with_columns(
+        [
+            (
+                "-"
+                + (
+                    (pl.col(recent_price_col) - pl.col(bottom_price_col))
+                    / pl.col(recent_price_col)
+                    * 100
+                )
+                .abs()
+                .round(2)
+                .cast(pl.Utf8)
+                + " / +"
+                + (
+                    (pl.col(top_price_col) - pl.col(recent_price_col))
+                    / pl.col(recent_price_col)
+                    * 100
+                )
+                .round(2)
+                .cast(pl.Utf8)
+            ).alias(output_col),
+            (
+                (pl.col(recent_price_col) - pl.col(bottom_price_col))
+                / (pl.col(top_price_col) - pl.col(recent_price_col))
+            )
+            .round(2)
+            .alias(ratio_col),
+        ]
+    )
+
+
 async def aggregate_user_table_data(symbols: str | list[str] | pl.Series):
     # First, fetch ETF data
     etf_data = await aget_etf_category(symbols=symbols)
@@ -245,6 +317,7 @@ async def aggregate_user_table_data(symbols: str | list[str] | pl.Series):
         pl.concat(lazyframes, how="align")
         .lazy()
         .join(mandelbrot, on="symbol", how="left")
+        .pipe(calc_up_down_pct)
     ).select(
         [
             "date",
@@ -252,6 +325,8 @@ async def aggregate_user_table_data(symbols: str | list[str] | pl.Series):
             "bottom_price",
             "recent_price",
             "top_price",
+            "ud_pct",
+            "ud_ratio",
             "sector",
             "asset_class",
         ]
