@@ -30,7 +30,12 @@ class Portfolio(PortfolioQueryParams):
 
     Parameters
     ----------
-    # Add your AnalyticsQueryParams parameters here
+    symbol : str or list of str
+        The stock symbol(s) to query. Default is "AAPL".
+    provider : OBB_EQUITY_PRICE_HISTORICAL_PROVIDERS
+        The data provider for historical price data. Default is "yahoo".
+    user_role : {'basic', 'premium', 'power', 'admin'}
+        The role of the user. Default is "basic".
 
     Parameter Notes
     -----
@@ -39,6 +44,9 @@ class Portfolio(PortfolioQueryParams):
     Intended to execute operations on core data sets. This approach enables
     composable and standardized querying while accommodating data-specific
     collection logic.
+
+    The symbols you input here will be used as `Portfolio` symbols for the
+    methods available in the `analytics` submodule.
     """
 
     def __init__(self, *args, **kwargs):
