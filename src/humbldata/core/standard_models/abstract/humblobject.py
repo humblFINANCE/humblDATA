@@ -117,43 +117,46 @@ class HumblObject(Tagged, Generic[T]):
         self, collect: bool = True, equity_data: bool = False
     ) -> pl.LazyFrame | pl.DataFrame:
         """
-        Deserialize the stored results and optionally collect them into a Polars DataFrame.
+        Deserialize the stored results or return the LazyFrame, and optionally collect them into a Polars DataFrame.
 
         Parameters
         ----------
         collect : bool, optional
             If True, collects the deserialized LazyFrame into a DataFrame.
             Default is True.
+        equity_data : bool, optional
+            If True, processes equity_data instead of results.
+            Default is False.
 
         Returns
         -------
         pl.LazyFrame | pl.DataFrame
-            The deserialized results as a Polars LazyFrame or DataFrame,
+            The results as a Polars LazyFrame or DataFrame,
             depending on the collect parameter.
 
         Raises
         ------
         HumblDataError
-            If no results are found to deserialize
+            If no results or equity data are found to process
         """
-        if not equity_data:
-            if self.results is None or not self.results:
-                raise HumblDataError("No results found.")
+        data = self.equity_data if equity_data else self.results
 
-            with io.StringIO(self.results) as results_io:
-                if collect:
-                    out = pl.LazyFrame.deserialize(results_io).collect()
-                else:
-                    out = pl.LazyFrame.deserialize(results_io)
+        if data is None:
+            raise HumblDataError("No data found.")
+
+        if isinstance(data, pl.LazyFrame):
+            out = data
+        elif isinstance(data, str):
+            with io.StringIO(data) as data_io:
+                out = pl.LazyFrame.deserialize(data_io)
         else:
-            if self.equity_data is None or not self.equity_data:
-                raise HumblDataError("No raw data found.")
+            raise HumblDataError(
+                "Invalid data type. Expected LazyFrame or serialized string."
+            )
 
-            with io.StringIO(self.equity_data) as equity_data_io:
-                if collect:
-                    out = pl.LazyFrame.deserialize(equity_data_io).collect()
-                else:
-                    out = pl.LazyFrame.deserialize(equity_data_io)
+        if collect:
+            out = out.collect()
+
         return out
 
     def to_df(
@@ -199,7 +202,10 @@ class HumblObject(Tagged, Generic[T]):
         return self.to_polars(collect=True, equity_data=equity_data).to_numpy()
 
     def to_dict(
-        self, row_wise: bool = False, equity_data: bool = False
+        self,
+        row_wise: bool = False,
+        equity_data: bool = False,
+        as_series: bool = True,
     ) -> dict | list[dict]:
         """
         Transform the stored data into a dictionary or a list of dictionaries.
@@ -224,6 +230,10 @@ class HumblObject(Tagged, Generic[T]):
             conversion. This parameter allows for flexibility in handling
             different types of data stored within the object. Default is
             False.
+        as_series : bool, optional
+            If True, the method returns a pl.Series with values as Series. If
+            False, the method returns a dict with values as List[Any].
+            Default is True.
 
         Returns
         -------
@@ -234,7 +244,9 @@ class HumblObject(Tagged, Generic[T]):
             return self.to_polars(
                 collect=True, equity_data=equity_data
             ).to_dicts()
-        return self.to_polars(collect=True, equity_data=equity_data).to_dict()
+        return self.to_polars(collect=True, equity_data=equity_data).to_dict(
+            as_series=as_series
+        )
 
     def to_arrow(self, equity_data: bool = False) -> pa.Table:
         """
@@ -266,6 +278,36 @@ class HumblObject(Tagged, Generic[T]):
         return self.to_polars(collect=True, equity_data=equity_data).to_struct(
             name=name
         )
+
+    def to_json(self, equity_data: bool = False) -> str:
+        """
+        Convert the results to a JSON string.
+
+        Parameters
+        ----------
+        equity_data : bool, optional
+            A flag to specify whether to use equity-specific data for the
+            conversion. Default is False.
+
+        Returns
+        -------
+        str
+            The results as a JSON string.
+        """
+        import json
+        from datetime import date, datetime
+
+        def json_serial(obj):
+            """JSON serializer for objects not serializable by default json code."""
+            if isinstance(obj, datetime | date):
+                return obj.isoformat()
+            msg = f"Type {type(obj)} not serializable"
+            raise TypeError(msg)
+
+        data = self.to_polars(collect=True, equity_data=equity_data).to_dict(
+            as_series=False
+        )
+        return json.dumps(data, default=json_serial)
 
     def is_empty(self, equity_data: bool = False) -> bool:
         """

@@ -17,7 +17,15 @@ from humbldata.core.standard_models.abstract.data import Data
 from humbldata.core.standard_models.abstract.humblobject import HumblObject
 from humbldata.core.standard_models.abstract.query_params import QueryParams
 from humbldata.core.standard_models.portfolio import PortfolioQueryParams
-from humbldata.core.utils.descriptions import QUERY_DESCRIPTIONS
+from humbldata.core.utils.descriptions import (
+    DATA_DESCRIPTIONS,
+    QUERY_DESCRIPTIONS,
+)
+from humbldata.core.utils.openbb_helpers import aget_etf_category
+from humbldata.portfolio.analytics.user_table.helpers import (
+    aggregate_user_table_data,
+    generate_user_table_toolbox,
+)
 
 Q = TypeVar("Q", bound=PortfolioQueryParams)
 
@@ -28,10 +36,19 @@ class UserTableQueryParams(QueryParams):
 
     Parameters
     ----------
-    symbol : str | list[str] | set[str], default=""
-        The symbol or ticker of the stock. You can pass multiple tickers like:
-        "AAPL", "AAPL, MSFT" or ["AAPL", "MSFT"]. The input will be converted
-        to a comma separated string of uppercase symbols : ['AAPL', 'MSFT']
+    symbols : str | list[str] | set[str]
+        The symbol or ticker of the stock(s). Can be a single symbol, a comma-separated string,
+        or a list/set of symbols. Default is "AAPL".
+        Examples: "AAPL", "AAPL,MSFT", ["AAPL", "MSFT"]
+        All inputs will be converted to uppercase.
+
+    user_role : Literal["peon", "premium", "power", "permanent", "admin"]
+        The role of the user accessing the data. Default is "peon".
+
+    Notes
+    -----
+    The `symbols` input will be processed to ensure all symbols are uppercase
+    and properly formatted, regardless of the input format.
     """
 
     symbols: str | list[str] | set[str] = pa.Field(
@@ -39,10 +56,12 @@ class UserTableQueryParams(QueryParams):
         title="Symbol",
         description=QUERY_DESCRIPTIONS.get("symbol", ""),
     )
-    user_role: Literal["basic", "premium", "power", "admin"] = Field(
-        default="basic",
-        title="User Role",
-        description=QUERY_DESCRIPTIONS.get("user_role", ""),
+    user_role: Literal["peon", "premium", "power", "permanent", "admin"] = (
+        Field(
+            default="peon",
+            title="User Role",
+            description=QUERY_DESCRIPTIONS.get("user_role", ""),
+        )
     )
 
     @field_validator("symbols", mode="before", check_fields=False)
@@ -81,52 +100,49 @@ class UserTableData(Data):
     This Data model is used to validate data in the `.transform_data()` method of the `UserTableFetcher` class.
     """
 
-    symbols: pl.Utf8 = pa.Field(
+    symbol: pl.Utf8 = pa.Field(
         default=None,
         title="Symbol",
-        description=QUERY_DESCRIPTIONS.get("symbol", ""),
+        description=DATA_DESCRIPTIONS.get("symbol", ""),
+        alias="(symbols|symbol)",
+        regex=True,
     )
     last_price: pl.Float64 = pa.Field(
         default=None,
         title="Last Price",
-        description=QUERY_DESCRIPTIONS.get("last_price", ""),
+        description=DATA_DESCRIPTIONS.get("last_price", ""),
     )
     buy_price: pl.Float64 = pa.Field(
         default=None,
         title="Buy Price",
-        description=QUERY_DESCRIPTIONS.get("buy_price", ""),
+        description=DATA_DESCRIPTIONS.get("buy_price", ""),
     )
     sell_price: pl.Float64 = pa.Field(
         default=None,
         title="Sell Price",
-        description=QUERY_DESCRIPTIONS.get("sell_price", ""),
+        description=DATA_DESCRIPTIONS.get("sell_price", ""),
     )
-    upside: pl.Float64 = pa.Field(
+    ud_pct: pl.Utf8 = pa.Field(
         default=None,
-        title="Upside",
-        description="The potential upside of the asset",
+        title="Upside/Downside Percentage",
+        description=DATA_DESCRIPTIONS.get("ud_pct", ""),
     )
-    downside: pl.Float64 = pa.Field(
+    ud_ratio: pl.Float64 = pa.Field(
         default=None,
-        title="Downside",
-        description="The potential downside of the asset",
-    )
-    risk_reward_ratio: pl.Float64 = pa.Field(
-        default=None,
-        title="Risk/Reward Ratio",
-        description=QUERY_DESCRIPTIONS.get("risk_reward_ratio", ""),
+        title="Upside/Downside Ratio",
+        description=DATA_DESCRIPTIONS.get("ud_ratio", ""),
     )
     asset_class: pl.Utf8 = pa.Field(
         default=None,
         title="Asset Class",
-        description=QUERY_DESCRIPTIONS.get("asset_class", ""),
+        description=DATA_DESCRIPTIONS.get("asset_class", ""),
     )
     sector: pl.Utf8 = pa.Field(
         default=None,
         title="Sector",
-        description=QUERY_DESCRIPTIONS.get("sector", ""),
+        description=DATA_DESCRIPTIONS.get("sector", ""),
     )
-    humbl_suggestion: pl.Utf8 = pa.Field(
+    humbl_suggestion: pl.Utf8 | None = pa.Field(
         default=None,
         title="humblSuggestion",
         description=QUERY_DESCRIPTIONS.get("humbl_suggestion", ""),
@@ -214,7 +230,7 @@ class UserTableFetcher:
                 **self.command_params
             )
 
-    def extract_data(self):
+    async def extract_data(self):
         """
         Extract the data from the provider and returns it as a Polars DataFrame.
 
@@ -224,10 +240,17 @@ class UserTableFetcher:
             The extracted data as a Polars DataFrame.
 
         """
-        self.data = pl.DataFrame()
+        self.etf_data = await aget_etf_category(self.context_params.symbols)
+        self.toolbox = await generate_user_table_toolbox(
+            symbols=self.context_params.symbols,
+            user_role=self.command_params.user_role,
+        )
+        self.mandelbrot = self.toolbox.technical.mandelbrot_channel().to_polars(
+            collect=False
+        )
         return self
 
-    def transform_data(self):
+    async def transform_data(self):
         """
         Transform the command-specific data according to the user_table logic.
 
@@ -237,11 +260,17 @@ class UserTableFetcher:
             The transformed data as a Polars DataFrame
         """
         # Implement data transformation logic here
-        self.transformed_data = UserTableData(self.data)
-        self.transformed_data = self.transformed_data.serialize()
+        transformed_data: pl.LazyFrame = await aggregate_user_table_data(
+            symbols=self.context_params.symbols,
+            etf_data=self.etf_data,
+            mandelbrot_data=self.mandelbrot,
+            toolbox=self.toolbox,
+        )
+        self.transformed_data = UserTableData(transformed_data)
+        self.transformed_data = self.transformed_data
         return self
 
-    def fetch_data(self):
+    async def fetch_data(self):
         """
         Execute TET Pattern.
 
@@ -256,8 +285,8 @@ class UserTableFetcher:
             The HumblObject containing the transformed data and metadata.
         """
         self.transform_query()
-        self.extract_data()
-        self.transform_data()
+        await self.extract_data()
+        await self.transform_data()
 
         return HumblObject(
             results=self.transformed_data,

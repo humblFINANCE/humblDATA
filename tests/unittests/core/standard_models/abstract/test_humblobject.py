@@ -94,3 +94,35 @@ def test_to_struct(humblobject: HumblObject):
     """Test HumblObject `.to_struct()` method."""
     assert isinstance(humblobject.to_struct(), pl.Series)
     assert isinstance(humblobject.to_struct(equity_data=True), pl.Series)
+
+
+def test_to_json(humblobject: HumblObject):
+    """Test HumblObject `.to_json()` method."""
+    # Test with default parameters
+    json_result = humblobject.to_json()
+    assert isinstance(json_result, str)
+
+    # Verify that the result is valid JSON
+    import json
+
+    try:
+        json.loads(json_result)
+    except json.JSONDecodeError:
+        pytest.fail("Result is not valid JSON")
+
+    # Test with equity_data=True
+    json_result_equity = humblobject.to_json(equity_data=True)
+    assert isinstance(json_result_equity, str)
+
+    # Verify that the equity data result is valid JSON
+    try:
+        json.loads(json_result_equity)
+    except json.JSONDecodeError:
+        pytest.fail("Equity data result is not valid JSON")
+
+    # Optionally, you can add more specific checks on the content of the JSON
+    # For example, checking if certain keys are present in the parsed JSON
+    parsed_json = json.loads(json_result)
+    assert isinstance(parsed_json, dict)  # Assuming the result is a JSON object
+
+    # Add any other specific assertions based on the expected structure of your JSON output
