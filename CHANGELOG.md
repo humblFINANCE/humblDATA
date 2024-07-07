@@ -1,3 +1,23 @@
+## v1.6.0 (2024-07-07)
+
+### ✨ Features
+
+- **UserTable**:  available in
+- **humblObject**: added  method w/ tests
+- **humblobject**: added  method -- not tested yet
+
+### 🐛🚑️ Fixes
+
+- remove extra method
+
+### build
+
+- **deps-dev**: bump ruff from 0.4.9 to 0.5.0
+- **deps-dev**: bump tenacity from 8.4.1 to 8.4.2
+- **deps-dev**: bump scipy from 1.13.1 to 1.14.0
+- **deps-dev**: bump email-validator from 2.1.2 to 2.2.0
+- **deps-dev**: bump exchange-calendars from 4.5.4 to 4.5.5
+
 ## v1.5.0 (2024-06-30)
 
 ### ✨ Features
