@@ -104,7 +104,8 @@ class UserTableData(Data):
         default=None,
         title="Symbol",
         description=DATA_DESCRIPTIONS.get("symbol", ""),
-        # alias="symbols",
+        alias="(symbols|symbol)",
+        regex=True,
     )
     last_price: pl.Float64 = pa.Field(
         default=None,
