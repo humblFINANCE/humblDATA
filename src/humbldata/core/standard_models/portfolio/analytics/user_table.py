@@ -17,7 +17,10 @@ from humbldata.core.standard_models.abstract.data import Data
 from humbldata.core.standard_models.abstract.humblobject import HumblObject
 from humbldata.core.standard_models.abstract.query_params import QueryParams
 from humbldata.core.standard_models.portfolio import PortfolioQueryParams
-from humbldata.core.utils.descriptions import QUERY_DESCRIPTIONS
+from humbldata.core.utils.descriptions import (
+    DATA_DESCRIPTIONS,
+    QUERY_DESCRIPTIONS,
+)
 from humbldata.core.utils.openbb_helpers import aget_etf_category
 from humbldata.portfolio.analytics.user_table.helpers import (
     aggregate_user_table_data,
@@ -100,50 +103,45 @@ class UserTableData(Data):
     symbol: pl.Utf8 = pa.Field(
         default=None,
         title="Symbol",
-        description=QUERY_DESCRIPTIONS.get("symbol", ""),
+        description=DATA_DESCRIPTIONS.get("symbol", ""),
         # alias="symbols",
     )
     last_price: pl.Float64 = pa.Field(
         default=None,
         title="Last Price",
-        description=QUERY_DESCRIPTIONS.get("last_price", ""),
+        description=DATA_DESCRIPTIONS.get("last_price", ""),
     )
     buy_price: pl.Float64 = pa.Field(
         default=None,
         title="Buy Price",
-        description=QUERY_DESCRIPTIONS.get("buy_price", ""),
+        description=DATA_DESCRIPTIONS.get("buy_price", ""),
     )
     sell_price: pl.Float64 = pa.Field(
         default=None,
         title="Sell Price",
-        description=QUERY_DESCRIPTIONS.get("sell_price", ""),
+        description=DATA_DESCRIPTIONS.get("sell_price", ""),
     )
-    upside: pl.Float64 = pa.Field(
+    ud_pct: pl.Utf8 = pa.Field(
         default=None,
-        title="Upside",
-        description="The potential upside of the asset",
+        title="Upside/Downside Percentage",
+        description=DATA_DESCRIPTIONS.get("ud_pct", ""),
     )
-    downside: pl.Float64 = pa.Field(
+    ud_ratio: pl.Float64 = pa.Field(
         default=None,
-        title="Downside",
-        description="The potential downside of the asset",
-    )
-    risk_reward_ratio: pl.Float64 = pa.Field(
-        default=None,
-        title="Risk/Reward Ratio",
-        description=QUERY_DESCRIPTIONS.get("risk_reward_ratio", ""),
+        title="Upside/Downside Ratio",
+        description=DATA_DESCRIPTIONS.get("ud_ratio", ""),
     )
     asset_class: pl.Utf8 = pa.Field(
         default=None,
         title="Asset Class",
-        description=QUERY_DESCRIPTIONS.get("asset_class", ""),
+        description=DATA_DESCRIPTIONS.get("asset_class", ""),
     )
     sector: pl.Utf8 = pa.Field(
         default=None,
         title="Sector",
-        description=QUERY_DESCRIPTIONS.get("sector", ""),
+        description=DATA_DESCRIPTIONS.get("sector", ""),
     )
-    humbl_suggestion: pl.Utf8 = pa.Field(
+    humbl_suggestion: pl.Utf8 | None = pa.Field(
         default=None,
         title="humblSuggestion",
         description=QUERY_DESCRIPTIONS.get("humbl_suggestion", ""),
@@ -261,14 +259,14 @@ class UserTableFetcher:
             The transformed data as a Polars DataFrame
         """
         # Implement data transformation logic here
-        transformed_data = await aggregate_user_table_data(
+        transformed_data: pl.LazyFrame = await aggregate_user_table_data(
             symbols=self.context_params.symbols,
             etf_data=self.etf_data,
             mandelbrot_data=self.mandelbrot,
             toolbox=self.toolbox,
         )
         self.transformed_data = UserTableData(transformed_data)
-        self.transformed_data = self.transformed_data.serialize()
+        self.transformed_data = self.transformed_data
         return self
 
     async def fetch_data(self):

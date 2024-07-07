@@ -117,43 +117,46 @@ class HumblObject(Tagged, Generic[T]):
         self, collect: bool = True, equity_data: bool = False
     ) -> pl.LazyFrame | pl.DataFrame:
         """
-        Deserialize the stored results and optionally collect them into a Polars DataFrame.
+        Deserialize the stored results or return the LazyFrame, and optionally collect them into a Polars DataFrame.
 
         Parameters
         ----------
         collect : bool, optional
             If True, collects the deserialized LazyFrame into a DataFrame.
             Default is True.
+        equity_data : bool, optional
+            If True, processes equity_data instead of results.
+            Default is False.
 
         Returns
         -------
         pl.LazyFrame | pl.DataFrame
-            The deserialized results as a Polars LazyFrame or DataFrame,
+            The results as a Polars LazyFrame or DataFrame,
             depending on the collect parameter.
 
         Raises
         ------
         HumblDataError
-            If no results are found to deserialize
+            If no results or equity data are found to process
         """
-        if not equity_data:
-            if self.results is None or not self.results:
-                raise HumblDataError("No results found.")
+        data = self.equity_data if equity_data else self.results
 
-            with io.StringIO(self.results) as results_io:
-                if collect:
-                    out = pl.LazyFrame.deserialize(results_io).collect()
-                else:
-                    out = pl.LazyFrame.deserialize(results_io)
+        if data is None:
+            raise HumblDataError("No data found.")
+
+        if isinstance(data, pl.LazyFrame):
+            out = data
+        elif isinstance(data, str):
+            with io.StringIO(data) as data_io:
+                out = pl.LazyFrame.deserialize(data_io)
         else:
-            if self.equity_data is None or not self.equity_data:
-                raise HumblDataError("No raw data found.")
+            raise HumblDataError(
+                "Invalid data type. Expected LazyFrame or serialized string."
+            )
 
-            with io.StringIO(self.equity_data) as equity_data_io:
-                if collect:
-                    out = pl.LazyFrame.deserialize(equity_data_io).collect()
-                else:
-                    out = pl.LazyFrame.deserialize(equity_data_io)
+        if collect:
+            out = out.collect()
+
         return out
 
     def to_df(

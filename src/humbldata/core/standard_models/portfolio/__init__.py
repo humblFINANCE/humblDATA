@@ -50,8 +50,8 @@ class PortfolioQueryParams(QueryParams):
         title="Provider",
         description=QUERY_DESCRIPTIONS.get("provider", ""),
     )
-    user_role: Literal["basic", "premium", "power", "admin"] = Field(
-        default="basic",
+    user_role: Literal["peon", "premium", "power", "admin"] = Field(
+        default="peon",
         title="User Role",
         description=QUERY_DESCRIPTIONS.get("user_role", ""),
     )
