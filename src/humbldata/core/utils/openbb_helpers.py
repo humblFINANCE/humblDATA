@@ -339,5 +339,5 @@ async def aget_etf_category(
             symbols = symbols.to_list()
         return pl.LazyFrame(
             {"symbol": symbols, "category": [None] * len(symbols)}
-        )
+        ).cast(pl.Utf8)
     return out
