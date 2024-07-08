@@ -21,6 +21,7 @@ from humbldata.core.utils.descriptions import (
     DATA_DESCRIPTIONS,
     QUERY_DESCRIPTIONS,
 )
+from humbldata.core.utils.logger import log_start_end, setup_logger
 from humbldata.core.utils.openbb_helpers import aget_etf_category
 from humbldata.portfolio.analytics.user_table.helpers import (
     aggregate_user_table_data,
@@ -28,6 +29,7 @@ from humbldata.portfolio.analytics.user_table.helpers import (
 )
 
 Q = TypeVar("Q", bound=PortfolioQueryParams)
+logger = setup_logger("UserTableFetcher")
 
 
 class UserTableQueryParams(QueryParams):
@@ -270,6 +272,7 @@ class UserTableFetcher:
         self.transformed_data = self.transformed_data
         return self
 
+    @log_start_end(logger=logger)
     async def fetch_data(self):
         """
         Execute TET Pattern.
