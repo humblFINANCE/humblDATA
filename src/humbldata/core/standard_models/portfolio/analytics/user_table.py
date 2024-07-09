@@ -28,6 +28,7 @@ from humbldata.portfolio.analytics.user_table.helpers import (
     aggregate_user_table_data,
     generate_user_table_toolbox,
 )
+from humbldata.portfolio.analytics.user_table.model import user_table_engine
 
 env = Env()
 Q = TypeVar("Q", bound=PortfolioQueryParams)
@@ -267,7 +268,7 @@ class UserTableFetcher:
             The transformed data as a Polars DataFrame
         """
         # Implement data transformation logic here
-        transformed_data: pl.LazyFrame = await aggregate_user_table_data(
+        transformed_data: pl.LazyFrame = await user_table_engine(
             symbols=self.context_params.symbols,
             etf_data=self.etf_data,
             mandelbrot_data=self.mandelbrot,
