@@ -280,7 +280,7 @@ async def aget_equity_sector(
             symbols = symbols.to_list()
         return pl.LazyFrame(
             {"symbol": symbols, "sector": [None] * len(symbols)}
-        )
+        ).cast(pl.Utf8)
 
 
 async def aget_etf_category(
