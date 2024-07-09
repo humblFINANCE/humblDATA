@@ -21,6 +21,7 @@ from humbldata.core.utils.descriptions import (
     DATA_DESCRIPTIONS,
     QUERY_DESCRIPTIONS,
 )
+from humbldata.core.utils.env import Env
 from humbldata.core.utils.logger import log_start_end, setup_logger
 from humbldata.core.utils.openbb_helpers import aget_etf_category
 from humbldata.portfolio.analytics.user_table.helpers import (
@@ -28,8 +29,12 @@ from humbldata.portfolio.analytics.user_table.helpers import (
     generate_user_table_toolbox,
 )
 
+env = Env()
 Q = TypeVar("Q", bound=PortfolioQueryParams)
-logger = setup_logger("UserTableFetcher")
+logger = setup_logger(
+    "UserTableFetcher",
+    env.LOGGER_LEVEL,
+)
 
 
 class UserTableQueryParams(QueryParams):
@@ -287,8 +292,11 @@ class UserTableFetcher:
         HumblObject
             The HumblObject containing the transformed data and metadata.
         """
+        logger.debug("Running .transform_query()")
         self.transform_query()
+        logger.debug("Running .extract_data()")
         await self.extract_data()
+        logger.debug("Running .transform_data()")
         await self.transform_data()
 
         return HumblObject(

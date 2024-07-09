@@ -25,6 +25,32 @@ class Env(metaclass=SingletonMeta):
         return self._environ.get("OBB_PAT", None)
 
     @property
+    def LOGGER_LEVEL(self) -> int:
+        """
+        Get the global logger level.
+
+        Returns
+        -------
+        int
+            The numeric logging level (default: 20 for INFO).
+
+        Notes
+        -----
+        Mapping of string levels to numeric values:
+        DEBUG: 10, INFO: 20, WARNING: 30, ERROR: 40, CRITICAL: 50
+        """
+        level_map = {
+            "DEBUG": 10,
+            "INFO": 20,
+            "WARNING": 30,
+            "ERROR": 40,
+            "CRITICAL": 50,
+        }
+        return level_map.get(
+            self._environ.get("LOGGER_LEVEL", "INFO").upper(), 20
+        )
+
+    @property
     def OBB_LOGGED_IN(self) -> bool:
         return self.str2bool(self._environ.get("OBB_LOGGED_IN", False))
 

@@ -7,6 +7,8 @@ import uuid
 from collections.abc import Callable
 from typing import Any
 
+import coloredlogs
+
 
 def setup_logger(name: str, level: int = logging.INFO) -> logging.Logger:
     """
@@ -43,20 +45,28 @@ def setup_logger(name: str, level: int = logging.INFO) -> logging.Logger:
     if not logger.handlers:
         logger.setLevel(level)
 
-        # Create console handler and set level
-        handler = logging.StreamHandler(sys.stdout)
-        handler.setLevel(level)
-
-        # Create formatter
-        formatter = logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        # Install coloredlogs
+        coloredlogs.install(
+            level=level,
+            logger=logger,
+            fmt="%(levelname)s: %(name)s || %(message)s",
+            level_styles={
+                "debug": {"color": "green"},
+                "info": {"color": "blue"},
+                "warning": {"color": "yellow", "bold": True},
+                "error": {"color": "red", "bold": True},
+                "critical": {
+                    "color": "red",
+                    "bold": True,
+                    "background": "white",
+                },
+            },
+            field_styles={
+                "asctime": {"color": "blue"},
+                "levelname": {"color": "magenta", "bold": True},
+                "name": {"color": "cyan"},
+            },
         )
-
-        # Add formatter to handler
-        handler.setFormatter(formatter)
-
-        # Add handler to logger
-        logger.addHandler(handler)
 
     # Prevent the logger from propagating messages to the root logger
     logger.propagate = False
