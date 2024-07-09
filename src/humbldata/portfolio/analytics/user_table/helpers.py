@@ -354,7 +354,7 @@ async def aggregate_user_table_data(
         )
     # Fetch data from all sources concurrently, passing etf_data where needed
     tasks = [
-        aget_latest_price(symbol=symbols),
+        aget_latest_price(symbols=symbols),
         aget_sector_filter(symbols=symbols, etf_data=etf_data),
         aget_asset_class_filter(symbols=symbols, etf_data=etf_data),
     ]
