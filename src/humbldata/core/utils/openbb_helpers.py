@@ -121,7 +121,7 @@ def get_latest_price(
 
 
 async def aget_latest_price(
-    symbol: str | list[str] | pl.Series,
+    symbols: str | list[str] | pl.Series,
     provider: OBB_EQUITY_PRICE_QUOTE_PROVIDERS | None = "yfinance",
 ) -> pl.LazyFrame:
     """
@@ -135,7 +135,7 @@ async def aget_latest_price(
 
     Parameters
     ----------
-    symbol : str | List[str] | pl.Series
+    symbols : str | List[str] | pl.Series
         The stock symbol(s) to query for the latest price. Accepts a single
         symbol, a list of symbols, or a Polars Series of symbols.
     provider : OBB_EQUITY_PRICE_QUOTE_PROVIDERS, optional
@@ -156,13 +156,9 @@ async def aget_latest_price(
     nest_asyncio.apply()
     ```
     """
-    logging.getLogger("openbb_terminal.stocks.stocks_model").setLevel(
-        logging.CRITICAL
-    )
-
     loop = asyncio.get_event_loop()
     result = await loop.run_in_executor(
-        None, lambda: obb.equity.price.quote(symbol, provider=provider)
+        None, lambda: obb.equity.price.quote(symbols, provider=provider)
     )
     out = result.to_polars().lazy()
     if {"last_price", "prev_close"}.issubset(out.columns):
@@ -314,7 +310,6 @@ async def aget_etf_category(
         their corresponding categories ('category').
     """
     loop = asyncio.get_event_loop()
-
     try:
         result = await loop.run_in_executor(
             None, lambda: obb.etf.info(symbols, provider=provider)

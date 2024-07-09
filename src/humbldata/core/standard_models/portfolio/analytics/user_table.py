@@ -49,7 +49,7 @@ class UserTableQueryParams(QueryParams):
         Examples: "AAPL", "AAPL,MSFT", ["AAPL", "MSFT"]
         All inputs will be converted to uppercase.
 
-    user_role : Literal["peon", "premium", "power", "permanent", "admin"]
+    user_role : Literal["anonymous", "peon", "premium", "power", "permanent", "admin"]
         The role of the user accessing the data. Default is "peon".
 
     Notes
@@ -63,12 +63,12 @@ class UserTableQueryParams(QueryParams):
         title="Symbol",
         description=QUERY_DESCRIPTIONS.get("symbol", ""),
     )
-    user_role: Literal["peon", "premium", "power", "permanent", "admin"] = (
-        Field(
-            default="peon",
-            title="User Role",
-            description=QUERY_DESCRIPTIONS.get("user_role", ""),
-        )
+    user_role: Literal[
+        "anonymous", "peon", "premium", "power", "permanent", "admin"
+    ] = Field(
+        default="peon",
+        title="User Role",
+        description=QUERY_DESCRIPTIONS.get("user_role", ""),
     )
 
     @field_validator("symbols", mode="before", check_fields=False)
