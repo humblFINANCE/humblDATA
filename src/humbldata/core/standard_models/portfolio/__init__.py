@@ -50,10 +50,12 @@ class PortfolioQueryParams(QueryParams):
         title="Provider",
         description=QUERY_DESCRIPTIONS.get("provider", ""),
     )
-    user_role: Literal["peon", "premium", "power", "admin"] = Field(
-        default="peon",
-        title="User Role",
-        description=QUERY_DESCRIPTIONS.get("user_role", ""),
+    user_role: Literal["anonymous", "peon", "premium", "power", "admin"] = (
+        Field(
+            default="anonymous",
+            title="User Role",
+            description=QUERY_DESCRIPTIONS.get("user_role", ""),
+        )
     )
 
     @field_validator("symbols", mode="before", check_fields=False)

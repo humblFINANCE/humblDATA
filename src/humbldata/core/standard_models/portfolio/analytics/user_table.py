@@ -251,7 +251,7 @@ class UserTableFetcher:
         self.etf_data = await aget_etf_category(self.context_params.symbols)
         self.toolbox = await generate_user_table_toolbox(
             symbols=self.context_params.symbols,
-            user_role=self.command_params.user_role,
+            user_role=self.context_params.user_role,
         )
         self.mandelbrot = self.toolbox.technical.mandelbrot_channel().to_polars(
             collect=False
