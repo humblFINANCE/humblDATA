@@ -109,6 +109,22 @@
         {
             "folderPath": "humblDATA/pyproject.toml/",
             "color": "foldercolorizer.LightRed"
+        },
+        {
+            "folderPath": "humblDATA/src/humbldata/portfolio/",
+            "badge": "📁"
+        },
+        {
+            "folderPath": "humblDATA/src/humbldata/core/standard_models/toolbox/",
+            "badge": "🧰"
+        },
+        {
+            "folderPath": "humblDATA/tests/integration/toolbox/",
+            "badge": "🧰"
+        },
+        {
+            "folderPath": "humblDATA/tests/integration/portfolio/",
+            "badge": "📁"
         }
     ],
     "[typescript]": {
