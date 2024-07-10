@@ -125,7 +125,7 @@ async def aget_sector_filter(
             # Remove columns with NULL (incoming equity symbols from ETF_DATA)
             # since only etf symbols are collected from logic above
             # Validation
-            etf_data = etf_data.filter(pl.col("category").is_not_null())
+            etf_data = etf_data.filter(pl.col("symbol").is_in(etf_symbols))
             etf_categories = ETFCategoryData(etf_data)
 
         # Normalize Sectors to GICS_SECTORS
