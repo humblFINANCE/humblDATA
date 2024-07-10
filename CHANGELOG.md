@@ -1,3 +1,26 @@
+## v1.6.2 (2024-07-10)
+
+### 🐛🚑️ Fixes
+
+- **MandelbrotCHannelFetcher**: updated to match You must specify at least one file, pid, or task.
+- **user_table_engine**: added  to pass along to the toolbox creation
+- **aget_etf_category**: updated docs, and added  prior to column selection
+- **Fetcher**: collect LF's before data validation with pandera, return LF
+- **aget_sector_filter**: filter etf_data to only include symbols that are in etf_symbols
+- **aget_equity_sector**: casting NULL column to string if DF with null values created
+- **user-table.helpers**: updated You must specify at least one file, pid, or task.
+- **MandelbrotChannelFetcher**: added
+
+### ✅🤡🧪 Tests
+
+- **tesy_queryParams**: updated  QueryParams validators and test
+- **user_table**: added  to test live integration
+- **user_table.helpers**: adding unittests for all user_table helper functions
+
+### 📌➕⬇️ ➖⬆️  Dependencies
+
+- **dev**: added
+
 ## v1.6.1 (2024-07-07)
 
 ## v1.6.0 (2024-07-07)
