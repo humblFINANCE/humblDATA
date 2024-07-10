@@ -121,7 +121,7 @@ def get_latest_price(
 
 
 async def aget_latest_price(
-    symbol: str | list[str] | pl.Series,
+    symbols: str | list[str] | pl.Series,
     provider: OBB_EQUITY_PRICE_QUOTE_PROVIDERS | None = "yfinance",
 ) -> pl.LazyFrame:
     """
@@ -130,12 +130,14 @@ async def aget_latest_price(
     Context: Core || Category: Utils || Subcategory: OpenBB Helpers || **Command: get_latest_price_async**.
 
     Queries the latest stock price data for the given symbol(s) using the
-    specified provider asynchronously. Defaults to YahooFinance (`yfinance`) if no provider is
-    specified. Returns a LazyFrame with the stock symbols and their latest prices.
+    specified provider asynchronously. This functions collects the latest prices
+    for ETF's and Equities, but not futures or options. Defaults to YahooFinance
+    (`yfinance`) if no provider is specified. Returns a LazyFrame with the stock
+    symbols and their latest prices.
 
     Parameters
     ----------
-    symbol : str | List[str] | pl.Series
+    symbols : str | List[str] | pl.Series
         The stock symbol(s) to query for the latest price. Accepts a single
         symbol, a list of symbols, or a Polars Series of symbols.
     provider : OBB_EQUITY_PRICE_QUOTE_PROVIDERS, optional
@@ -156,13 +158,9 @@ async def aget_latest_price(
     nest_asyncio.apply()
     ```
     """
-    logging.getLogger("openbb_terminal.stocks.stocks_model").setLevel(
-        logging.CRITICAL
-    )
-
     loop = asyncio.get_event_loop()
     result = await loop.run_in_executor(
-        None, lambda: obb.equity.price.quote(symbol, provider=provider)
+        None, lambda: obb.equity.price.quote(symbols, provider=provider)
     )
     out = result.to_polars().lazy()
     if {"last_price", "prev_close"}.issubset(out.columns):
@@ -284,7 +282,7 @@ async def aget_equity_sector(
             symbols = symbols.to_list()
         return pl.LazyFrame(
             {"symbol": symbols, "sector": [None] * len(symbols)}
-        )
+        ).cast(pl.Utf8)
 
 
 async def aget_etf_category(
@@ -314,12 +312,11 @@ async def aget_etf_category(
         their corresponding categories ('category').
     """
     loop = asyncio.get_event_loop()
-
     try:
         result = await loop.run_in_executor(
             None, lambda: obb.etf.info(symbols, provider=provider)
         )
-        out = result.to_polars().select(["symbol", "category"]).lazy()
+        out = result.to_polars().lazy().select(["symbol", "category"])
         # Create a LazyFrame with all input symbols
         all_symbols = pl.LazyFrame({"symbol": symbols})
 

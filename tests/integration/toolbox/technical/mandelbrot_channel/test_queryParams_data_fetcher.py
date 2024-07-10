@@ -51,13 +51,13 @@ def mandelbrot_channel_data():
 
 
 def test_mandelbrot_channel_data_validation(mandelbrot_channel_data):
-    MandelbrotChannelData(mandelbrot_channel_data)
+    MandelbrotChannelData(mandelbrot_channel_data.collect())
 
 
 def test_mandelbrot_channel_fetcher():
     """Test the integration of MandelbrotChannelFetcher with actual data fetching."""
     fetcher = MandelbrotChannelFetcher(
-        context_params=ToolboxQueryParams(symbol="AMD"),
+        context_params=ToolboxQueryParams(symbols="AMD"),
         command_params=None,
     )
     data = fetcher.fetch_data().to_polars()
@@ -72,7 +72,7 @@ def test_mandelbrot_channel_fetcher():
 def test_mandelbrot_channel_fetcher_integration():
     """Test the MandelbrotChannelFetcher and validate the data with MandelbrotChannelData."""
     fetcher = MandelbrotChannelFetcher(
-        context_params=ToolboxQueryParams(symbol="AMD"),
+        context_params=ToolboxQueryParams(symbols="AMD"),
         command_params=None,
     )
     data = fetcher.fetch_data().to_polars()
