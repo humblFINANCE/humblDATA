@@ -130,8 +130,10 @@ async def aget_latest_price(
     Context: Core || Category: Utils || Subcategory: OpenBB Helpers || **Command: get_latest_price_async**.
 
     Queries the latest stock price data for the given symbol(s) using the
-    specified provider asynchronously. Defaults to YahooFinance (`yfinance`) if no provider is
-    specified. Returns a LazyFrame with the stock symbols and their latest prices.
+    specified provider asynchronously. This functions collects the latest prices
+    for ETF's and Equities, but not futures or options. Defaults to YahooFinance
+    (`yfinance`) if no provider is specified. Returns a LazyFrame with the stock
+    symbols and their latest prices.
 
     Parameters
     ----------
@@ -314,7 +316,7 @@ async def aget_etf_category(
         result = await loop.run_in_executor(
             None, lambda: obb.etf.info(symbols, provider=provider)
         )
-        out = result.to_polars().select(["symbol", "category"]).lazy()
+        out = result.to_polars().lazy().select(["symbol", "category"])
         # Create a LazyFrame with all input symbols
         all_symbols = pl.LazyFrame({"symbol": symbols})
 
