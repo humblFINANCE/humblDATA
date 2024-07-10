@@ -51,7 +51,7 @@ def mandelbrot_channel_data():
 
 
 def test_mandelbrot_channel_data_validation(mandelbrot_channel_data):
-    MandelbrotChannelData(mandelbrot_channel_data)
+    MandelbrotChannelData(mandelbrot_channel_data.collect())
 
 
 def test_mandelbrot_channel_fetcher():

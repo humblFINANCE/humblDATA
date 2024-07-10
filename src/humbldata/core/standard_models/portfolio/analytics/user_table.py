@@ -25,7 +25,6 @@ from humbldata.core.utils.env import Env
 from humbldata.core.utils.logger import log_start_end, setup_logger
 from humbldata.core.utils.openbb_helpers import aget_etf_category
 from humbldata.portfolio.analytics.user_table.helpers import (
-    aggregate_user_table_data,
     generate_user_table_toolbox,
 )
 from humbldata.portfolio.analytics.user_table.model import user_table_engine
@@ -149,6 +148,7 @@ class UserTableData(Data):
         default=None,
         title="Sector",
         description=DATA_DESCRIPTIONS.get("sector", ""),
+        nullable=True,
     )
     humbl_suggestion: pl.Utf8 | None = pa.Field(
         default=None,
@@ -274,7 +274,7 @@ class UserTableFetcher:
             mandelbrot_data=self.mandelbrot,
             toolbox=self.toolbox,
         )
-        self.transformed_data = UserTableData(transformed_data)
+        self.transformed_data = UserTableData(transformed_data.collect()).lazy()
         self.transformed_data = self.transformed_data
         return self
 

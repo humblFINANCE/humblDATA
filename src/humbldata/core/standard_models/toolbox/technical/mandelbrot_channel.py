@@ -335,7 +335,7 @@ class MandelbrotChannelFetcher:
             )
             .to_polars()
             .lazy()
-        ).drop(["dividend", "split_ratio"])
+        ).drop(["dividend", "split_ratio"])  # TODO: drop `capital_gains` col
 
         if len(self.context_params.symbols) == 1:
             self.equity_historical_data = (
@@ -375,7 +375,9 @@ class MandelbrotChannelFetcher:
                 live_price=self.command_params.live_price,
             )
 
-        self.transformed_data = MandelbrotChannelData(transformed_data)
+        self.transformed_data = MandelbrotChannelData(
+            transformed_data.collect()
+        ).lazy()
 
         if self.command_params.chart:
             self.chart = generate_plots(
