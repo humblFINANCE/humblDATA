@@ -41,12 +41,12 @@ class PortfolioQueryParams(QueryParams):
     """
 
     symbols: str | list[str] = Field(
-        default="AAPL",
+        default=["AAPL"],
         title="Symbols",
         description=QUERY_DESCRIPTIONS.get("symbols", ""),
     )
     provider: OBB_EQUITY_PRICE_HISTORICAL_PROVIDERS = Field(
-        default="yahoo",
+        default="yfinance",
         title="Provider",
         description=QUERY_DESCRIPTIONS.get("provider", ""),
     )
@@ -58,9 +58,9 @@ class PortfolioQueryParams(QueryParams):
 
     @field_validator("symbols", mode="before", check_fields=False)
     @classmethod
-    def upper_symbol(cls, v: str | list[str] | set[str]) -> str | list[str]:
+    def upper_symbol(cls, v: str | list[str] | set[str]) -> list[str]:
         """
-        Convert the stock symbol to uppercase.
+        Convert the stock symbols to uppercase and remove empty strings.
 
         Parameters
         ----------
@@ -69,20 +69,22 @@ class PortfolioQueryParams(QueryParams):
 
         Returns
         -------
-        Union[str, List[str]]
-            The uppercase stock symbol or a comma-separated string of uppercase
-            symbols.
+        List[str]
+            A list of uppercase stock symbols with empty strings removed.
         """
         # If v is a string, split it by commas into a list. Otherwise, ensure it's a list.
-        v = v.split(",") if isinstance(v, str) else v
+        v = v.split(",") if isinstance(v, str) else list(v)
 
-        # Trim whitespace and check if all elements in the list are strings
-        if not all(isinstance(item.strip(), str) for item in v):
-            msg = "Every element in `symbol` list must be a `str`"
+        # Convert all elements to uppercase, trim whitespace, and remove empty strings
+        valid_symbols = [
+            symbol.strip().upper() for symbol in v if symbol.strip()
+        ]
+
+        if not valid_symbols:
+            msg = "At least one valid symbol (str) must be provided"
             raise ValueError(msg)
 
-        # Convert all elements to uppercase, trim whitespace, and join them with a comma
-        return [symbol.strip().upper() for symbol in v]
+        return valid_symbols
 
 
 class PortfolioData(Data):

@@ -15,5 +15,5 @@ def cast_warning(w: WarningMessage) -> Warning_:  # noqa: D103
     )
 
 
-class HumblDataWarning(Warning):  # noqa: D101
+class HumblDataWarning(Warning_):  # noqa: D101
     pass

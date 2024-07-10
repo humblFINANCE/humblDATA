@@ -20,12 +20,27 @@ from humbldata.core.utils.constants import OBB_EQUITY_PRICE_HISTORICAL_PROVIDERS
         (["aapl", "msft"], ["AAPL", "MSFT"]),
         (["aapl", "MSFT"], ["AAPL", "MSFT"]),
         (["aapl", "msFT", "amd", "TSla"], ["AAPL", "MSFT", "AMD", "TSLA"]),
+        (["aapl", " "], ["AAPL"]),
     ],
 )
 def test_toolbox_symbol_validator(input, expected):
     """Test symbol validation and conversion to uppercase."""
     toolbox = ToolboxQueryParams(symbols=input)
     assert toolbox.symbols == expected
+
+
+@pytest.mark.parametrize(
+    "invalid_input",
+    [
+        123,
+        ["aapl", 123],
+        ["aapl", None],
+    ],
+)
+def test_toolbox_symbol_validator_error(invalid_input):
+    """Test invalid symbol inputs."""
+    with pytest.raises((TypeError, AttributeError)):
+        ToolboxQueryParams(symbols=invalid_input)
 
 
 @pytest.mark.parametrize(
@@ -52,6 +67,14 @@ def test_toolbox_date_validator(date):
     toolbox = ToolboxQueryParams(start_date=date, end_date=date)
     assert toolbox.start_date == date
     assert toolbox.end_date == date
+
+
+def test_toolbox_default_values():
+    """Test default values for ToolboxQueryParams."""
+    params = ToolboxQueryParams()
+    assert params.symbols == ["AAPL"]
+    assert params.provider == "yfinance"
+    assert params.interval == "1d"
 
 
 @pytest.mark.parametrize(

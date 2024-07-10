@@ -21,13 +21,20 @@ from humbldata.core.utils.descriptions import (
     DATA_DESCRIPTIONS,
     QUERY_DESCRIPTIONS,
 )
+from humbldata.core.utils.env import Env
+from humbldata.core.utils.logger import log_start_end, setup_logger
 from humbldata.core.utils.openbb_helpers import aget_etf_category
 from humbldata.portfolio.analytics.user_table.helpers import (
-    aggregate_user_table_data,
     generate_user_table_toolbox,
 )
+from humbldata.portfolio.analytics.user_table.model import user_table_engine
 
+env = Env()
 Q = TypeVar("Q", bound=PortfolioQueryParams)
+logger = setup_logger(
+    "UserTableFetcher",
+    env.LOGGER_LEVEL,
+)
 
 
 class UserTableQueryParams(QueryParams):
@@ -42,7 +49,7 @@ class UserTableQueryParams(QueryParams):
         Examples: "AAPL", "AAPL,MSFT", ["AAPL", "MSFT"]
         All inputs will be converted to uppercase.
 
-    user_role : Literal["peon", "premium", "power", "permanent", "admin"]
+    user_role : Literal["anonymous", "peon", "premium", "power", "permanent", "admin"]
         The role of the user accessing the data. Default is "peon".
 
     Notes
@@ -56,12 +63,12 @@ class UserTableQueryParams(QueryParams):
         title="Symbol",
         description=QUERY_DESCRIPTIONS.get("symbol", ""),
     )
-    user_role: Literal["peon", "premium", "power", "permanent", "admin"] = (
-        Field(
-            default="peon",
-            title="User Role",
-            description=QUERY_DESCRIPTIONS.get("user_role", ""),
-        )
+    user_role: Literal[
+        "anonymous", "peon", "premium", "power", "permanent", "admin"
+    ] = Field(
+        default="peon",
+        title="User Role",
+        description=QUERY_DESCRIPTIONS.get("user_role", ""),
     )
 
     @field_validator("symbols", mode="before", check_fields=False)
@@ -141,6 +148,7 @@ class UserTableData(Data):
         default=None,
         title="Sector",
         description=DATA_DESCRIPTIONS.get("sector", ""),
+        nullable=True,
     )
     humbl_suggestion: pl.Utf8 | None = pa.Field(
         default=None,
@@ -260,16 +268,17 @@ class UserTableFetcher:
             The transformed data as a Polars DataFrame
         """
         # Implement data transformation logic here
-        transformed_data: pl.LazyFrame = await aggregate_user_table_data(
+        transformed_data: pl.LazyFrame = await user_table_engine(
             symbols=self.context_params.symbols,
             etf_data=self.etf_data,
             mandelbrot_data=self.mandelbrot,
             toolbox=self.toolbox,
         )
-        self.transformed_data = UserTableData(transformed_data)
+        self.transformed_data = UserTableData(transformed_data.collect()).lazy()
         self.transformed_data = self.transformed_data
         return self
 
+    @log_start_end(logger=logger)
     async def fetch_data(self):
         """
         Execute TET Pattern.
@@ -284,8 +293,11 @@ class UserTableFetcher:
         HumblObject
             The HumblObject containing the transformed data and metadata.
         """
+        logger.debug("Running .transform_query()")
         self.transform_query()
+        logger.debug("Running .extract_data()")
         await self.extract_data()
+        logger.debug("Running .transform_data()")
         await self.transform_data()
 
         return HumblObject(
