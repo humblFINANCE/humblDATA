@@ -2,6 +2,7 @@ import datetime
 
 import polars as pl
 import pytest
+from humbldata.core.standard_models.abstract.humblobject import HumblObject
 
 from humbldata.core.standard_models.portfolio import PortfolioQueryParams
 from humbldata.core.standard_models.portfolio.analytics.user_table import (
@@ -80,21 +81,16 @@ def test_user_table_data_validation(user_table_data):
     UserTableData(user_table_data.collect())
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_user_table_fetcher():
     """Test the integration of UserTableFetcher with actual data fetching."""
-    context_params = PortfolioQueryParams(symbols=["AAPL", "MSFT"])
-    command_params = UserTableQueryParams(symbols=["AAPL", "MSFT"])
-
     fetcher = UserTableFetcher(
-        context_params=context_params,
-        command_params=command_params,
+        context_params=PortfolioQueryParams(symbols=["AAPL", "MSFT"]),
+        command_params=None,
     )
 
     result = await fetcher.fetch_data()
-
-    assert isinstance(result.results, UserTableData)
-    data = result.results.to_polars().collect()
+    data = result.to_polars()
 
     assert not data.is_empty()
     assert "symbol" in data.columns
@@ -109,21 +105,18 @@ async def test_user_table_fetcher():
     assert set(data["symbol"]) == {"AAPL", "MSFT"}
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_user_table_fetcher_integration():
     """Test the UserTableFetcher and validate the data with UserTableData."""
-    context_params = PortfolioQueryParams(symbols=["AAPL", "MSFT"])
-    command_params = UserTableQueryParams(symbols=["AAPL", "MSFT"])
-
     fetcher = UserTableFetcher(
-        context_params=context_params,
-        command_params=command_params,
+        context_params=PortfolioQueryParams(symbols=["AAPL", "MSFT"]),
+        command_params=None,
     )
 
     result = await fetcher.fetch_data()
 
-    assert isinstance(result.results, UserTableData)
-    data = result.results.to_polars().collect()
+    assert isinstance(result, HumblObject)
+    data = result.to_polars()
 
     assert not data.is_empty()
     assert len(data) == 2

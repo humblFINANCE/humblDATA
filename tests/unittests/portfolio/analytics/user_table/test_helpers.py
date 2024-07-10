@@ -263,9 +263,16 @@ async def test_aget_sector_filter(equity_sector_data, mocker):
         )
         result = result.lazy().collect()
 
+        # print(f"Input symbols: {symbols}")
+        # print(f"Equity data:\n{equity_data}")
+        # print(f"ETF data:\n{etf_data}")
+        # print(f"Result:\n{result}")
+
         assert "symbol" in result.columns
         assert "sector" in result.columns
-        assert len(result) == len(symbols)
+        assert len(result) == len(
+            symbols
+        ), f"Expected {len(symbols)} rows, but got {len(result)} rows"
 
         # Check specific mappings
         if len(symbols) == 3:
@@ -300,8 +307,12 @@ async def test_aget_sector_filter(equity_sector_data, mocker):
         for (exp_symbol, exp_sector), (res_symbol, res_sector) in zip(
             expected, result.rows()
         ):
-            assert exp_symbol == res_symbol
-            assert exp_sector == res_sector
+            assert (
+                exp_symbol == res_symbol
+            ), f"Expected symbol {exp_symbol}, but got {res_symbol}"
+            assert (
+                exp_sector == res_sector
+            ), f"Expected sector {exp_sector} for {exp_symbol}, but got {res_sector}"
 
         mock_aget_equity_sector.assert_called_once_with(
             symbols, provider="yfinance"

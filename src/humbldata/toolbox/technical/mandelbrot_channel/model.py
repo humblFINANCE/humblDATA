@@ -56,6 +56,7 @@ def calc_mandelbrot_channel(
     ----------
     data: pl.DataFrame | pl.LazyFrame
         The time series data for which to calculate the Mandelbrot Channel.
+        There needs to be a `close` and `date` column.
     window: str, default "1m"
         The window size for the calculation, specified as a string. This
         determines the period over which the channel is calculated.
