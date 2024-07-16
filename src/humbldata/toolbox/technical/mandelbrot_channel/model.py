@@ -117,7 +117,7 @@ def calc_mandelbrot_channel(
     data1 = add_window_index(data, window=window)
 
     # Step X: Calculate Log Returns + Rvol -------------------------------------
-    if "log_returns" not in data1.columns:
+    if "log_returns" not in data1.collect_schema().names():
         data2 = log_returns(data1, _column_name="close")
     else:
         data2 = data1
@@ -148,7 +148,7 @@ def calc_mandelbrot_channel(
             grouped_mean=rv_grouped_mean,
         )
         # rename col for easy selection
-        for col in data7.columns:
+        for col in data7.collect_schema().names():
             if "volatility_pct" in col:
                 data7 = data7.rename({col: "realized_volatility"})
         # Step 8.2: Calculate Volatility Bucket Stats --------------------------

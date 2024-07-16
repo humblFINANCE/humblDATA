@@ -271,7 +271,8 @@ def _check_required_columns(data: pl.DataFrame | pl.LazyFrame, *columns: str):
     --------
     >>> check_required_columns(data, "open", "close", "high", "low")
     """
-    missing_columns = [col for col in columns if col not in data.columns]
+    col_names = data.collect_schema().names()
+    missing_columns = [col for col in columns if col not in col_names]
     if missing_columns:
         msg = f"Missing required columns: {', '.join(missing_columns)}"
         raise HumblDataError(msg)
@@ -313,7 +314,8 @@ def _set_sort_cols(
     >>> _set_sort_cols(df, "symbol", "window_index")
     ['symbol']
     """
-    present_columns = [col for col in columns if col in data.columns]
+    col_names = data.collect_schema().names()
+    present_columns = [col for col in columns if col in col_names]
     return present_columns if present_columns else None
 
 
@@ -354,7 +356,8 @@ def _set_over_cols(
     >>> _set_over_cols(df, "symbol", "window_index")
     ['symbol']
     """
-    present_columns = [col for col in columns if col in data.columns]
+    col_names = data.collect_schema().names()
+    present_columns = [col for col in columns if col in col_names]
     return present_columns if present_columns else None
 
 
@@ -447,7 +450,7 @@ def log_returns(
             msg = "Data must contain 'symbol' and 'date' columns for sorting."
             raise HumblDataError(msg)
 
-        if "log_returns" not in data.columns:
+        if "log_returns" not in data.collect_schema().names():
             out = data.with_columns(
                 pl.col(_column_name).log().diff().alias("log_returns")
             )
@@ -516,10 +519,8 @@ def detrend(
             raise HumblDataError(msg)
 
     if isinstance(data, pl.DataFrame | pl.LazyFrame):
-        if (
-            _detrend_value_col not in data.columns
-            or _detrend_col not in data.columns
-        ):
+        col_names = data.collect_schema().names()
+        if _detrend_value_col not in col_names or _detrend_col not in col_names:
             msg = f"Both {_detrend_value_col} and {_detrend_col} must be columns in the data."
             raise HumblDataError(msg)
         detrended = data.with_columns(
