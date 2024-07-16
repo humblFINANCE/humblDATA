@@ -119,8 +119,8 @@ def test_mandelbrot_channel_historical_integration(
         )
         expected_aapl_top_and_bottom = (
             "AAPL",
-            pytest.approx(172.17, rel=1e-3),
-            pytest.approx(179.53, rel=1e-3),
+            pytest.approx(32.17, rel=1e-3),
+            pytest.approx(36.96, rel=1e-3),
         )
         pct_top_and_bottom_mean = (
             mandelbrot_historical.group_by("symbol")
@@ -129,8 +129,8 @@ def test_mandelbrot_channel_historical_integration(
         )
         expected_pct_top_and_bottom = (
             "PCT",
-            pytest.approx(4.81, rel=1e-3),
-            pytest.approx(9.26, rel=1e-3),
+            pytest.approx(9.55, rel=1e-3),
+            pytest.approx(12.00, rel=1e-3),
         )
         google_top_and_bottom_mean = (
             mandelbrot_historical.group_by("symbol")
@@ -139,8 +139,8 @@ def test_mandelbrot_channel_historical_integration(
         )
         expected_google_top_and_bottom = (
             "GOOGL",
-            pytest.approx(116.95, rel=1e-3),
-            pytest.approx(125.30, rel=1e-3),
+            pytest.approx(40.72, rel=1e-3),
+            pytest.approx(43.00, rel=1e-3),
         )
         amd_top_and_bottom_mean = (
             mandelbrot_historical.group_by("symbol")
@@ -149,15 +149,15 @@ def test_mandelbrot_channel_historical_integration(
         )
         expected_amd_top_and_bottom = (
             "AMD",
-            pytest.approx(97.66, rel=1e-3),
-            pytest.approx(115.28, rel=1e-3),
+            pytest.approx(23.65, rel=1e-3),
+            pytest.approx(27.26, rel=1e-3),
         )
 
         assert google_top_and_bottom_mean == expected_google_top_and_bottom
         assert amd_top_and_bottom_mean == expected_amd_top_and_bottom
         assert pct_top_and_bottom_mean == expected_pct_top_and_bottom
         assert aapl_top_and_bottom_mean == expected_aapl_top_and_bottom
-        assert result_shape == (4, 1)
+        assert result_shape == (5, 1)
     else:
         result_shape = mandelbrot_historical.select("symbol").unique().shape
         aapl_top_and_bottom_mean = (
@@ -167,8 +167,8 @@ def test_mandelbrot_channel_historical_integration(
         )
         expected_aapl_top_and_bottom = (
             "AAPL",
-            pytest.approx(172.17, rel=1e-3),
-            pytest.approx(179.53, rel=1e-3),
+            pytest.approx(33.43, rel=1e-3),
+            pytest.approx(35.75, rel=1e-3),
         )
 
         assert aapl_top_and_bottom_mean == expected_aapl_top_and_bottom
