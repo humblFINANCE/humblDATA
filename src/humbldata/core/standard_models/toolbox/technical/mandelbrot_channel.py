@@ -376,7 +376,7 @@ class MandelbrotChannelFetcher:
             )
 
         self.transformed_data = MandelbrotChannelData(
-            transformed_data.collect()
+            transformed_data.collect().drop_nulls()  ## HOTFIX - need to trace where coming from w/ unequal data
         ).lazy()
 
         if self.command_params.chart:
