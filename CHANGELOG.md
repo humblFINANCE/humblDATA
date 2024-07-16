@@ -1,3 +1,22 @@
+## v1.6.4 (2024-07-16)
+
+### 🐛🚑️ Fixes
+
+- **mandelbrot_channel**: specifying binary serlization for return data
+- **serialization**:  now accepts  serialized objs
+- **test_data**: updated pickled  with new serialization from polars
+- **polars**: replaced  w/
+- **pandera/pytest**: ignoring  for pandera validation in pytest
+- **user_table**: rounds final data values to 2 decimal places
+- **polars**: using  instead of df.columns
+- **humblObject**: added serialization format type --> json
+- **remove**: remove field from
+
+### 📌➕⬇️ ➖⬆️  Dependencies
+
+- **update**: openbb, polars, pandera, python: lock to newer versions
+- **poetry**: ran
+
 ## v1.6.3 (2024-07-16)
 
 ### 🐛🚑️ Fixes
