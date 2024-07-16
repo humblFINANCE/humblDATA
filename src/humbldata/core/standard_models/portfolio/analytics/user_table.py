@@ -294,7 +294,9 @@ class UserTableFetcher:
             toolbox=self.toolbox,
         )
         self.transformed_data = UserTableData(transformed_data.collect()).lazy()
-        self.transformed_data = self.transformed_data
+        self.transformed_data = self.transformed_data.with_columns(
+            pl.col(pl.Float64).round(2)
+        )
         return self
 
     @log_start_end(logger=logger)
