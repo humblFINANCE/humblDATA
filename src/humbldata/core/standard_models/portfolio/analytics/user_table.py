@@ -60,13 +60,6 @@ class UserTableQueryParams(QueryParams):
         title="Symbol",
         description=QUERY_DESCRIPTIONS.get("symbol", ""),
     )
-    user_role: Literal[
-        "anonymous", "peon", "premium", "power", "permanent", "admin"
-    ] = Field(
-        default="peon",
-        title="User Role",
-        description=QUERY_DESCRIPTIONS.get("user_role", ""),
-    )
 
     @field_validator("symbols", mode="before", check_fields=False)
     @classmethod
@@ -105,6 +98,32 @@ class UserTableData(Data):
     Data model for the user_table command, a Pandera.Polars Model.
 
     This Data model is used to validate data in the `.transform_data()` method of the `UserTableFetcher` class.
+
+    Attributes
+    ----------
+    symbol : pl.Utf8
+        The stock symbol.
+    last_price : pl.Float64
+        The last known price of the stock.
+    buy_price : pl.Float64
+        The recommended buy price for the stock.
+    sell_price : pl.Float64
+        The recommended sell price for the stock.
+    ud_pct : pl.Utf8
+        The upside/downside percentage.
+    ud_ratio : pl.Float64
+        The upside/downside ratio.
+    asset_class : pl.Utf8
+        The asset class of the stock.
+    sector : pl.Utf8
+        The sector of the stock.
+    humbl_suggestion : pl.Utf8 | None
+        The suggestion provided by HUMBL.
+
+    Methods
+    -------
+    None
+
     """
 
     symbol: pl.Utf8 = pa.Field(
@@ -275,7 +294,9 @@ class UserTableFetcher:
             toolbox=self.toolbox,
         )
         self.transformed_data = UserTableData(transformed_data.collect()).lazy()
-        self.transformed_data = self.transformed_data
+        self.transformed_data = self.transformed_data.with_columns(
+            pl.col(pl.Float64).round(2)
+        )
         return self
 
     @log_start_end(logger=logger)

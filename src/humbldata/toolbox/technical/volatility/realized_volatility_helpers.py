@@ -114,23 +114,22 @@ def std(
             window_size=window_timedelta.days, min_periods=1
         )
     sort_cols = _set_sort_cols(data, "symbol", "date")
-    if _sort:
+    if _sort and sort_cols:
         data = data.lazy().sort(sort_cols)
+        for col in sort_cols:
+            data = data.set_sorted(col)
+
     # convert window_timedelta to days to use fixed window
-    result = (
-        data.lazy()
-        .set_sorted(sort_cols)
-        .with_columns(
-            (
-                pl.col(_column_name_returns).rolling_std_by(
-                    window_size=window_timedelta,
-                    min_periods=2,  # using min_periods=2, bc if min_periods=1, the first value will be 0.
-                    by="date",
-                )
-                * math.sqrt(trading_periods)
-                * 100
-            ).alias(f"std_volatility_pct_{window_timedelta.days}D")
-        )
+    result = data.lazy().with_columns(
+        (
+            pl.col(_column_name_returns).rolling_std_by(
+                window_size=window_timedelta,
+                min_periods=2,  # using min_periods=2, bc if min_periods=1, the first value will be 0.
+                by="date",
+            )
+            * math.sqrt(trading_periods)
+            * 100
+        ).alias(f"std_volatility_pct_{window_timedelta.days}D")
     )
     if _drop_nulls:
         return result.drop_nulls(
@@ -202,13 +201,14 @@ def parkinson(
     A DataFrame with the calculated Parkinson's volatility.
     """
     sort_cols = _set_sort_cols(data, "symbol", "date")
-    if _sort:
+    if _sort and sort_cols:
         data = data.lazy().sort(sort_cols)
+        for col in sort_cols:
+            data = data.set_sorted(col)
 
     var1 = 1.0 / (4.0 * math.log(2.0))
     var2 = (
         data.lazy()
-        .set_sorted(sort_cols)
         .select((pl.col(_column_name_high) / pl.col(_column_name_low)).log())
         .collect()
         .to_series()
@@ -218,17 +218,11 @@ def parkinson(
     window_int: int = _window_format(
         window, _return_timedelta=True, _avg_trading_days=_avg_trading_days
     ).days
-    result = (
-        data.lazy()
-        .set_sorted(sort_cols)
-        .with_columns(
-            (
-                rs.rolling_map(
-                    _annual_vol, window_size=window_int, min_periods=1
-                )
-                * 100
-            ).alias(f"parkinson_volatility_pct_{window_int}D")
-        )
+    result = data.lazy().with_columns(
+        (
+            rs.rolling_map(_annual_vol, window_size=window_int, min_periods=1)
+            * 100
+        ).alias(f"parkinson_volatility_pct_{window_int}D")
     )
     if _drop_nulls:
         return result.drop_nulls(
@@ -290,11 +284,12 @@ def garman_klass(
     sessions.
     """
     sort_cols = _set_sort_cols(data, "symbol", "date")
-    if _sort:
+    if _sort and sort_cols:
         data = data.lazy().sort(sort_cols)
+        for col in sort_cols:
+            data = data.set_sorted(col)
     log_hi_lo = (
         data.lazy()
-        .set_sorted(sort_cols)
         .select((pl.col(_column_name_high) / pl.col(_column_name_low)).log())
         .collect()
         .to_series()
@@ -351,17 +346,15 @@ def hodges_tompkins(
         vol = data.rolling_std(window_size=window_timedelta.days, min_periods=1)
     else:
         sort_cols = _set_sort_cols(data, "symbol", "date")
-        if _sort:
+        if _sort and sort_cols:
             data = data.lazy().sort(sort_cols)
-        vol = (
-            data.lazy()
-            .set_sorted(sort_cols)
-            .select(
-                pl.col(_column_name_returns).rolling_std(
-                    window_size=window_timedelta, min_periods=1, by="date"
-                )
-                * np.sqrt(trading_periods)
+            for col in sort_cols:
+                data = data.set_sorted(col)
+        vol = data.lazy().select(
+            pl.col(_column_name_returns).rolling_std_by(
+                window_size=window_timedelta, min_periods=1, by="date"
             )
+            * np.sqrt(trading_periods)
         )
 
     # Assign window size to h for adjustment
@@ -454,8 +447,10 @@ def rogers_satchell(
         _column_name_close,
     )
     sort_cols = _set_sort_cols(data, "symbol", "date")
-    if _sort:
+    if _sort and sort_cols:
         data = data.lazy().sort(sort_cols)
+        for col in sort_cols:
+            data = data.set_sorted(col)
     # assign window
     window_int: int = _window_format(
         window=window,
@@ -465,7 +460,6 @@ def rogers_satchell(
 
     data = (
         data.lazy()
-        .set_sorted(sort_cols)
         .with_columns(
             [
                 (pl.col(_column_name_high) / pl.col(_column_name_open))
@@ -556,8 +550,10 @@ def yang_zhang(
         _column_name_close,
     )
     sort_cols = _set_sort_cols(data, "symbol", "date")
-    if _sort:
+    if _sort and sort_cols:
         data = data.lazy().sort(sort_cols)
+        for col in sort_cols:
+            data = data.set_sorted(col)
 
     # assign window
     window_int: int = _window_format(
@@ -568,7 +564,6 @@ def yang_zhang(
 
     data = (
         data.lazy()
-        .set_sorted(sort_cols)
         .with_columns(
             [
                 (pl.col(_column_name_high) / pl.col(_column_name_open))
@@ -676,8 +671,10 @@ def squared_returns(
     _check_required_columns(data, _column_name_returns)
 
     sort_cols = _set_sort_cols(data, "symbol", "date")
-    if _sort:
+    if _sort and sort_cols:
         data = data.lazy().sort(sort_cols)
+        for col in sort_cols:
+            data = data.set_sorted(col)
 
     # assign window
     window_int: int = _window_format(
@@ -686,14 +683,8 @@ def squared_returns(
         _avg_trading_days=_avg_trading_days,
     ).days
 
-    data = (
-        data.lazy()
-        .set_sorted(sort_cols)
-        .with_columns(
-            ((pl.col(_column_name_returns) * 100) ** 2).alias(
-                "sq_log_returns_pct"
-            )
-        )
+    data = data.lazy().with_columns(
+        ((pl.col(_column_name_returns) * 100) ** 2).alias("sq_log_returns_pct")
     )
     # Calculate rolling squared returns
     result = (
