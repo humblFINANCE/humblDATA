@@ -244,7 +244,7 @@ def garman_klass(
     _column_name_high: str = "high",
     _column_name_low: str = "low",
     _column_name_open: str = "open",
-    _column_name_close: str = "adj_close",
+    _column_name_close: str = "close",
     _drop_nulls: bool = True,
     _avg_trading_days: bool = False,
     _sort: bool = True,
@@ -268,7 +268,7 @@ def garman_klass(
         The name of the column containing the opening prices, by default "open".
     _column_name_close : str, optional
         The name of the column containing the adjusted closing prices, by
-        default "adj_close".
+        default "close".
     _drop_nulls : bool, optional
         Whether to drop null values from the result, by default True.
     _avg_trading_days : bool, optional
@@ -396,7 +396,7 @@ def rogers_satchell(
     _column_name_high: str = "high",
     _column_name_low: str = "low",
     _column_name_open: str = "open",
-    _column_name_close: str = "adj_close",
+    _column_name_close: str = "close",
     _drop_nulls: bool = True,
     _avg_trading_days: bool = False,
     _sort: bool = True,
@@ -426,7 +426,7 @@ def rogers_satchell(
         The name of the column representing the low prices in the data.
     _column_name_open : str, default "open"
         The name of the column representing the opening prices in the data.
-    _column_name_close : str, default "adj_close"
+    _column_name_close : str, default "close"
         The name of the column representing the adjusted closing prices in the
         data.
     _drop_nulls : bool, default True
@@ -535,7 +535,7 @@ def yang_zhang(
     _column_name_high: str = "high",
     _column_name_low: str = "low",
     _column_name_open: str = "open",
-    _column_name_close: str = "adj_close",
+    _column_name_close: str = "close",
     _avg_trading_days: bool = False,
     _drop_nulls: bool = True,
     _sort: bool = True,
@@ -665,7 +665,7 @@ def squared_returns(
     _drop_nulls : bool, optional
         Whether to drop null values from the result, by default True.
     _column_name_returns : str, optional
-        The name of the column containing the price data, by default "adj_close".
+        The name of the column containing the price data, by default "close".
 
     Returns
     -------
