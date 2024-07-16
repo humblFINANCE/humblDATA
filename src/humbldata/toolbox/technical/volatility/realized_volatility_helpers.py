@@ -351,7 +351,7 @@ def hodges_tompkins(
             for col in sort_cols:
                 data = data.set_sorted(col)
         vol = data.lazy().select(
-            pl.col(_column_name_returns).rolling_std(
+            pl.col(_column_name_returns).rolling_std_by(
                 window_size=window_timedelta, min_periods=1, by="date"
             )
             * np.sqrt(trading_periods)
