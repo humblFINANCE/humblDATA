@@ -148,7 +148,10 @@ class HumblObject(Tagged, Generic[T]):
             out = data
         elif isinstance(data, str):
             with io.StringIO(data) as data_io:
-                out = pl.LazyFrame.deserialize(data_io)
+                out = pl.LazyFrame.deserialize(data_io, format="json")
+        elif isinstance(data, bytes):
+            with io.BytesIO(data) as data_io:
+                out = pl.LazyFrame.deserialize(data_io, format="binary")
         else:
             raise HumblDataError(
                 "Invalid data type. Expected LazyFrame or serialized string."
@@ -279,7 +282,9 @@ class HumblObject(Tagged, Generic[T]):
             name=name
         )
 
-    def to_json(self, equity_data: bool = False) -> str:
+    def to_json(
+        self, equity_data: bool = False, chart: bool = False
+    ) -> str | list[str]:
         """
         Convert the results to a JSON string.
 
@@ -288,26 +293,52 @@ class HumblObject(Tagged, Generic[T]):
         equity_data : bool, optional
             A flag to specify whether to use equity-specific data for the
             conversion. Default is False.
+        chart : bool, optional
+            If True, return all generated charts as a JSON string instead of
+            returning the results. Default is False.
 
         Returns
         -------
         str
-            The results as a JSON string.
+            The results or charts as a JSON string.
+
+        Raises
+        ------
+        HumblDataError
+            If chart is True but no charts are available.
         """
         import json
         from datetime import date, datetime
 
+        from humbldata.core.standard_models.abstract.errors import (
+            HumblDataError,
+        )
+
         def json_serial(obj):
             """JSON serializer for objects not serializable by default json code."""
-            if isinstance(obj, datetime | date):
+            if isinstance(obj, (datetime, date)):
                 return obj.isoformat()
             msg = f"Type {type(obj)} not serializable"
             raise TypeError(msg)
 
-        data = self.to_polars(collect=True, equity_data=equity_data).to_dict(
-            as_series=False
-        )
-        return json.dumps(data, default=json_serial)
+        if chart:
+            if self.chart is None:
+                msg = f"You set `.to_json(chart=True)` but there were no charts. Make sure `chart=True` in {self.command_params.__class__.__name__}"
+                raise HumblDataError(msg)
+
+            if isinstance(self.chart, list):
+                return [
+                    chart.fig.to_json()
+                    for chart in self.chart
+                    if chart and chart.fig
+                ]
+            else:
+                return self.chart.fig.to_json()
+        else:
+            data = self.to_polars(
+                collect=True, equity_data=equity_data
+            ).to_dict(as_series=False)
+            return json.dumps(data, default=json_serial)
 
     def is_empty(self, equity_data: bool = False) -> bool:
         """
