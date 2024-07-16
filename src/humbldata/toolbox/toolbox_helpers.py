@@ -441,12 +441,14 @@ def log_returns(
         sort_cols = _set_sort_cols(data, "symbol", "date")
         if _sort and sort_cols:
             data = data.sort(sort_cols)
+            for col in sort_cols:
+                data = data.set_sorted(col)
         elif _sort and not sort_cols:
             msg = "Data must contain 'symbol' and 'date' columns for sorting."
             raise HumblDataError(msg)
 
         if "log_returns" not in data.columns:
-            out = data.set_sorted(sort_cols).with_columns(
+            out = data.with_columns(
                 pl.col(_column_name).log().diff().alias("log_returns")
             )
         else:
@@ -507,6 +509,8 @@ def detrend(
         sort_cols = _set_sort_cols(data, "symbol", "date")
         if _sort and sort_cols:
             data = data.sort(sort_cols)
+            for col in sort_cols:
+                data = data.set_sorted(col)
         elif _sort and not sort_cols:
             msg = "Data must contain 'symbol' and 'date' columns for sorting."
             raise HumblDataError(msg)
@@ -518,7 +522,7 @@ def detrend(
         ):
             msg = f"Both {_detrend_value_col} and {_detrend_col} must be columns in the data."
             raise HumblDataError(msg)
-        detrended = data.set_sorted(sort_cols).with_columns(
+        detrended = data.with_columns(
             (pl.col(_detrend_col) - pl.col(_detrend_value_col)).alias(
                 f"detrended_{_detrend_col}"
             )
@@ -586,12 +590,14 @@ def cum_sum(
     """
     if isinstance(data, pl.DataFrame | pl.LazyFrame):
         sort_cols = _set_sort_cols(data, "symbol", "date")
-        if _sort:
+        if _sort and sort_cols:
             data = data.sort(sort_cols)
+            for col in sort_cols:
+                data = data.set_sorted(col)
 
         over_cols = _set_over_cols(data, "symbol", "window_index")
         if over_cols:
-            out = data.set_sorted(sort_cols).with_columns(
+            out = data.with_columns(
                 pl.col(_column_name).cum_sum().over(over_cols).alias("cum_sum")
             )
         else:
@@ -611,7 +617,10 @@ def cum_sum(
 
 
 def std(
-    data: pl.LazyFrame | pl.DataFrame | pl.Series, _column_name: str = "cum_sum"
+    data: pl.LazyFrame | pl.DataFrame | pl.Series,
+    _column_name: str = "cum_sum",
+    *,
+    _sort: bool = True,
 ) -> pl.LazyFrame | pl.DataFrame | pl.Series:
     """
     Context: Toolbox || Category: Helpers || **Command: std**.
@@ -626,6 +635,9 @@ def std(
     _column_name : str, optional
         The name of the column from which to calculate the standard deviation,
         with "cumdev" as the default value.
+    _sort : bool, optional
+        If True, sorts the DataFrame or LazyFrame by date and symbol before
+        calculation. Default is True.
 
     Returns
     -------
@@ -643,9 +655,13 @@ def std(
     elif isinstance(data, pl.DataFrame | pl.LazyFrame):
         sort_cols = _set_sort_cols(data, "symbol", "date")
         over_cols = _set_over_cols(data, "symbol", "window_index")
+        if _sort and sort_cols:
+            data = data.sort(sort_cols)
+            for col in sort_cols:
+                data = data.set_sorted(col)
 
         if over_cols:
-            out = data.set_sorted(sort_cols).with_columns(
+            out = data.with_columns(
                 [
                     pl.col(_column_name)
                     .std()
@@ -714,14 +730,16 @@ def mean(
         sort_cols = _set_sort_cols(data, "symbol", "date")
         over_cols = _set_over_cols(data, "symbol", "window_index")
         if _sort and sort_cols:  # Check if _sort is True
-            data = data.sort(sort_cols).set_sorted(sort_cols)
+            data = data.sort(sort_cols)
+            for col in sort_cols:
+                data = data.set_sorted(col)
         if over_cols:
             out = data.with_columns(
                 pl.col(_column_name).mean().over(over_cols).alias("window_mean")
             )
         else:
             out = data.with_columns(pl.col(_column_name).mean().alias("mean"))
-        if sort_cols:
+        if _sort and sort_cols:
             out = out.sort(sort_cols)
     return out
 
@@ -755,32 +773,33 @@ def range_(
 
     if isinstance(data, pl.LazyFrame | pl.DataFrame):
         sort_cols = _set_sort_cols(data, "symbol", "date")
-    over_cols = _set_over_cols(data, "symbol", "window_index")
-    if _sort:
-        data = data.sort(sort_cols)
-    if over_cols:
-        out = (
-            data.set_sorted(sort_cols)
-            .with_columns(
-                [
-                    pl.col(_column_name)
-                    .min()
-                    .over(over_cols)
-                    .alias(f"{_column_name}_min"),
-                    pl.col(_column_name)
-                    .max()
-                    .over(over_cols)
-                    .alias(f"{_column_name}_max"),
-                ]
+        over_cols = _set_over_cols(data, "symbol", "window_index")
+        if _sort and sort_cols:
+            data = data.sort(sort_cols)
+            for col in sort_cols:
+                data = data.set_sorted(col)
+        if over_cols:
+            out = (
+                data.with_columns(
+                    [
+                        pl.col(_column_name)
+                        .min()
+                        .over(over_cols)
+                        .alias(f"{_column_name}_min"),
+                        pl.col(_column_name)
+                        .max()
+                        .over(over_cols)
+                        .alias(f"{_column_name}_max"),
+                    ]
+                )
+                .sort(sort_cols)
+                .with_columns(
+                    (
+                        pl.col(f"{_column_name}_max")
+                        - pl.col(f"{_column_name}_min")
+                    ).alias(f"{_column_name}_range"),  # used to be 'R'
+                )
             )
-            .sort(sort_cols)
-            .with_columns(
-                (
-                    pl.col(f"{_column_name}_max")
-                    - pl.col(f"{_column_name}_min")
-                ).alias(f"{_column_name}_range"),  # used to be 'R'
-            )
-        )
     else:
         out = (
             data.with_columns(

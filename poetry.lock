@@ -4011,13 +4011,13 @@ test = ["ta-lib"]
 
 [[package]]
 name = "pandera"
-version = "0.20.1"
+version = "0.20.2"
 description = "A light-weight and flexible data validation and testing tool for statistical data objects."
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "pandera-0.20.1-py3-none-any.whl", hash = "sha256:ebf5cd5e42bacc451ac332f531cca2d6788a0662a2e565cb8d095e5bc55ebb6c"},
-    {file = "pandera-0.20.1.tar.gz", hash = "sha256:eda8d8330d16b2a1ae38eddcb34c4da287ce03c84696f654399a0068663c7e4d"},
+    {file = "pandera-0.20.2-py3-none-any.whl", hash = "sha256:40df89ab60154a7204115217f3c8568eddb905b5f5580062d50b7d9b5db6ee34"},
+    {file = "pandera-0.20.2.tar.gz", hash = "sha256:920a55a79db95c13c285c29131695acabb4c5ced1df9caec25bf1f82daf75dde"},
 ]
 
 [package.dependencies]
@@ -6865,4 +6865,4 @@ test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", 
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11,<3.13"
-content-hash = "c1206e2e9a9fa2df5fd370fabc553de8fe8b6246338ebb2d0ed19294c3df8778"
+content-hash = "c0dc60d44417352f05e576be4f494397e0ddd09ef6b1d59b93370531d90bd01b"
