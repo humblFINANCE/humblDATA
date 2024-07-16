@@ -1,3 +1,16 @@
+## v1.6.3 (2024-07-16)
+
+### 🐛🚑️ Fixes
+
+- **user_table**: using  not
+
+### ✅🤡🧪 Tests
+
+- **passing**:  all tests passing 🙌
+- **fix**: removed  from UserTableQP & fixed validator logic
+- **fix**: fixed column name erros, and assertion errors
+- **fix**: mocking at module level rather than directly mocking the function
+
 ## v1.6.2 (2024-07-10)
 
 ### 🐛🚑️ Fixes
