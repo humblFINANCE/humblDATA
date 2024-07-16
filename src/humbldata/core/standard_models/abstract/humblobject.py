@@ -148,7 +148,7 @@ class HumblObject(Tagged, Generic[T]):
             out = data
         elif isinstance(data, str):
             with io.StringIO(data) as data_io:
-                out = pl.LazyFrame.deserialize(data_io)
+                out = pl.LazyFrame.deserialize(data_io, format="json")
         else:
             raise HumblDataError(
                 "Invalid data type. Expected LazyFrame or serialized string."

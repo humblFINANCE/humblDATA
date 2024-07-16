@@ -388,7 +388,7 @@ class MandelbrotChannelFetcher:
         else:
             self.chart = None
 
-        self.transformed_data = self.transformed_data.serialize()
+        self.transformed_data = self.transformed_data.serialize(format="json")
         return self
 
     @log_start_end(logger=logger)
