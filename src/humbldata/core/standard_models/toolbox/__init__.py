@@ -136,6 +136,10 @@ class ToolboxQueryParams(QueryParams):
         List[str]
             A list of uppercase stock symbols with empty strings removed.
         """
+        # Handle empty inputs
+        if not v:
+            return []
+
         # If v is a string, split it by commas into a list. Otherwise, ensure it's a list.
         v = v.split(",") if isinstance(v, str) else list(v)
 

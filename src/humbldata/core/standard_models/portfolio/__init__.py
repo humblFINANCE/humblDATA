@@ -27,8 +27,8 @@ class PortfolioQueryParams(QueryParams):
         The stock symbol(s) to query. Default is "AAPL".
     provider : OBB_EQUITY_PRICE_HISTORICAL_PROVIDERS
         The data provider for historical price data. Default is "yahoo".
-    user_role : {'basic', 'premium', 'power', 'admin'}
-        The role of the user. Default is "basic".
+    user_role : Literal["anonymous", "peon", "premium", "power", "permanent", "admin"]
+        The role of the user accessing the data. Default is "peon".
 
     Attributes
     ----------
@@ -50,8 +50,10 @@ class PortfolioQueryParams(QueryParams):
         title="Provider",
         description=QUERY_DESCRIPTIONS.get("provider", ""),
     )
-    user_role: Literal["peon", "premium", "power", "admin"] = Field(
-        default="peon",
+    user_role: Literal[
+        "anonymous", "peon", "premium", "power", "permanent", "admin"
+    ] = Field(
+        default="anonymous",
         title="User Role",
         description=QUERY_DESCRIPTIONS.get("user_role", ""),
     )
@@ -72,6 +74,10 @@ class PortfolioQueryParams(QueryParams):
         List[str]
             A list of uppercase stock symbols with empty strings removed.
         """
+        # Handle empty inputs
+        if not v:
+            return []
+
         # If v is a string, split it by commas into a list. Otherwise, ensure it's a list.
         v = v.split(",") if isinstance(v, str) else list(v)
 

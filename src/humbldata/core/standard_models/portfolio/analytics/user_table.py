@@ -49,9 +49,6 @@ class UserTableQueryParams(QueryParams):
         Examples: "AAPL", "AAPL,MSFT", ["AAPL", "MSFT"]
         All inputs will be converted to uppercase.
 
-    user_role : Literal["anonymous", "peon", "premium", "power", "permanent", "admin"]
-        The role of the user accessing the data. Default is "peon".
-
     Notes
     -----
     The `symbols` input will be processed to ensure all symbols are uppercase
@@ -88,6 +85,9 @@ class UserTableQueryParams(QueryParams):
             The uppercase stock symbol or a comma-separated string of uppercase
             symbols.
         """
+        # Handle empty inputs
+        if not v:
+            return []
         # If v is a string, split it by commas into a list. Otherwise, ensure it's a list.
         v = v.split(",") if isinstance(v, str) else v
 
@@ -251,7 +251,7 @@ class UserTableFetcher:
         self.etf_data = await aget_etf_category(self.context_params.symbols)
         self.toolbox = await generate_user_table_toolbox(
             symbols=self.context_params.symbols,
-            user_role=self.command_params.user_role,
+            user_role=self.context_params.user_role,
         )
         self.mandelbrot = self.toolbox.technical.mandelbrot_channel().to_polars(
             collect=False
