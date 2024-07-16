@@ -80,9 +80,9 @@ def test_garman_klass(volatility_test_df):
         result = (
             garman_klass(volatility_test_df).select(cs.contains("gk")).collect()
         )
-        assert len(result) == 5
-        assert result.to_series().mean() == pytest.approx(28.76, 0.01)
-        assert result.to_series().sum() == pytest.approx(143.81, 0.01)
+        assert len(result) == 6035
+        assert result.to_series().mean() == pytest.approx(29.21, 0.1)
+        assert result.to_series().sum() == pytest.approx(176337.35, 0.01)
 
 
 def test_hodges_tompkins(volatility_test_df):

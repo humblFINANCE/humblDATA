@@ -46,7 +46,7 @@ def test_portfolio_default_values():
     params = PortfolioQueryParams()
     assert params.symbols == ["AAPL"]
     assert params.provider == "yfinance"
-    assert params.user_role == "peon"
+    assert params.user_role == "anonymous"
 
 
 @pytest.mark.parametrize(
