@@ -19,6 +19,7 @@ from humbldata.core.standard_models.abstract.data import Data
 from humbldata.core.standard_models.abstract.humblobject import HumblObject
 from humbldata.core.standard_models.abstract.query_params import QueryParams
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
+from humbldata.core.utils.env import Env
 from humbldata.core.utils.logger import log_start_end, setup_logger
 from humbldata.toolbox.technical.mandelbrot_channel.model import (
     calc_mandelbrot_channel,
@@ -27,8 +28,9 @@ from humbldata.toolbox.technical.mandelbrot_channel.model import (
 from humbldata.toolbox.technical.mandelbrot_channel.view import generate_plots
 from humbldata.toolbox.toolbox_helpers import _window_format
 
+env = Env()
 Q = TypeVar("Q", bound=ToolboxQueryParams)
-logger = setup_logger("MandelbrotChannelFetcher")
+logger = setup_logger("MandelbrotChannelFetcher", level=env.LOGGER_LEVEL)
 
 MANDELBROT_QUERY_DESCRIPTIONS = {
     "window": "The width of the window used for splitting the data into sections for detrending.",
