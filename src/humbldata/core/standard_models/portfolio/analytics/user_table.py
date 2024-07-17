@@ -268,6 +268,7 @@ class UserTableFetcher:
 
         """
         self.etf_data = await aget_etf_category(self.context_params.symbols)
+        # Generate Toolbox to Access Mandelbrot Channel Data
         self.toolbox = await generate_user_table_toolbox(
             symbols=self.context_params.symbols,
             membership=self.context_params.membership,
