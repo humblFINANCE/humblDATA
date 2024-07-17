@@ -25,11 +25,15 @@ end_date : str
 """
 
 import datetime as dt
+import logging
+import re
+from datetime import datetime, timedelta
+from typing import Literal
 
 import pandera as pa
 import polars as pl
 import pytz
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 
 from humbldata.core.standard_models.abstract.data import Data
 from humbldata.core.standard_models.abstract.query_params import QueryParams
@@ -38,6 +42,11 @@ from humbldata.core.utils.descriptions import (
     DATA_DESCRIPTIONS,
     QUERY_DESCRIPTIONS,
 )
+from humbldata.core.utils.env import Env
+from humbldata.core.utils.logger import setup_logger
+
+env = Env()
+logger = setup_logger(name="ToolboxQueryParams", level=env.LOGGER_LEVEL)
 
 
 class ToolboxQueryParams(QueryParams):
@@ -64,6 +73,8 @@ class ToolboxQueryParams(QueryParams):
         The end date for the data query.
     provider : OBB_EQUITY_PRICE_HISTORICAL_PROVIDERS, default="yfinance"
         The data provider to be used for the query.
+    membership : str, default="anonymous"
+        The membership level of the user.
 
     Methods
     -------
@@ -77,6 +88,8 @@ class ToolboxQueryParams(QueryParams):
         Ensures the interval is a number followed by one of 's', 'm', 'h', 'd', 'W', 'M', 'Q', 'Y'.
     validate_date_format(cls, v: str) -> str
         A Pydantic `@field_validator()` that validates the date format to ensure it is YYYY-MM-DD.
+    validate_start_date(self) -> 'ToolboxQueryParams'
+        A Pydantic `@model_validator()` that validates and adjusts the start date based on membership level.
 
     Raises
     ------
@@ -118,6 +131,13 @@ class ToolboxQueryParams(QueryParams):
         default="yfinance",
         title="Provider",
         description=QUERY_DESCRIPTIONS.get("provider", ""),
+    )
+    membership: Literal[
+        "anonymous", "peon", "premium", "power", "permanent", "admin"
+    ] = Field(
+        default="anonymous",
+        title="Membership",
+        description=QUERY_DESCRIPTIONS.get("membership", ""),
     )
 
     @field_validator("symbols", mode="before", check_fields=False)
@@ -175,8 +195,6 @@ class ToolboxQueryParams(QueryParams):
         ValueError
             If the interval format is invalid.
         """
-        import re
-
         if not re.match(r"^\d*[smhdWMQY]$", v):
             msg = "Invalid interval format. Must be a number followed by one of 's', 'm', 'h', 'd', 'W', 'M', 'Q', 'Y'."
             raise ValueError(msg)
@@ -205,12 +223,56 @@ class ToolboxQueryParams(QueryParams):
         ValueError
             If the date format is invalid.
         """
-        import re
-
         if not re.match(r"^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$", v):
             msg = "Invalid date format. Must be YYYY-MM-DD with MM between 01 and 12, and DD between 01 and 31."
             raise ValueError(msg)
         return v
+
+    @model_validator(mode="after")
+    def validate_start_date(self) -> "ToolboxQueryParams":
+        end_date = datetime.now().date()
+
+        start_date_mapping = {
+            "anonymous": end_date - timedelta(days=365),
+            "peon": end_date - timedelta(days=730),
+            "premium": end_date - timedelta(days=1825),
+            "power": end_date - timedelta(days=7300),
+            "permanent": end_date - timedelta(days=10680),
+            "admin": end_date - timedelta(days=27000),
+        }
+
+        allowed_start_date = start_date_mapping.get(
+            self.membership.lower(), end_date - timedelta(days=365)
+        )
+
+        # Convert self.start_date to datetime.date if it's a string
+        if isinstance(self.start_date, str):
+            try:
+                start_date = (
+                    datetime.strptime(self.start_date, "%Y-%m-%d")
+                    .replace(tzinfo=dt.UTC)
+                    .date()
+                )
+            except ValueError as err:
+                msg = f"Invalid date format for start_date: {self.start_date}. Expected format: YYYY-MM-DD"
+                raise ValueError(msg) from err
+        elif isinstance(self.start_date, datetime):
+            start_date = self.start_date.date()
+        elif isinstance(self.start_date, dt.date):
+            start_date = self.start_date
+        else:
+            msg = f"Unsupported type for start_date: {type(self.start_date)}"
+            raise TypeError(msg)
+
+        if start_date < allowed_start_date:
+            logging.warning(
+                f"Start date adjusted to {allowed_start_date} based on {self.membership} membership."
+            )
+            self.start_date = allowed_start_date.strftime("%Y-%m-%d")
+        else:
+            self.start_date = start_date.strftime("%Y-%m-%d")
+
+        return self
 
 
 class ToolboxData(Data):

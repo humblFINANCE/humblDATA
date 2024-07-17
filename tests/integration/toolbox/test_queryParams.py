@@ -1,6 +1,7 @@
 """Testing parameter/field validation for ToolboxQueryParams."""
 
 from typing import get_args
+
 import pytest
 
 from humbldata.core.standard_models.toolbox import (
@@ -64,7 +65,9 @@ def test_toolbox_interval_validator_error(interval):
 @pytest.mark.parametrize("date", ["2023-01-01", "1950-12-31", "2000-02-29"])
 def test_toolbox_date_validator(date):
     """Test valid date formats."""
-    toolbox = ToolboxQueryParams(start_date=date, end_date=date)
+    toolbox = ToolboxQueryParams(
+        start_date=date, end_date=date, membership="admin"
+    )
     assert toolbox.start_date == date
     assert toolbox.end_date == date
 
