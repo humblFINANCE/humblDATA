@@ -163,7 +163,7 @@ async def aget_latest_price(
         None, lambda: obb.equity.price.quote(symbols, provider=provider)
     )
     out = result.to_polars().lazy()
-    if {"last_price", "prev_close"}.issubset(out.columns):
+    if {"last_price", "prev_close"}.issubset(out.collect_schema().names()):
         out = out.select(
             [
                 pl.when(pl.col("asset_type") == "ETF")
@@ -173,7 +173,7 @@ async def aget_latest_price(
                 pl.col("symbol"),
             ]
         )
-    elif "last_price" not in out.columns:
+    elif "last_price" not in out.collect_schema().names():
         out = out.select(
             pl.col("symbol"), pl.col("prev_close").alias("last_price")
         )

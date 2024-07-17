@@ -81,7 +81,6 @@
         "zoomout"
     ],
     "python.analysis.typeCheckingMode": "basic",
-    "workbench.activityBar.orientation": "horizontal",
     "yaml.schemas": {
         "https://squidfunk.github.io/mkdocs-material/schema.json": "mkdocs.yml"
     },
