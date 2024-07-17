@@ -321,7 +321,7 @@ async def test_aget_sector_filter(equity_sector_data, mocker):
 
 @pytest.mark.asyncio()
 @pytest.mark.parametrize(
-    "user_role, expected_days",
+    "membership, expected_days",
     [
         ("anonymous", 365),
         ("peon", 730),
@@ -331,7 +331,7 @@ async def test_aget_sector_filter(equity_sector_data, mocker):
         ("unknown", 365),  # Test default case
     ],
 )
-async def test_generate_user_table_toolbox(user_role, expected_days, mocker):
+async def test_generate_user_table_toolbox(membership, expected_days, mocker):
     # Mock datetime.now() to return a fixed date
     fixed_date = datetime(2023, 5, 1)
     mocker.patch(
@@ -344,7 +344,7 @@ async def test_generate_user_table_toolbox(user_role, expected_days, mocker):
     )
 
     symbols = ["AAPL", "GOOGL"]
-    toolbox = await generate_user_table_toolbox(symbols, user_role)
+    toolbox = await generate_user_table_toolbox(symbols, membership)
 
     assert isinstance(toolbox, Toolbox)
     assert toolbox.symbols == symbols
@@ -371,8 +371,8 @@ async def test_generate_user_table_toolbox_single_symbol(mocker):
     )
 
     symbol = ["AAPL"]
-    user_role = "premium"
-    toolbox = await generate_user_table_toolbox(symbol, user_role)
+    membership = "premium"
+    toolbox = await generate_user_table_toolbox(symbol, membership)
 
     assert isinstance(toolbox, Toolbox)
     assert toolbox.symbols == symbol
@@ -399,8 +399,8 @@ async def test_generate_user_table_toolbox_case_insensitive(mocker):
     )
 
     symbols = ["AAPL", "GOOGL"]
-    user_role = "PrEmIuM"
-    toolbox = await generate_user_table_toolbox(symbols, user_role)
+    membership = "PrEmIuM"
+    toolbox = await generate_user_table_toolbox(symbols, membership)
 
     assert isinstance(toolbox, Toolbox)
     assert toolbox.symbols == symbols

@@ -46,7 +46,7 @@ def test_portfolio_default_values():
     params = PortfolioQueryParams()
     assert params.symbols == ["AAPL"]
     assert params.provider == "yfinance"
-    assert params.user_role == "anonymous"
+    assert params.membership == "anonymous"
 
 
 @pytest.mark.parametrize(
@@ -58,15 +58,15 @@ def test_portfolio_provider_validator(provider):
     assert params.provider == provider
 
 
-@pytest.mark.parametrize("user_role", ["peon", "premium", "power", "admin"])
-def test_portfolio_user_role_validator(user_role):
+@pytest.mark.parametrize("membership", ["peon", "premium", "power", "admin"])
+def test_portfolio_membership_validator(membership):
     """Test valid user role inputs."""
-    params = PortfolioQueryParams(user_role=user_role)
-    assert params.user_role == user_role
+    params = PortfolioQueryParams(membership=membership)
+    assert params.membership == membership
 
 
 @pytest.mark.parametrize("invalid_input", ["basic", "super_admin", "user"])
-def test_portfolio_user_role_validator_error(invalid_input):
+def test_portfolio_membership_validator_error(invalid_input):
     """Test invalid user role inputs."""
     with pytest.raises(ValueError):
-        PortfolioQueryParams(user_role=invalid_input)
+        PortfolioQueryParams(membership=invalid_input)

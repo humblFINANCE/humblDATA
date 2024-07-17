@@ -250,7 +250,7 @@ async def test_user_table_engine(
         etf_data=etf_input,
         toolbox=mock_toolbox,
         mandelbrot_data=mandelbrot_input,
-        user_role="anonymous",  # Fixed user_role for unit tests
+        membership="anonymous",  # Fixed membership for unit tests
     )
 
     # Collect the result
@@ -330,7 +330,7 @@ async def test_user_table_engine_without_etf_data(
 
     # Run the function
     result = await user_table_engine(
-        symbols=symbols, toolbox=mock_toolbox, user_role="anonymous"
+        symbols=symbols, toolbox=mock_toolbox, membership="anonymous"
     )
 
     # Collect the result
@@ -382,7 +382,7 @@ async def test_user_table_engine_without_toolbox(
 
     # Run the function
     result = await user_table_engine(
-        symbols=symbols, etf_data=etf_data[0].lazy(), user_role="anonymous"
+        symbols=symbols, etf_data=etf_data[0].lazy(), membership="anonymous"
     )
 
     # Collect the result
@@ -406,7 +406,7 @@ async def test_user_table_engine_without_toolbox(
 
     # Verify that mocked functions were called
     mock_generate_toolbox.assert_called_once_with(
-        symbols=symbols, user_role="anonymous"
+        symbols=symbols, membership="anonymous"
     )
     mock_latest_price.assert_called_once_with(symbols=symbols)
     mock_sector_filter.assert_called_once()

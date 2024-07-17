@@ -27,8 +27,8 @@ class PortfolioQueryParams(QueryParams):
         The stock symbol(s) to query. Default is "AAPL".
     provider : OBB_EQUITY_PRICE_HISTORICAL_PROVIDERS
         The data provider for historical price data. Default is "yahoo".
-    user_role : Literal["anonymous", "peon", "premium", "power", "permanent", "admin"]
-        The role of the user accessing the data. Default is "peon".
+    membership : Literal["anonymous", "peon", "premium", "power", "permanent", "admin"]
+        The membership level of the user accessing the data. Default is "anonymous".
 
     Attributes
     ----------
@@ -36,8 +36,8 @@ class PortfolioQueryParams(QueryParams):
         The stock symbol(s) to query.
     provider : OBB_EQUITY_PRICE_HISTORICAL_PROVIDERS
         The data provider for historical price data.
-    user_role : str
-        The role of the user.
+    membership : Literal["anonymous", "peon", "premium", "power", "permanent", "admin"]
+        The membership level of the user.
     """
 
     symbols: str | list[str] = Field(
@@ -50,12 +50,12 @@ class PortfolioQueryParams(QueryParams):
         title="Provider",
         description=QUERY_DESCRIPTIONS.get("provider", ""),
     )
-    user_role: Literal[
+    membership: Literal[
         "anonymous", "peon", "premium", "power", "permanent", "admin"
     ] = Field(
         default="anonymous",
-        title="User Role",
-        description=QUERY_DESCRIPTIONS.get("user_role", ""),
+        title="Membership",
+        description=QUERY_DESCRIPTIONS.get("membership", ""),
     )
 
     @field_validator("symbols", mode="before", check_fields=False)

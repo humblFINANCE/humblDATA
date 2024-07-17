@@ -6,6 +6,7 @@ The UserTable Helpers Module.
 
 import asyncio
 from datetime import datetime, timedelta
+from typing import Literal
 
 import polars as pl
 
@@ -28,17 +29,20 @@ from humbldata.toolbox.toolbox_controller import Toolbox
 
 
 async def generate_user_table_toolbox(
-    symbols: str | list[str], user_role: str
+    symbols: str | list[str],
+    membership: Literal[
+        "anonymous", "peon", "premium", "power", "permanent", "admin"
+    ],
 ) -> Toolbox:
     """
     Generate a Toolbox instance based on the user's role.
 
     Parameters
     ----------
-    symbol : str
-        The stock symbol for the Toolbox.
-    user_role : str
-        The user's role (anonymous, peon, premium, power, permanent, admin).
+    symbols : str | list[str]
+        The stock symbol(s) for the Toolbox.
+    membership : Literal["anonymous", "peon", "premium", "power", "permanent", "admin"]
+        The user's membership level.
 
     Returns
     -------
@@ -56,7 +60,7 @@ async def generate_user_table_toolbox(
     }
 
     start_date = start_date_mapping.get(
-        user_role.lower(), end_date - timedelta(days=365)
+        membership.lower(), end_date - timedelta(days=365)
     )
     return Toolbox(
         symbols=symbols,

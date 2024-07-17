@@ -34,8 +34,8 @@ class Portfolio(PortfolioQueryParams):
         The stock symbol(s) to query. Default is "AAPL".
     provider : OBB_EQUITY_PRICE_HISTORICAL_PROVIDERS
         The data provider for historical price data. Default is "yahoo".
-    user_role : {'basic', 'premium', 'power', 'admin'}
-        The role of the user. Default is "basic".
+    membership: Literal["anonymous", "peon", "premium", "power", "permanent", "admin"]
+        The membership level of the user. Default is "anonymous".
 
     Parameter Notes
     -----
