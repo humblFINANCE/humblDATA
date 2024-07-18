@@ -1,6 +1,7 @@
 """Testing parameter/field validation for ToolboxQueryParams."""
 
 import datetime
+from datetime import date
 from typing import get_args
 
 import pytest
@@ -74,14 +75,14 @@ def test_toolbox_interval_validator_error(interval):
         (datetime.date(2000, 2, 29), datetime.date(2000, 2, 29)),
     ],
 )
-def test_toolbox_date_format(input_date, expected_date):
+def test_toolbox_date_type(input_date, expected_date):
     """Test that both string and datetime.date inputs are correctly handled and returned as datetime.date objects."""
     toolbox = ToolboxQueryParams(
         start_date=input_date, end_date=input_date, membership="admin"
     )
 
-    assert isinstance(toolbox.start_date, datetime.date)
-    assert isinstance(toolbox.end_date, datetime.date)
+    assert isinstance(toolbox.start_date, date)
+    assert isinstance(toolbox.end_date, date)
     assert toolbox.start_date == expected_date
     assert toolbox.end_date == expected_date
 
@@ -170,10 +171,10 @@ def test_validate_start_date(membership, start_date, expected_start_date):
 
 def test_toolbox_default_values():
     """Test default values for ToolboxQueryParams."""
-    expected_end_date = datetime.datetime.now().date()
+    expected_end_date = datetime.now().date()
 
-    # calculate admiin `start_date`
-    expected_start_date = expected_end_date - datetime.timedelta(days=365)
+    # calculate admin `start_date`
+    expected_start_date = expected_end_date - timedelta(days=365)
 
     params = ToolboxQueryParams()
     assert params.symbols == ["AAPL"]
