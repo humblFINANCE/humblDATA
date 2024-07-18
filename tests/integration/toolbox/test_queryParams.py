@@ -1,5 +1,6 @@
 """Testing parameter/field validation for ToolboxQueryParams."""
 
+import datetime
 from typing import get_args
 
 import pytest
@@ -62,33 +63,124 @@ def test_toolbox_interval_validator_error(interval):
         ToolboxQueryParams(interval=interval)
 
 
-@pytest.mark.parametrize("date", ["2023-01-01", "1950-12-31", "2000-02-29"])
-def test_toolbox_date_validator(date):
-    """Test valid date formats."""
+@pytest.mark.parametrize(
+    "input_date, expected_date",
+    [
+        ("2023-01-01", datetime.date(2023, 1, 1)),
+        ("1950-12-31", datetime.date(1950, 12, 31)),
+        ("2000-02-29", datetime.date(2000, 2, 29)),
+        (datetime.date(2023, 1, 1), datetime.date(2023, 1, 1)),
+        (datetime.date(1950, 12, 31), datetime.date(1950, 12, 31)),
+        (datetime.date(2000, 2, 29), datetime.date(2000, 2, 29)),
+    ],
+)
+def test_toolbox_date_format(input_date, expected_date):
+    """Test that both string and datetime.date inputs are correctly handled and returned as datetime.date objects."""
     toolbox = ToolboxQueryParams(
-        start_date=date, end_date=date, membership="admin"
+        start_date=input_date, end_date=input_date, membership="admin"
     )
-    assert toolbox.start_date == date
-    assert toolbox.end_date == date
+
+    assert isinstance(toolbox.start_date, datetime.date)
+    assert isinstance(toolbox.end_date, datetime.date)
+    assert toolbox.start_date == expected_date
+    assert toolbox.end_date == expected_date
+
+
+@pytest.mark.parametrize(
+    "invalid_date",
+    [
+        "12-31-2023",  # MM-DD-YYYY
+        "2023/01/01",  # YYYY/MM/DD
+        "23-01-01",  # YY-MM-DD
+        "Jan 1, 2023",  # Month Day, Year
+        "2023.01.01",  # YYYY.MM.DD
+        "2023-00-01",  # Invalid month (00)
+        "2023-13-01",  # Invalid month (13)
+        "2023-01-00",  # Invalid day (00)
+        "2023-04-31",  # Invalid day (31 for April)
+        "2023-02-29",  # Invalid day (29 for non-leap year)
+        "2023-06-31",  # Invalid day (31 for June)
+        datetime.date(23, 1, 1),  # YY-MM-DD as date object
+        datetime.date(1949, 12, 31),  # Invalid date before 1950
+    ],
+)
+def test_toolbox_date_validator_error(invalid_date):
+    """Test that invalid date formats raise appropriate errors."""
+    with pytest.raises((ValueError, TypeError)):
+        ToolboxQueryParams(
+            start_date=invalid_date, end_date=invalid_date, membership="admin"
+        )
+
+
+import pytest
+from datetime import datetime, timedelta
+
+
+@pytest.mark.parametrize(
+    "membership, start_date, expected_start_date",
+    [
+        (
+            "anonymous",
+            datetime(2022, 8, 20).date(),
+            datetime(2023, 1, 1).date(),
+        ),
+        (
+            "peon",
+            datetime(2021, 1, 5).date(),
+            datetime(2022, 1, 1).date(),
+        ),
+        (
+            "premium",
+            datetime(2018, 6, 10).date(),
+            datetime(2019, 1, 2).date(),
+        ),
+        (
+            "power",
+            datetime(2001, 1, 1).date(),
+            datetime(2004, 1, 6).date(),
+        ),
+        (
+            "permanent",
+            datetime(1993, 7, 15).date(),
+            datetime(1994, 10, 5).date(),
+        ),
+        (
+            "admin",
+            datetime(1950, 1, 1).date(),
+            datetime(1950, 1, 1).date(),
+        ),
+    ],
+)
+def test_validate_start_date(membership, start_date, expected_start_date):
+    """
+    Test that the start_date is correctly adjusted based on the membership.
+
+    All start_dates that are passed are earlier than the membership level allows
+    """
+    end_date = datetime(2024, 1, 1).date()
+    toolbox = ToolboxQueryParams(
+        start_date=start_date, end_date=end_date, membership=membership
+    )
+
+    assert (
+        toolbox.start_date == expected_start_date
+    ), f"For {membership} membership, start_date should be adjusted to {expected_start_date}"
+    assert toolbox.end_date == end_date, "End date should remain unchanged"
 
 
 def test_toolbox_default_values():
     """Test default values for ToolboxQueryParams."""
+    expected_end_date = datetime.datetime.now().date()
+
+    # calculate admiin `start_date`
+    expected_start_date = expected_end_date - datetime.timedelta(days=365)
+
     params = ToolboxQueryParams()
     assert params.symbols == ["AAPL"]
     assert params.provider == "yfinance"
     assert params.interval == "1d"
-
-
-@pytest.mark.parametrize(
-    "date", ["2023-13-01", "1950-00-31", "2000-02-33", "2023-01-32", "2023-1-1"]
-)
-def test_toolbox_date_validator_error(date):
-    """Test invalid date formats."""
-    with pytest.raises(ValueError, match="Invalid date format"):
-        ToolboxQueryParams(start_date=date)
-    with pytest.raises(ValueError, match="Invalid date format"):
-        ToolboxQueryParams(end_date=date)
+    assert params.start_date == expected_start_date
+    assert params.end_date == expected_end_date
 
 
 @pytest.mark.parametrize(

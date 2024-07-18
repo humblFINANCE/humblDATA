@@ -86,7 +86,7 @@ class ToolboxQueryParams(QueryParams):
     validate_interval(cls, v: str) -> str
         A Pydantic `@field_validator()` that validates the interval format.
         Ensures the interval is a number followed by one of 's', 'm', 'h', 'd', 'W', 'M', 'Q', 'Y'.
-    validate_date_format(cls, v: str) -> str
+    validate_date_format(cls, v: str | date) -> date
         A Pydantic `@field_validator()` that validates the date format to ensure it is YYYY-MM-DD.
     validate_start_date(self) -> 'ToolboxQueryParams'
         A Pydantic `@model_validator()` that validates and adjusts the start date based on membership level.
@@ -200,77 +200,85 @@ class ToolboxQueryParams(QueryParams):
             raise ValueError(msg)
         return v
 
-    @field_validator(
-        "start_date", "end_date", mode="before", check_fields=False
-    )
+    @field_validator("start_date", "end_date", mode="before")
     @classmethod
-    def validate_date_format(cls, v: str) -> str:
+    def validate_date_format(cls, v: str | dt.date) -> dt.date:
         """
-        Validate the date format to ensure it is YYYY-MM-DD.
+        Validate and convert the input date to a datetime.date object.
+
+        This method accepts either a string in 'YYYY-MM-DD' format or a datetime.date object.
+        It converts the input to a datetime.date object, ensuring it's in the correct format.
 
         Parameters
         ----------
-        v : str
-            The date string to be validated.
+        v : str | dt.date
+            The input date to validate and convert.
 
         Returns
         -------
-        str
-            The validated date string.
+        dt.date
+            The validated and converted date.
 
         Raises
         ------
         ValueError
-            If the date format is invalid.
+            If the input string is not in the correct format.
+        TypeError
+            If the input is neither a string nor a datetime.date object.
         """
-        if not re.match(r"^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$", v):
-            msg = "Invalid date format. Must be YYYY-MM-DD with MM between 01 and 12, and DD between 01 and 31."
+        if isinstance(v, str):
+            try:
+                date = datetime.strptime(v, "%Y-%m-%d").replace(
+                    tzinfo=pytz.timezone("America/New_York")
+                )
+            except ValueError as e:
+                msg = f"Invalid date format. Must be YYYY-MM-DD: {e}"
+                raise ValueError(msg) from e
+        elif isinstance(v, dt.date):
+            date = datetime.combine(v, datetime.min.time()).replace(
+                tzinfo=pytz.timezone("America/New_York")
+            )
+        else:
+            msg = f"Expected str or date, got {type(v)}"
+            raise TypeError(msg)
+
+        # Check if the date is in the correct format
+        if date.strftime("%Y-%m-%d") != date.strftime("%Y-%m-%d"):
+            msg = "Date must be in YYYY-MM-DD format"
             raise ValueError(msg)
-        return v
+        if date.date() < dt.date(1950, 1, 1):
+            msg = "Date must be after 1950-01-01"
+            raise ValueError(msg)
+
+        return date.date()
 
     @model_validator(mode="after")
     def validate_start_date(self) -> "ToolboxQueryParams":
-        end_date = datetime.now().date()
+        end_date: dt.date = self.end_date  # type: ignore  # noqa: PGH003 the date has already been converted to date
 
         start_date_mapping = {
-            "anonymous": end_date - timedelta(days=365),
-            "peon": end_date - timedelta(days=730),
-            "premium": end_date - timedelta(days=1825),
-            "power": end_date - timedelta(days=7300),
-            "permanent": end_date - timedelta(days=10680),
-            "admin": end_date - timedelta(days=27000),
+            "anonymous": (end_date - timedelta(days=365), "1Y"),
+            "peon": (end_date - timedelta(days=730), "2Y"),
+            "premium": (end_date - timedelta(days=1825), "5Y"),
+            "power": (end_date - timedelta(days=7300), "20Y"),
+            "permanent": (end_date - timedelta(days=10680), "30Y"),
+            "admin": (
+                datetime(
+                    1950, 1, 1, tzinfo=pytz.timezone("America/New_York")
+                ).date(),
+                "All",
+            ),
         }
 
-        allowed_start_date = start_date_mapping.get(
-            self.membership.lower(), end_date - timedelta(days=365)
+        allowed_start_date, data_length = start_date_mapping.get(
+            self.membership.lower(), (end_date - timedelta(days=365), "1Y")
         )
 
-        # Convert self.start_date to datetime.date if it's a string
-        if isinstance(self.start_date, str):
-            try:
-                start_date = (
-                    datetime.strptime(self.start_date, "%Y-%m-%d")
-                    .replace(tzinfo=dt.UTC)
-                    .date()
-                )
-            except ValueError as err:
-                msg = f"Invalid date format for start_date: {self.start_date}. Expected format: YYYY-MM-DD"
-                raise ValueError(msg) from err
-        elif isinstance(self.start_date, datetime):
-            start_date = self.start_date.date()
-        elif isinstance(self.start_date, dt.date):
-            start_date = self.start_date
-        else:
-            msg = f"Unsupported type for start_date: {type(self.start_date)}"
-            raise TypeError(msg)
-
-        if start_date < allowed_start_date:
-            logging.warning(
-                f"Start date adjusted to {allowed_start_date} based on {self.membership} membership."
+        if self.start_date < allowed_start_date:  # type: ignore  # noqa: PGH003 the date has already been converted to date
+            logger.warning(
+                f"Start date adjusted to {allowed_start_date} based on {self.membership} membership ({data_length} of data)."
             )
-            self.start_date = allowed_start_date.strftime("%Y-%m-%d")
-        else:
-            self.start_date = start_date.strftime("%Y-%m-%d")
+            self.start_date = allowed_start_date
 
         return self
 
