@@ -417,7 +417,7 @@ class MandelbrotChannelFetcher:
             results=self.transformed_data,
             provider=self.context_params.provider,
             equity_data=self.equity_historical_data.serialize(),
-            warnings=None,
+            warnings=self.context_params.warnings,
             chart=self.chart,
             context_params=self.context_params,
             command_params=self.command_params,

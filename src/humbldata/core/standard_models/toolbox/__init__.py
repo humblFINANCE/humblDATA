@@ -37,6 +37,7 @@ from pydantic import Field, field_validator, model_validator
 
 from humbldata.core.standard_models.abstract.data import Data
 from humbldata.core.standard_models.abstract.query_params import QueryParams
+from humbldata.core.standard_models.abstract.warnings import HumblDataWarning
 from humbldata.core.utils.constants import OBB_EQUITY_PRICE_HISTORICAL_PROVIDERS
 from humbldata.core.utils.descriptions import (
     DATA_DESCRIPTIONS,
@@ -279,6 +280,14 @@ class ToolboxQueryParams(QueryParams):
                 f"Start date adjusted to {allowed_start_date} based on {self.membership} membership ({data_length} of data)."
             )
             self.start_date = allowed_start_date
+            if not hasattr(self, "warnings"):
+                self.warnings = []
+            self.warnings.append(
+                HumblDataWarning(
+                    category="ToolboxQueryParams",
+                    message=f"Start date adjusted to {allowed_start_date} based on {self.membership} membership ({data_length} of data).",
+                )
+            )
 
         return self
 
