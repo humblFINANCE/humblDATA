@@ -1,3 +1,9 @@
+## v1.7.1 (2024-07-19)
+
+### 🐛🚑️ Fixes
+
+- **pandera**: move to  to remove column names error
+
 ## v1.7.0 (2024-07-19)
 
 ### ✨ Features
