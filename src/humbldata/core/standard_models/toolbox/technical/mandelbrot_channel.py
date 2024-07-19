@@ -413,6 +413,9 @@ class MandelbrotChannelFetcher:
         self.extract_data()
         self.transform_data()
 
+        if not hasattr(self.context_params, "warnings"):
+            self.context_params.warnings = []
+
         return HumblObject(
             results=self.transformed_data,
             provider=self.context_params.provider,
