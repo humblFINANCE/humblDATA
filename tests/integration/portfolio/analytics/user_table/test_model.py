@@ -13,7 +13,7 @@ async def test_user_table_engine_integration():
     # Run the function
     result = await user_table_engine(
         symbols=symbols,
-        user_role="anonymous",
+        membership="anonymous",
     )
 
     # Collect the result

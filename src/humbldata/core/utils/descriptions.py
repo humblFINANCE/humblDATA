@@ -14,7 +14,7 @@ QUERY_DESCRIPTIONS = {
     "symbol_list_warning": "Lists of symbols are not allowed for this function. "
     "Multiple symbols will be ignored in favour of the first symbol.",
     "provider": "The provider of the data.",
-    "user_role": "The role of a user in supabase.",
+    "membership": "The membership level of the user.",
 }
 
 DATA_DESCRIPTIONS = {

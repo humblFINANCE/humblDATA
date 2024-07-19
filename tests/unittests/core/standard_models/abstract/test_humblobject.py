@@ -120,6 +120,17 @@ def test_to_json(humblobject: HumblObject):
     except json.JSONDecodeError:
         pytest.fail("Equity data result is not valid JSON")
 
+    # Test with `chart=True`
+    json_result_chart = humblobject.to_json(chart=True)
+    assert isinstance(json_result_chart, list)
+    assert all(isinstance(item, str) for item in json_result_chart)
+
+    for chart in json_result_chart:
+        try:
+            json.loads(chart)
+        except json.JSONDecodeError:
+            pytest.fail(f"Chart data result is not valid JSON: {chart}")
+
     # Optionally, you can add more specific checks on the content of the JSON
     # For example, checking if certain keys are present in the parsed JSON
     parsed_json = json.loads(json_result)

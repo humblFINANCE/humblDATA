@@ -17,7 +17,6 @@ from humbldata.portfolio.analytics.user_table.helpers import (
     aget_asset_class_filter,
     aget_sector_filter,
     calc_up_down_pct,
-    generate_user_table_toolbox,
 )
 from humbldata.toolbox.toolbox_controller import Toolbox
 
@@ -27,7 +26,7 @@ async def user_table_engine(
     etf_data: pl.LazyFrame | None = None,
     toolbox: Toolbox | None = None,
     mandelbrot_data: pl.LazyFrame | None = None,
-    user_role: Literal[
+    membership: Literal[
         "anonymous", "peon", "premium", "power", "admin"
     ] = "anonymous",
 ):
@@ -44,7 +43,7 @@ async def user_table_engine(
         Pre-generated toolbox. If None, it will be generated, by default None.
     mandelbrot_data : pl.LazyFrame or None, optional
         Pre-calculated Mandelbrot channel data. If None, it will be calculated, by default None.
-    user_role : Literal["anonymous", "peon", "premium", "power", "admin"], optional
+    membership : Literal["anonymous", "peon", "premium", "power", "admin"], optional
         The user's role. If None, it will be calculated, by default None.
 
     Returns
@@ -74,11 +73,9 @@ async def user_table_engine(
 
     # Calculate Mandelbrot channel if not provided
     if mandelbrot_data is None:
-        # Generate toolbox params based on user_role if not provided
+        # Generate toolbox params based on membership if not provided
         if toolbox is None:
-            toolbox = await generate_user_table_toolbox(
-                symbols=symbols, user_role=user_role
-            )
+            toolbox = Toolbox(symbols=symbols, membership=membership)
         mandelbrot_data = toolbox.technical.mandelbrot_channel().to_polars(
             collect=False
         )
