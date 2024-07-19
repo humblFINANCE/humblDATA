@@ -28,48 +28,6 @@ from humbldata.core.utils.openbb_helpers import (
 from humbldata.toolbox.toolbox_controller import Toolbox
 
 
-async def generate_user_table_toolbox(
-    symbols: str | list[str],
-    membership: Literal[
-        "anonymous", "peon", "premium", "power", "permanent", "admin"
-    ],
-) -> Toolbox:
-    """
-    Generate a Toolbox instance based on the user's role.
-
-    Parameters
-    ----------
-    symbols : str | list[str]
-        The stock symbol(s) for the Toolbox.
-    membership : Literal["anonymous", "peon", "premium", "power", "permanent", "admin"]
-        The user's membership level.
-
-    Returns
-    -------
-    Toolbox
-        A Toolbox instance with appropriate date range based on user role.
-    """
-    end_date = datetime.now().date()
-
-    start_date_mapping = {
-        "anonymous": end_date - timedelta(days=365),
-        "peon": end_date - timedelta(days=730),
-        "premium": end_date - timedelta(days=1825),
-        "power": end_date - timedelta(days=7300),
-        "permanent": end_date - timedelta(days=7300),
-    }
-
-    start_date = start_date_mapping.get(
-        membership.lower(), end_date - timedelta(days=365)
-    )
-    return Toolbox(
-        symbols=symbols,
-        interval="1d",
-        start_date=start_date.strftime("%Y-%m-%d"),
-        end_date=end_date.strftime("%Y-%m-%d"),
-    )
-
-
 async def aget_sector_filter(
     symbols: str | list[str] | pl.Series,
     provider: OBB_EQUITY_PROFILE_PROVIDERS | None = "yfinance",

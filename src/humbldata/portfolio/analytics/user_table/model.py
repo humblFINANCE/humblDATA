@@ -17,7 +17,6 @@ from humbldata.portfolio.analytics.user_table.helpers import (
     aget_asset_class_filter,
     aget_sector_filter,
     calc_up_down_pct,
-    generate_user_table_toolbox,
 )
 from humbldata.toolbox.toolbox_controller import Toolbox
 
@@ -76,9 +75,7 @@ async def user_table_engine(
     if mandelbrot_data is None:
         # Generate toolbox params based on membership if not provided
         if toolbox is None:
-            toolbox = await generate_user_table_toolbox(
-                symbols=symbols, membership=membership
-            )
+            toolbox = Toolbox(symbols=symbols, membership=membership)
         mandelbrot_data = toolbox.technical.mandelbrot_channel().to_polars(
             collect=False
         )

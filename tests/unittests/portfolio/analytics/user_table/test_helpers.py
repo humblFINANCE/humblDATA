@@ -10,7 +10,6 @@ from humbldata.portfolio.analytics.user_table.helpers import (
     aget_asset_class_filter,
     aget_sector_filter,
     calc_up_down_pct,
-    generate_user_table_toolbox,
 )
 from humbldata.toolbox.toolbox_controller import Toolbox
 
@@ -317,95 +316,3 @@ async def test_aget_sector_filter(equity_sector_data, mocker):
         mock_aget_equity_sector.assert_called_once_with(
             symbols, provider="yfinance"
         )
-
-
-# @pytest.mark.asyncio()
-# @pytest.mark.parametrize(
-#     "membership, expected_days",
-#     [
-#         ("anonymous", 365),
-#         ("peon", 730),
-#         ("premium", 1825),
-#         ("power", 7300),
-#         ("permanent", 7300),
-#         ("unknown", 365),  # Test default case
-#     ],
-# )
-# async def test_generate_user_table_toolbox(membership, expected_days, mocker):
-#     # Mock datetime.now() to return a fixed date
-#     fixed_date = date(2023, 5, 1)
-#     mocker.patch(
-#         "humbldata.portfolio.analytics.user_table.helpers.date",
-#         wraps=date,
-#     )
-#     mocker.patch(
-#         "humbldata.portfolio.analytics.user_table.helpers.datetime.now",
-#         return_value=fixed_date,
-#     )
-
-#     symbols = ["AAPL", "GOOGL"]
-#     toolbox = await generate_user_table_toolbox(symbols, membership)
-
-#     assert isinstance(toolbox, Toolbox)
-#     assert toolbox.symbols == symbols
-#     assert toolbox.interval == "1d"
-#     assert toolbox.end_date == fixed_date.date()
-
-#     expected_start_date = fixed_date - timedelta(days=expected_days)
-#     assert toolbox.start_date == expected_start_date
-
-
-# @pytest.mark.asyncio()
-# async def test_generate_user_table_toolbox_single_symbol(mocker):
-#     # Mock datetime.now() to return a fixed date
-#     fixed_date = datetime(2023, 5, 1)
-#     mocker.patch(
-#         "humbldata.portfolio.analytics.user_table.helpers.datetime",
-#         wraps=datetime,
-#     )
-#     mocker.patch(
-#         "humbldata.portfolio.analytics.user_table.helpers.datetime.now",
-#         return_value=fixed_date,
-#     )
-
-#     symbol = ["AAPL"]
-#     membership = "premium"
-#     toolbox = await generate_user_table_toolbox(symbol, membership)
-
-#     assert isinstance(toolbox, Toolbox)
-#     assert toolbox.symbols == symbol
-#     assert toolbox.interval == "1d"
-#     assert toolbox.end_date == fixed_date.date().strftime("%Y-%m-%d")
-
-#     expected_start_date = (fixed_date - timedelta(days=1825)).strftime(
-#         "%Y-%m-%d"
-#     )
-#     assert toolbox.start_date == expected_start_date
-
-
-# @pytest.mark.asyncio()
-# async def test_generate_user_table_toolbox_case_insensitive(mocker):
-#     # Mock datetime.now() to return a fixed date
-#     fixed_date = datetime(2023, 5, 1)
-#     mocker.patch(
-#         "humbldata.portfolio.analytics.user_table.helpers.datetime",
-#         wraps=datetime,
-#     )
-#     mocker.patch(
-#         "humbldata.portfolio.analytics.user_table.helpers.datetime.now",
-#         return_value=fixed_date,
-#     )
-
-#     symbols = ["AAPL", "GOOGL"]
-#     membership = "PrEmIuM"
-#     toolbox = await generate_user_table_toolbox(symbols, membership)
-
-#     assert isinstance(toolbox, Toolbox)
-#     assert toolbox.symbols == symbols
-#     assert toolbox.interval == "1d"
-#     assert toolbox.end_date == fixed_date.date().strftime("%Y-%m-%d")
-
-#     expected_start_date = (fixed_date - timedelta(days=1825)).strftime(
-#         "%Y-%m-%d"
-#     )
-#     assert toolbox.start_date == expected_start_date

@@ -7,10 +7,12 @@ This module is used to define the QueryParams and Data model for the
 UserTable command.
 """
 
+from datetime import datetime
 from typing import Literal, TypeVar
 
 import pandera.polars as pa
 import polars as pl
+import pytz
 from pydantic import Field, field_validator
 
 from humbldata.core.standard_models.abstract.data import Data
@@ -24,10 +26,8 @@ from humbldata.core.utils.descriptions import (
 from humbldata.core.utils.env import Env
 from humbldata.core.utils.logger import log_start_end, setup_logger
 from humbldata.core.utils.openbb_helpers import aget_etf_category
-from humbldata.portfolio.analytics.user_table.helpers import (
-    generate_user_table_toolbox,
-)
 from humbldata.portfolio.analytics.user_table.model import user_table_engine
+from humbldata.toolbox.toolbox_controller import Toolbox
 
 env = Env()
 Q = TypeVar("Q", bound=PortfolioQueryParams)
@@ -268,10 +268,12 @@ class UserTableFetcher:
 
         """
         self.etf_data = await aget_etf_category(self.context_params.symbols)
-        # Generate Toolbox to Access Mandelbrot Channel Data
-        self.toolbox = await generate_user_table_toolbox(
+
+        # Dates are automatically selected based on membership
+        self.toolbox = Toolbox(
             symbols=self.context_params.symbols,
             membership=self.context_params.membership,
+            interval="1d",
         )
         self.mandelbrot = self.toolbox.technical.mandelbrot_channel().to_polars(
             collect=False

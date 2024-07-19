@@ -370,15 +370,10 @@ async def test_user_table_engine_without_toolbox(
 ):
     symbols = ["AAPL", "NVDA", "TSLA"]
 
-    # Mock generate_user_table_toolbox
-    mock_generate_toolbox = mocker.patch(
-        "humbldata.portfolio.analytics.user_table.model.generate_user_table_toolbox"
-    )
     mock_toolbox = mocker.Mock(spec=Toolbox)
     mock_mandelbrot = mocker.Mock()
     mock_mandelbrot.to_polars.return_value = mandelbrot_data[0].lazy()
     mock_toolbox.technical.mandelbrot_channel.return_value = mock_mandelbrot
-    mock_generate_toolbox.return_value = mock_toolbox
 
     # Run the function
     result = await user_table_engine(
@@ -405,9 +400,6 @@ async def test_user_table_engine_without_toolbox(
     assert set(result_df["symbol"]) == set(symbols)
 
     # Verify that mocked functions were called
-    mock_generate_toolbox.assert_called_once_with(
-        symbols=symbols, membership="anonymous"
-    )
     mock_latest_price.assert_called_once_with(symbols=symbols)
     mock_sector_filter.assert_called_once()
     mock_asset_class_filter.assert_called_once()
