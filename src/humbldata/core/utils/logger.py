@@ -9,6 +9,8 @@ from typing import Any
 
 import coloredlogs
 
+from humbldata.core.utils.env import Env
+
 
 def setup_logger(name: str, level: int = logging.INFO) -> logging.Logger:
     """
@@ -74,8 +76,9 @@ def setup_logger(name: str, level: int = logging.INFO) -> logging.Logger:
     return logger
 
 
-# Create package-wide logger
-logger = setup_logger("humbldata")
+# # Create package-wide logger
+# env = Env()
+# logger = setup_logger("humbldata", level=env.LOGGER_LEVEL)
 
 
 def log_start_end(

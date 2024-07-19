@@ -25,19 +25,29 @@ end_date : str
 """
 
 import datetime as dt
+import logging
+import re
+from datetime import datetime, timedelta
+from typing import Literal
 
 import pandera as pa
 import polars as pl
 import pytz
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 
 from humbldata.core.standard_models.abstract.data import Data
 from humbldata.core.standard_models.abstract.query_params import QueryParams
+from humbldata.core.standard_models.abstract.warnings import HumblDataWarning
 from humbldata.core.utils.constants import OBB_EQUITY_PRICE_HISTORICAL_PROVIDERS
 from humbldata.core.utils.descriptions import (
     DATA_DESCRIPTIONS,
     QUERY_DESCRIPTIONS,
 )
+from humbldata.core.utils.env import Env
+from humbldata.core.utils.logger import setup_logger
+
+env = Env()
+logger = setup_logger(name="ToolboxQueryParams", level=env.LOGGER_LEVEL)
 
 
 class ToolboxQueryParams(QueryParams):
@@ -64,6 +74,8 @@ class ToolboxQueryParams(QueryParams):
         The end date for the data query.
     provider : OBB_EQUITY_PRICE_HISTORICAL_PROVIDERS, default="yfinance"
         The data provider to be used for the query.
+    membership : str, default="anonymous"
+        The membership level of the user.
 
     Methods
     -------
@@ -75,8 +87,10 @@ class ToolboxQueryParams(QueryParams):
     validate_interval(cls, v: str) -> str
         A Pydantic `@field_validator()` that validates the interval format.
         Ensures the interval is a number followed by one of 's', 'm', 'h', 'd', 'W', 'M', 'Q', 'Y'.
-    validate_date_format(cls, v: str) -> str
+    validate_date_format(cls, v: str | date) -> date
         A Pydantic `@field_validator()` that validates the date format to ensure it is YYYY-MM-DD.
+    validate_start_date(self) -> 'ToolboxQueryParams'
+        A Pydantic `@model_validator()` that validates and adjusts the start date based on membership level.
 
     Raises
     ------
@@ -118,6 +132,13 @@ class ToolboxQueryParams(QueryParams):
         default="yfinance",
         title="Provider",
         description=QUERY_DESCRIPTIONS.get("provider", ""),
+    )
+    membership: Literal[
+        "anonymous", "peon", "premium", "power", "permanent", "admin"
+    ] = Field(
+        default="anonymous",
+        title="Membership",
+        description=QUERY_DESCRIPTIONS.get("membership", ""),
     )
 
     @field_validator("symbols", mode="before", check_fields=False)
@@ -175,42 +196,100 @@ class ToolboxQueryParams(QueryParams):
         ValueError
             If the interval format is invalid.
         """
-        import re
-
         if not re.match(r"^\d*[smhdWMQY]$", v):
             msg = "Invalid interval format. Must be a number followed by one of 's', 'm', 'h', 'd', 'W', 'M', 'Q', 'Y'."
             raise ValueError(msg)
         return v
 
-    @field_validator(
-        "start_date", "end_date", mode="before", check_fields=False
-    )
+    @field_validator("start_date", "end_date", mode="before")
     @classmethod
-    def validate_date_format(cls, v: str) -> str:
+    def validate_date_format(cls, v: str | dt.date) -> dt.date:
         """
-        Validate the date format to ensure it is YYYY-MM-DD.
+        Validate and convert the input date to a datetime.date object.
+
+        This method accepts either a string in 'YYYY-MM-DD' format or a datetime.date object.
+        It converts the input to a datetime.date object, ensuring it's in the correct format.
 
         Parameters
         ----------
-        v : str
-            The date string to be validated.
+        v : str | dt.date
+            The input date to validate and convert.
 
         Returns
         -------
-        str
-            The validated date string.
+        dt.date
+            The validated and converted date.
 
         Raises
         ------
         ValueError
-            If the date format is invalid.
+            If the input string is not in the correct format.
+        TypeError
+            If the input is neither a string nor a datetime.date object.
         """
-        import re
+        if isinstance(v, str):
+            try:
+                date = datetime.strptime(v, "%Y-%m-%d").replace(
+                    tzinfo=pytz.timezone("America/New_York")
+                )
+            except ValueError as e:
+                msg = f"Invalid date format. Must be YYYY-MM-DD: {e}"
+                raise ValueError(msg) from e
+        elif isinstance(v, dt.date):
+            date = datetime.combine(v, datetime.min.time()).replace(
+                tzinfo=pytz.timezone("America/New_York")
+            )
+        else:
+            msg = f"Expected str or date, got {type(v)}"
+            raise TypeError(msg)
 
-        if not re.match(r"^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$", v):
-            msg = "Invalid date format. Must be YYYY-MM-DD with MM between 01 and 12, and DD between 01 and 31."
+        # Check if the date is in the correct format
+        if date.strftime("%Y-%m-%d") != date.strftime("%Y-%m-%d"):
+            msg = "Date must be in YYYY-MM-DD format"
             raise ValueError(msg)
-        return v
+        if date.date() < dt.date(1950, 1, 1):
+            msg = "Date must be after 1950-01-01"
+            raise ValueError(msg)
+
+        return date.date()
+
+    @model_validator(mode="after")
+    def validate_start_date(self) -> "ToolboxQueryParams":
+        end_date: dt.date = self.end_date  # type: ignore  # noqa: PGH003 the date has already been converted to date
+
+        start_date_mapping = {
+            "anonymous": (end_date - timedelta(days=365), "1Y"),
+            "peon": (end_date - timedelta(days=730), "2Y"),
+            "premium": (end_date - timedelta(days=1825), "5Y"),
+            "power": (end_date - timedelta(days=7300), "20Y"),
+            "permanent": (end_date - timedelta(days=10680), "30Y"),
+            "admin": (
+                datetime(
+                    1950, 1, 1, tzinfo=pytz.timezone("America/New_York")
+                ).date(),
+                "All",
+            ),
+        }
+
+        allowed_start_date, data_length = start_date_mapping.get(
+            self.membership.lower(), (end_date - timedelta(days=365), "1Y")
+        )
+
+        if self.start_date < allowed_start_date:  # type: ignore  # noqa: PGH003 the date has already been converted to date
+            logger.warning(
+                f"Start date adjusted to {allowed_start_date} based on {self.membership} membership ({data_length} of data)."
+            )
+            self.start_date = allowed_start_date
+            if not hasattr(self, "warnings"):
+                self.warnings = []
+            self.warnings.append(
+                HumblDataWarning(
+                    category="ToolboxQueryParams",
+                    message=f"Start date adjusted to {allowed_start_date} based on {self.membership} membership ({data_length} of data).",
+                )
+            )
+
+        return self
 
 
 class ToolboxData(Data):
