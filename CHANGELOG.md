@@ -1,3 +1,16 @@
+## v1.7.0 (2024-07-19)
+
+### ✨ Features
+
+- **Toolbox**: replace  w/
+- **warnings**: piping warnings from ToolboxQueryParams into HumblObject
+
+### ✅🤡🧪 Tests
+
+- **remove**: (-) as validation is internal
+- **ToolboxQueryParams**: testing start_date_validator and date return type
+- **humblobjject**: added  to make sure JSON chart data is valid
+
 ## v1.6.5 (2024-07-17)
 
 ### 🐛🚑️ Fixes
