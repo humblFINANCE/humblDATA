@@ -7,12 +7,14 @@ This module is used to define the QueryParams and Data model for the
 UserTable command.
 """
 
+import asyncio
 from datetime import datetime
 from typing import Literal, TypeVar
 
 import pandera.polars as pa
 import polars as pl
 import pytz
+import uvloop
 from pydantic import Field, field_validator
 
 from humbldata.core.standard_models.abstract.data import Data
@@ -35,6 +37,7 @@ logger = setup_logger(
     "UserTableFetcher",
     env.LOGGER_LEVEL,
 )
+asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 
 class UserTableQueryParams(QueryParams):

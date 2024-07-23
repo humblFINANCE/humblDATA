@@ -11,6 +11,7 @@ import warnings
 
 import dotenv
 import polars as pl
+import uvloop
 from openbb import obb
 from openbb_core.app.model.abstract.error import OpenBBError
 
@@ -20,6 +21,8 @@ from humbldata.core.utils.constants import (
     OBB_ETF_INFO_PROVIDERS,
 )
 from humbldata.core.utils.env import Env
+
+asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 
 def obb_login(pat: str | None = None) -> bool:
@@ -181,6 +184,43 @@ async def aget_latest_price(
         out = out.select(pl.col("symbol"), pl.col("last_price"))
 
     return out
+
+
+async def aget_last_close(
+    symbols: str | list[str] | pl.Series,
+    provider: OBB_EQUITY_PRICE_QUOTE_PROVIDERS = "yfinance",
+) -> pl.LazyFrame:
+    """
+    Context: Core || Category: Utils || Subcategory: OpenBB Helpers || **Command: aget_last_close**.
+
+    Asynchronously retrieves the last closing price for the given stock symbol(s) using OpenBB's equity price quote data.
+
+    Parameters
+    ----------
+    symbols : str | List[str] | pl.Series
+        The stock symbol(s) to query for the last closing price. Accepts a single
+        symbol, a list of symbols, or a Polars Series of symbols.
+    provider : OBB_EQUITY_PRICE_QUOTE_PROVIDERS, optional
+        The data provider for fetching stock prices. Default is `yfinance`.
+
+    Returns
+    -------
+    pl.LazyFrame
+        A Polars LazyFrame with columns for the stock symbols ('symbol') and
+        their last closing prices ('prev_close').
+
+    Notes
+    -----
+    This function uses OpenBB's equity price quote data to fetch the last closing price.
+    It returns a lazy frame for efficient processing, especially with large datasets.
+    """
+    loop = asyncio.get_event_loop()
+    result = await loop.run_in_executor(
+        None, lambda: obb.equity.price.quote(symbols, provider=provider)
+    )
+    out = result.to_polars().lazy()
+
+    return out.select(pl.col("symbol"), pl.col("prev_close"))
 
 
 def get_equity_sector(
