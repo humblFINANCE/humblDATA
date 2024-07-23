@@ -37,7 +37,7 @@ schema = """
 """
 schema_pattern = "(?s)(✨ feat|🐛 fix|🚑 hotfix|🔧 chore|♻️ refactor|🚧 WIP|📚 docs|⚡️ perf|💄 style|🏗️ build|👷 ci|✅ test|⏪ revert|➕ add_dep|➖ rem_dep|💥 boom)(\\(\\S+\\))?!?:( [^\\n\\r]+)((\\n\\n.*)|(\\s*))?$"
 bump_pattern = "^(✨ feat|🐛 fix|🚑 hotfix|⚡️ perf|♻️ refactor|⏪ revert|➕ dep-add|➖ dep-rm|💥 boom)"
-bump_map = {"BREAKING CHANGE" = "MAJOR", "💥 boom" = "MAJOR", "✨ feat" = "MINOR", "🐛 fix" = "PATCH", "🚑 hotfix" = "PATCH", "⚡️ perf" = "PATCH", "♻️ refactor" = "PATCH"}
+bump_map = {"BREAKING CHANGE" = "MAJOR", "💥 boom" = "MAJOR", "✨ feat" = "MINOR", "🐛 fix" = "PATCH", "🚑 hotfix" = "PATCH", "⚡️ perf" = "PATCH", "♻️ refactor" = "PATCH", "➕ dep-add" = "PATCH", "➖ dep-rm" = "PATCH"}
 change_type_order = ["BREAKING CHANGE", "💥 boom", "✨ feat", "🐛 fix", "🚑 hotfix", "♻️ refactor", "⚡️ perf", "🏗️ build", "💄 style", "📚 docs", "➕ dep-add", "➖ dep-rm"]
 info = """
 I have added a custom commit type `chore`.
