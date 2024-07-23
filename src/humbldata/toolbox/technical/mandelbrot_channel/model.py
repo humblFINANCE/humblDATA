@@ -5,12 +5,13 @@ A command to generate a Mandelbrot Channel for any time series.
 """
 
 import asyncio
+import concurrent.futures
+import multiprocessing
+from functools import partial
 from typing import Literal
 
-import nest_asyncio
 import polars as pl
 import uvloop
-from polars import lazyframe
 
 from humbldata.core.standard_models.abstract.errors import (
     HumblDataError,
@@ -208,6 +209,7 @@ async def acalc_mandelbrot_channel(  # noqa: PLR0913
     This does not make `calc_mandelbrot_channel()` non-blocking or asynchronous.
     """
     # Directly call the synchronous calc_mandelbrot_channel function
+
     return calc_mandelbrot_channel(
         data=data,
         window=window,
@@ -329,3 +331,177 @@ def calc_mandelbrot_channel_historical(  # noqa: PLR0913
             **kwargs,
         )
     )
+
+
+def _calc_mandelbrot_for_date(
+    date,
+    data,
+    window,
+    rv_adjustment,
+    rv_method,
+    rs_method,
+    rv_grouped_mean,
+    live_price,
+    **kwargs,
+):
+    """Helper function to calculate Mandelbrot Channel for a single date."""
+    filtered_data = data.filter(pl.col("date") <= date)
+    return calc_mandelbrot_channel(
+        data=filtered_data,
+        window=window,
+        rv_adjustment=rv_adjustment,
+        rv_method=rv_method,
+        rs_method=rs_method,
+        rv_grouped_mean=rv_grouped_mean,
+        live_price=live_price,
+        **kwargs,
+    )
+
+
+def calc_mandelbrot_channel_historical_mp(
+    data: pl.DataFrame | pl.LazyFrame,
+    window: str = "1m",
+    rv_adjustment: bool = True,
+    rv_method: str = "std",
+    rs_method: Literal["RS", "RS_mean", "RS_max", "RS_min"] = "RS",
+    *,
+    rv_grouped_mean: bool = True,
+    live_price: bool = True,
+    n_processes: int = 1,
+    **kwargs,
+) -> pl.LazyFrame:
+    """
+    Calculate the Mandelbrot Channel historically using multiprocessing.
+
+    Parameters:
+    -----------
+    n_processes : int, optional
+        Number of processes to use. If None, it uses all available cores.
+
+    Other parameters are the same as calc_mandelbrot_channel_historical.
+    """
+    window_days = _window_format(window, _return_timedelta=True)
+    start_date = data.lazy().select(pl.col("date")).min().collect().row(0)[0]
+    start_date = start_date + window_days
+    end_date = data.lazy().select("date").max().collect().row(0)[0]
+
+    if start_date >= end_date:
+        msg = f"You set <historical=True> \n\
+        This calculation needs *at least* one window of data. \n\
+        The (start date + window) is: {start_date} and the dataset ended: {end_date}. \n\
+        Please adjust dates accordingly."
+        raise HumblDataError(msg)
+
+    dates = (
+        data.lazy()
+        .select(pl.col("date"))
+        .filter(pl.col("date") >= start_date)
+        .unique()
+        .sort("date")
+        .collect()
+        .to_series()
+    )
+
+    # Prepare the partial function with all arguments except the date
+    calc_func = partial(
+        _calc_mandelbrot_for_date,
+        data=data,
+        window=window,
+        rv_adjustment=rv_adjustment,
+        rv_method=rv_method,
+        rs_method=rs_method,
+        rv_grouped_mean=rv_grouped_mean,
+        live_price=live_price,
+        **kwargs,
+    )
+
+    # Use multiprocessing to calculate in parallel
+    with multiprocessing.Pool(processes=n_processes) as pool:
+        results = pool.map(calc_func, dates)
+
+    # Combine results
+    out = pl.concat(results, how="vertical").sort(["symbol", "date"])
+
+    return out.lazy()
+
+
+def calc_mandelbrot_channel_historical_concurrent(
+    data: pl.DataFrame | pl.LazyFrame,
+    window: str = "1m",
+    rv_method: str = "std",
+    rs_method: Literal["RS", "RS_mean", "RS_max", "RS_min"] = "RS",
+    *,
+    rv_adjustment: bool = True,
+    rv_grouped_mean: bool = True,
+    live_price: bool = True,
+    max_workers: int | None = None,
+    use_processes: bool = False,
+    **kwargs,
+) -> pl.LazyFrame:
+    """
+    Calculate the Mandelbrot Channel historically using concurrent.futures.
+
+    Parameters:
+    -----------
+    max_workers : int, optional
+        Maximum number of workers to use. If None, it uses the default for ProcessPoolExecutor
+        or ThreadPoolExecutor (usually the number of processors on the machine, multiplied by 5).
+    use_processes : bool, default True
+        If True, use ProcessPoolExecutor, otherwise use ThreadPoolExecutor.
+
+    Other parameters are the same as calc_mandelbrot_channel_historical.
+    """
+    window_days = _window_format(window, _return_timedelta=True)
+    start_date = data.lazy().select(pl.col("date")).min().collect().row(0)[0]
+    start_date = start_date + window_days
+    end_date = data.lazy().select("date").max().collect().row(0)[0]
+
+    if start_date >= end_date:
+        msg = f"You set <historical=True> \n\
+        This calculation needs *at least* one window of data. \n\
+        The (start date + window) is: {start_date} and the dataset ended: {end_date}. \n\
+        Please adjust dates accordingly."
+        raise HumblDataError(msg)
+
+    dates = (
+        data.lazy()
+        .select(pl.col("date"))
+        .filter(pl.col("date") >= start_date)
+        .unique()
+        .sort("date")
+        .collect()
+        .to_series()
+    )
+
+    # Prepare the partial function with all arguments except the date
+    calc_func = partial(
+        _calc_mandelbrot_for_date,
+        data=data,
+        window=window,
+        rv_adjustment=rv_adjustment,
+        rv_method=rv_method,
+        rs_method=rs_method,
+        rv_grouped_mean=rv_grouped_mean,
+        live_price=live_price,
+        **kwargs,
+    )
+
+    # Choose the appropriate executor
+    executor_class = (
+        concurrent.futures.ProcessPoolExecutor
+        if use_processes
+        else concurrent.futures.ThreadPoolExecutor
+    )
+
+    # Use concurrent.futures to calculate in parallel
+    with executor_class(max_workers=max_workers) as executor:
+        futures = [executor.submit(calc_func, date) for date in dates]
+        results = [
+            future.result()
+            for future in concurrent.futures.as_completed(futures)
+        ]
+
+    # Combine results
+    out = pl.concat(results, how="vertical").sort(["symbol", "date"])
+
+    return out.lazy()

@@ -23,7 +23,7 @@ from humbldata.core.utils.env import Env
 from humbldata.core.utils.logger import log_start_end, setup_logger
 from humbldata.toolbox.technical.mandelbrot_channel.model import (
     calc_mandelbrot_channel,
-    calc_mandelbrot_channel_historical,
+    calc_mandelbrot_channel_historical_concurrent,
 )
 from humbldata.toolbox.technical.mandelbrot_channel.view import generate_plots
 from humbldata.toolbox.toolbox_helpers import _window_format
@@ -367,7 +367,7 @@ class MandelbrotChannelFetcher:
                 live_price=self.command_params.live_price,
             )
         else:
-            transformed_data = calc_mandelbrot_channel_historical(
+            transformed_data = calc_mandelbrot_channel_historical_concurrent(
                 data=self.equity_historical_data,
                 window=self.command_params.window,
                 rv_adjustment=self.command_params.rv_adjustment,
@@ -375,6 +375,7 @@ class MandelbrotChannelFetcher:
                 rv_grouped_mean=self.command_params.rv_grouped_mean,
                 rs_method=self.command_params.rs_method,
                 live_price=self.command_params.live_price,
+                use_processes=False,
             )
 
         self.transformed_data = MandelbrotChannelData(
