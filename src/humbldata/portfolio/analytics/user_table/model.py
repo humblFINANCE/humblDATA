@@ -8,6 +8,7 @@ import asyncio
 from typing import Literal
 
 import polars as pl
+import uvloop
 
 from humbldata.core.utils.openbb_helpers import (
     aget_etf_category,
@@ -19,6 +20,8 @@ from humbldata.portfolio.analytics.user_table.helpers import (
     calc_up_down_pct,
 )
 from humbldata.toolbox.toolbox_controller import Toolbox
+
+asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 
 async def user_table_engine(
