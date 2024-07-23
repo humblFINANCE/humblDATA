@@ -1,3 +1,10 @@
+## v1.8.0 (2024-07-23)
+
+### ✨ Features
+
+- **mandelbrot_chanel**: using a  instead of
+- **uvloop**: now using uvloop execution
+
 ## v1.7.1 (2024-07-19)
 
 ### 🐛🚑️ Fixes
