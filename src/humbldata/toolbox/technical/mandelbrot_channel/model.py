@@ -9,6 +9,7 @@ from typing import Literal
 
 import nest_asyncio
 import polars as pl
+import uvloop
 from polars import lazyframe
 
 from humbldata.core.standard_models.abstract.errors import (
@@ -34,6 +35,8 @@ from humbldata.toolbox.toolbox_helpers import (
     range_,
     std,
 )
+
+asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 
 def calc_mandelbrot_channel(

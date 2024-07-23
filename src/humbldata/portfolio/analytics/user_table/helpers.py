@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from typing import Literal
 
 import polars as pl
+import uvloop
 
 from humbldata.core.standard_models.abstract.errors import HumblDataError
 from humbldata.core.standard_models.portfolio.analytics.etf_category import (
@@ -26,6 +27,8 @@ from humbldata.core.utils.openbb_helpers import (
     aget_latest_price,
 )
 from humbldata.toolbox.toolbox_controller import Toolbox
+
+asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 
 async def aget_sector_filter(

@@ -8,8 +8,11 @@ from collections.abc import Callable
 from typing import Any
 
 import coloredlogs
+import uvloop
 
 from humbldata.core.utils.env import Env
+
+asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 
 def setup_logger(name: str, level: int = logging.INFO) -> logging.Logger:
