@@ -1,3 +1,17 @@
+## v1.8.1 (2024-07-25)
+
+### 🐛🚑️ Fixes
+
+- **create_historical_plot**: rename column name
+
+### ✅🤡🧪 Tests
+
+- **humblobject**: remove test assertions;
+
+### 📌➕⬇️ ➖⬆️  Dependencies
+
+- **poetry**: update
+
 ## v1.8.0 (2024-07-23)
 
 ### ✨ Features
