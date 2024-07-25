@@ -42,7 +42,7 @@ class ChartTemplate(str, Enum):
 class Chart(BaseModel):
     """a Chart Object that is returned from a View."""
 
-    content: dict[str, Any] | None = Field(
+    content: str | None = Field(
         default=None,
         description="Raw textual representation of the chart.",
     )
