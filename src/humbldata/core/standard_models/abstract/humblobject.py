@@ -328,12 +328,12 @@ class HumblObject(Tagged, Generic[T]):
 
             if isinstance(self.chart, list):
                 return [
-                    chart.fig.to_json()
+                    chart.content
                     for chart in self.chart
-                    if chart and chart.fig
+                    if chart and chart.content
                 ]
             else:
-                return self.chart.fig.to_json()
+                return self.chart.content
         else:
             data = self.to_polars(
                 collect=True, equity_data=equity_data
