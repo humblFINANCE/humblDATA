@@ -143,6 +143,8 @@ async def aget_latest_price(
     symbols : str | List[str] | pl.Series
         The stock symbol(s) to query for the latest price. Accepts a single
         symbol, a list of symbols, or a Polars Series of symbols.
+        You can pass multiple symbols as a string; `'AAPL,XLE'`, and it will
+        split the string into a list of symbols.
     provider : OBB_EQUITY_PRICE_QUOTE_PROVIDERS, optional
         The data provider for fetching stock prices. Default is `yfinance`.
 
@@ -154,12 +156,7 @@ async def aget_latest_price(
 
     Notes
     -----
-    If you run into an error: `RuntimeError: asyncio.run() cannot be called from a running event loop`
-    you can use the following code to apply the asyncio event loop to the current thread:
-    ```
-    import nest_asyncio
-    nest_asyncio.apply()
-    ```
+    If entering symbols as a string, DO NOT include spaces between the symbols.
     """
     loop = asyncio.get_event_loop()
     result = await loop.run_in_executor(
@@ -199,7 +196,9 @@ async def aget_last_close(
     ----------
     symbols : str | List[str] | pl.Series
         The stock symbol(s) to query for the last closing price. Accepts a single
-        symbol, a list of symbols, or a Polars Series of symbols.
+        symbol, a list of symbols, or a Polars Series of symbols. You can pass
+        multiple symbols as a string; `'AAPL,XLE'`, and it will split the string
+        into a list of symbols.
     provider : OBB_EQUITY_PRICE_QUOTE_PROVIDERS, optional
         The data provider for fetching stock prices. Default is `yfinance`.
 
@@ -213,6 +212,8 @@ async def aget_last_close(
     -----
     This function uses OpenBB's equity price quote data to fetch the last closing price.
     It returns a lazy frame for efficient processing, especially with large datasets.
+
+    If entering symbols as a string, DO NOT include spaces between the symbols.
     """
     loop = asyncio.get_event_loop()
     result = await loop.run_in_executor(
