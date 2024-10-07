@@ -229,8 +229,15 @@ def generate_context_controller(
         # Check if the category is already imported
         import_line = f"from humbldata.{context.lower()}.{category.lower()}.{category.lower()}_controller import {clean_name(category, case='PascalCase')}"
         if import_line not in content:
-            # Add the import
-            content = content.replace('"""', f'"""\n{import_line}', 1)
+            # Add the import below the docstring
+            docstring_end = content.index('"""', content.index('"""') + 3) + 3
+            content = (
+                content[:docstring_end]
+                + "\n"
+                + import_line
+                + "\n"
+                + content[docstring_end:]
+            )
 
         # Check if the category property already exists
         property_def = f"@property\n    def {category.lower()}(self):"
@@ -401,11 +408,12 @@ class {clean_name(category, case="PascalCase")}:
         # Use the fetcher to get the data
         return fetcher.fetch_data()
 '''
-    write_file(file_path, content.strip())
+    write_file(file_path, content)
 
-    # Create __init__.py in the category directory
+    # Create __init__.py in the category directory if it doesn't exist
     init_file_path = file_path.parent / "__init__.py"
-    write_file(init_file_path, "")
+    if not init_file_path.exists():
+        write_file(init_file_path, "")
 
 
 def generate_standard_model(
@@ -521,8 +529,12 @@ from humbldata.core.standard_models.abstract.data import Data
 from humbldata.core.standard_models.abstract.humblobject import HumblObject
 from humbldata.core.standard_models.abstract.query_params import QueryParams
 from humbldata.core.standard_models.{context} import {clean_name(context, case="PascalCase")}QueryParams
+from humbldata.core.utils.env import Env
+from humbldata.core.utils.logger import log_start_end, setup_logger
 
+env = Env()
 Q = TypeVar("Q", bound={clean_name(context, case="PascalCase")}QueryParams)
+logger = setup_logger("{clean_name(command, case="PascalCase")}Fetcher", level=env.LOGGER_LEVEL)
 
 {clean_name(command, case="PascalCase").upper()}_QUERY_DESCRIPTIONS = {{
     "example_field1": "Description for example field 1",
@@ -645,15 +657,9 @@ class {clean_name(command, case="PascalCase")}Fetcher:
         If command_params is not provided, it initializes a default {clean_name(command, case="PascalCase")}QueryParams object.
         """
         if not self.command_params:
-            self.command_params = None
-            # Set Default Arguments
-            self.command_params: {clean_name(command, case="PascalCase")}QueryParams = (
-                {clean_name(command, case="PascalCase")}QueryParams()
-            )
+            self.command_params = {clean_name(command, case="PascalCase")}QueryParams()
         else:
-            self.command_params: {clean_name(command, case="PascalCase")}QueryParams = (
-                {clean_name(command, case="PascalCase")}QueryParams(**self.command_params)
-            )
+            self.command_params = {clean_name(command, case="PascalCase")}QueryParams(**self.command_params)
 
     def extract_data(self):
         """
@@ -682,6 +688,7 @@ class {clean_name(command, case="PascalCase")}Fetcher:
         self.transformed_data = self.transformed_data.serialize()
         return self
 
+    @log_start_end(logger=logger)
     def fetch_data(self):
         """
         Execute TET Pattern.
@@ -700,10 +707,13 @@ class {clean_name(command, case="PascalCase")}Fetcher:
         self.extract_data()
         self.transform_data()
 
+        if not hasattr(self.context_params, "warnings"):
+            self.context_params.warnings = []
+
         return HumblObject(
             results=self.transformed_data,
             provider=self.context_params.provider,
-            warnings=None,
+            warnings=self.context_params.warnings,
             chart=None,
             context_params=self.context_params,
             command_params=self.command_params,
