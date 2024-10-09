@@ -115,32 +115,32 @@ class HumblCompassData(Data):
     )
     cpi: pl.Float64 = pa.Field(
         default=None,
-        title="CPI",
+        title="Consumer Price Index (CPI)",
         description=HUMBLCOMPASS_DATA_DESCRIPTIONS["cpi"],
     )
     cpi_3m_delta: pl.Float64 = pa.Field(
         default=None,
-        title="CPI 3-Month Delta",
+        title="Consumer Price Index (CPI) 3-Month Delta",
         description=HUMBLCOMPASS_DATA_DESCRIPTIONS["cpi_3m_delta"],
     )
     cpi_3yr_zscore: pl.Float64 = pa.Field(
         default=None,
-        title="CPI 3-Year Z-Score",
+        title="Consumer Price Index (CPI) 3-Year Z-Score",
         description=HUMBLCOMPASS_DATA_DESCRIPTIONS["cpi_3yr_zscore"],
     )
     cli: pl.Float64 = pa.Field(
         default=None,
-        title="CLI",
+        title="Composite Leading Indicator (CLI)",
         description=HUMBLCOMPASS_DATA_DESCRIPTIONS["cli"],
     )
     cli_3m_delta: pl.Float64 = pa.Field(
         default=None,
-        title="CLI 3-Month Delta",
+        title="Composite Leading Indicator (CLI) 3-Month Delta",
         description=HUMBLCOMPASS_DATA_DESCRIPTIONS["cli_3m_delta"],
     )
     cli_3yr_zscore: pl.Float64 = pa.Field(
         default=None,
-        title="CLI 3-Year Z-Score",
+        title="Composite Leading Indicator (CLI) 3-Year Z-Score",
         description=HUMBLCOMPASS_DATA_DESCRIPTIONS["cli_3yr_zscore"],
     )
     humbl_regime: pl.Utf8 = pa.Field(
