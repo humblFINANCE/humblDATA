@@ -1,4 +1,3 @@
-
 """
 HumblCompass Standard Model.
 
@@ -12,6 +11,7 @@ from typing import Literal, TypeVar
 
 import pandera.polars as pa
 import polars as pl
+from openbb import obb
 from pydantic import Field, field_validator
 
 from humbldata.core.standard_models.abstract.data import Data
@@ -30,6 +30,18 @@ HUMBLCOMPASS_QUERY_DESCRIPTIONS = {
     "example_field2": "Description for example field 2",
 }
 
+HUMBLCOMPASS_DATA_DESCRIPTIONS = {
+    "date": "The date of the data point",
+    "country": "The country or group of countries the data represents",
+    "cpi": "Consumer Price Index (CPI) value",
+    "cpi_3m_delta": "3-month delta of CPI",
+    "cpi_3yr_zscore": "3-year trailing z-score of CPI",
+    "cli": "Composite Leading Indicator (CLI) value",
+    "cli_3m_delta": "3-month delta of CLI",
+    "cli_3yr_zscore": "3-year trailing z-score of CLI",
+    "humbl_regime": "HUMBL Regime classification based on CPI and CLI values",
+}
+
 
 class HumblCompassQueryParams(QueryParams):
     """
@@ -37,27 +49,51 @@ class HumblCompassQueryParams(QueryParams):
 
     Parameters
     ----------
-    example_field1 : str
-        An example field.
-    example_field2 : bool
-        Another example field.
+    country : Literal
+        The country or group of countries to collect humblCOMPASS data for.
+        Default is "united_states".
+        Possible values include:
+        - Individual countries: "australia", "brazil", "canada", "china", "france",
+        "germany", "india", "indonesia", "italy", "japan", "mexico", "south_africa",
+        "south_korea", "spain", "turkey", "united_kingdom", "united_states"
+        - Country groups: "g20", "g7", "asia5", "north_america", "europe4"
+        - "all" for all available countries
     """
 
-    example_field1: str = Field(
-        default="default_value",
-        title="Example Field 1",
-        description=HUMBLCOMPASS_QUERY_DESCRIPTIONS.get("example_field1", ""),
-    )
-    example_field2: bool = Field(
-        default=True,
-        title="Example Field 2",
-        description=HUMBLCOMPASS_QUERY_DESCRIPTIONS.get("example_field2", ""),
+    country: Literal[
+        "g20",
+        "g7",
+        "asia5",
+        "north_america",
+        "europe4",
+        "australia",
+        "brazil",
+        "canada",
+        "china",
+        "france",
+        "germany",
+        "india",
+        "indonesia",
+        "italy",
+        "japan",
+        "mexico",
+        "south_africa",
+        "south_korea",
+        "spain",
+        "turkey",
+        "united_kingdom",
+        "united_states",
+        "all",
+    ] = Field(
+        default="united_states",
+        title="Country for humblCOMPASS data",
+        description=HUMBLCOMPASS_QUERY_DESCRIPTIONS.get("country", ""),
     )
 
-    @field_validator("example_field1")
-    @classmethod
-    def validate_example_field1(cls, v: str) -> str:
-        return v.upper()
+    # @field_validator("example_field1")
+    # @classmethod
+    # def validate_example_field1(cls, v: str) -> str:
+    #     return v.upper()
 
 
 class HumblCompassData(Data):
@@ -67,11 +103,52 @@ class HumblCompassData(Data):
     This Data model is used to validate data in the `.transform_data()` method of the `HumblCompassFetcher` class.
     """
 
-    example_column: pl.Date = Field(
+    date: pl.Date = pa.Field(
         default=None,
-        title="Example Column",
-        description="Description for example column",
+        title="Date",
+        description=HUMBLCOMPASS_DATA_DESCRIPTIONS["date"],
     )
+    country: pl.Utf8 = pa.Field(
+        default=None,
+        title="Country",
+        description=HUMBLCOMPASS_DATA_DESCRIPTIONS["country"],
+    )
+    cpi: pl.Float64 = pa.Field(
+        default=None,
+        title="CPI",
+        description=HUMBLCOMPASS_DATA_DESCRIPTIONS["cpi"],
+    )
+    cpi_3m_delta: pl.Float64 = pa.Field(
+        default=None,
+        title="CPI 3-Month Delta",
+        description=HUMBLCOMPASS_DATA_DESCRIPTIONS["cpi_3m_delta"],
+    )
+    cpi_3yr_zscore: pl.Float64 = pa.Field(
+        default=None,
+        title="CPI 3-Year Z-Score",
+        description=HUMBLCOMPASS_DATA_DESCRIPTIONS["cpi_3yr_zscore"],
+    )
+    cli: pl.Float64 = pa.Field(
+        default=None,
+        title="CLI",
+        description=HUMBLCOMPASS_DATA_DESCRIPTIONS["cli"],
+    )
+    cli_3m_delta: pl.Float64 = pa.Field(
+        default=None,
+        title="CLI 3-Month Delta",
+        description=HUMBLCOMPASS_DATA_DESCRIPTIONS["cli_3m_delta"],
+    )
+    cli_3yr_zscore: pl.Float64 = pa.Field(
+        default=None,
+        title="CLI 3-Year Z-Score",
+        description=HUMBLCOMPASS_DATA_DESCRIPTIONS["cli_3yr_zscore"],
+    )
+    humbl_regime: pl.Utf8 = pa.Field(
+        default=None,
+        title="humblREGIME",
+        description=HUMBLCOMPASS_DATA_DESCRIPTIONS["humbl_regime"],
+    )
+
 
 class HumblCompassFetcher:
     """
@@ -159,8 +236,24 @@ class HumblCompassFetcher:
         pl.DataFrame
             The extracted data as a Polars DataFrame.
         """
-        # Implement data extraction logic here
-        self.data = pl.DataFrame()
+        # Collect CLI Data
+        self.oecd_cli_data = obb.economy.composite_leading_indicator(
+            start_date=self.context_params.start_date,
+            end_data=self.context_params.end_date,
+            provider="oecd",
+            country=self.command_params.country,
+        )
+        # Collect YoY CPI Data
+        self.oecd_cpi_data = obb.economy.cpi(
+            start_date=self.context_params.start_date,
+            end_date=self.context_params.end_date,
+            frequency="monthly",
+            country=self.command_params.country,
+            transform="yoy",
+            provider="oecd",
+            harmonized=False,
+            expenditure="total",
+        )
         return self
 
     def transform_data(self):
@@ -173,6 +266,13 @@ class HumblCompassFetcher:
             The transformed data as a Polars DataFrame
         """
         # Implement data transformation logic here
+
+        # Implement 3 month delta CLI calc + 3mo delta + 3yr trailing z-score
+
+        # Implement 3 month delta CPI calc + 3mo delta + 3yr trailing z-score
+
+        # Add humblREGIME column based on the CPI and CLI values
+
         self.transformed_data = HumblCompassData(self.data)
         self.transformed_data = self.transformed_data.serialize()
         return self
@@ -207,4 +307,3 @@ class HumblCompassFetcher:
             context_params=self.context_params,
             command_params=self.command_params,
         )
-

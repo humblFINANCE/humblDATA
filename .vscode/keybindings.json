@@ -5,6 +5,10 @@
         "command": "vscode-commitizen.commit"
     },
     {
+        "key": "ctrl+.",
+        "command": "vscode-commitizen.commit"
+    },
+    {
         "key": "f14",
         "command": "git.sync"
     },
