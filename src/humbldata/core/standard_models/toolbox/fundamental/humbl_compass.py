@@ -103,7 +103,7 @@ class HumblCompassData(Data):
     This Data model is used to validate data in the `.transform_data()` method of the `HumblCompassFetcher` class.
     """
 
-    date: pl.Date = pa.Field(
+    date_month_start: pl.Date = pa.Field(
         default=None,
         title="Date",
         description=HUMBLCOMPASS_DATA_DESCRIPTIONS["date"],
@@ -123,11 +123,11 @@ class HumblCompassData(Data):
         title="Consumer Price Index (CPI) 3-Month Delta",
         description=HUMBLCOMPASS_DATA_DESCRIPTIONS["cpi_3m_delta"],
     )
-    cpi_3yr_zscore: pl.Float64 = pa.Field(
-        default=None,
-        title="Consumer Price Index (CPI) 3-Year Z-Score",
-        description=HUMBLCOMPASS_DATA_DESCRIPTIONS["cpi_3yr_zscore"],
-    )
+    # cpi_3yr_zscore: pl.Float64 = pa.Field(
+    #     default=None,
+    #     title="Consumer Price Index (CPI) 3-Year Z-Score",
+    #     description=HUMBLCOMPASS_DATA_DESCRIPTIONS["cpi_3yr_zscore"],
+    # )
     cli: pl.Float64 = pa.Field(
         default=None,
         title="Composite Leading Indicator (CLI)",
@@ -138,16 +138,16 @@ class HumblCompassData(Data):
         title="Composite Leading Indicator (CLI) 3-Month Delta",
         description=HUMBLCOMPASS_DATA_DESCRIPTIONS["cli_3m_delta"],
     )
-    cli_3yr_zscore: pl.Float64 = pa.Field(
-        default=None,
-        title="Composite Leading Indicator (CLI) 3-Year Z-Score",
-        description=HUMBLCOMPASS_DATA_DESCRIPTIONS["cli_3yr_zscore"],
-    )
-    humbl_regime: pl.Utf8 = pa.Field(
-        default=None,
-        title="humblREGIME",
-        description=HUMBLCOMPASS_DATA_DESCRIPTIONS["humbl_regime"],
-    )
+    # cli_3yr_zscore: pl.Float64 = pa.Field(
+    #     default=None,
+    #     title="Composite Leading Indicator (CLI) 3-Year Z-Score",
+    #     description=HUMBLCOMPASS_DATA_DESCRIPTIONS["cli_3yr_zscore"],
+    # )
+    # humbl_regime: pl.Utf8 = pa.Field(
+    #     default=None,
+    #     title="humblREGIME",
+    #     description=HUMBLCOMPASS_DATA_DESCRIPTIONS["humbl_regime"],
+    # )
 
 
 class HumblCompassFetcher:
@@ -233,26 +233,43 @@ class HumblCompassFetcher:
 
         Returns
         -------
-        pl.DataFrame
-            The extracted data as a Polars DataFrame.
+        self
+            The HumblCompassFetcher instance with extracted data.
         """
         # Collect CLI Data
-        self.oecd_cli_data = obb.economy.composite_leading_indicator(
-            start_date=self.context_params.start_date,
-            end_data=self.context_params.end_date,
-            provider="oecd",
-            country=self.command_params.country,
+        self.oecd_cli_data = (
+            obb.economy.composite_leading_indicator(
+                start_date=self.context_params.start_date,
+                end_date=self.context_params.end_date,
+                provider="oecd",
+                country=self.command_params.country,
+            )
+            .to_polars()
+            .lazy()
+            .rename({"value": "cli"})
+            .with_columns(
+                [pl.col("date").dt.month_start().alias("date_month_start")]
+            )
         )
+
         # Collect YoY CPI Data
-        self.oecd_cpi_data = obb.economy.cpi(
-            start_date=self.context_params.start_date,
-            end_date=self.context_params.end_date,
-            frequency="monthly",
-            country=self.command_params.country,
-            transform="yoy",
-            provider="oecd",
-            harmonized=False,
-            expenditure="total",
+        self.oecd_cpi_data = (
+            obb.economy.cpi(
+                start_date=self.context_params.start_date,
+                end_date=self.context_params.end_date,
+                frequency="monthly",
+                country=self.command_params.country,
+                transform="yoy",
+                provider="oecd",
+                harmonized=False,
+                expenditure="total",
+            )
+            .to_polars()
+            .lazy()
+            .rename({"value": "cpi"})
+            .with_columns(
+                [pl.col("date").dt.month_start().alias("date_month_start")]
+            )
         )
         return self
 
@@ -262,19 +279,75 @@ class HumblCompassFetcher:
 
         Returns
         -------
-        pl.DataFrame
-            The transformed data as a Polars DataFrame
+        self
+            The HumblCompassFetcher instance with transformed data.
         """
-        # Implement data transformation logic here
+        # Combine CLI and CPI data
+        # CLI data is released before CPI data, so we use a left join
+        combined_data = (
+            self.oecd_cli_data.join(
+                self.oecd_cpi_data,
+                on=["date_month_start", "country"],
+                how="left",
+                suffix="_cpi",
+            )
+            .sort("date_month_start")
+            .with_columns(
+                [
+                    pl.col("country").cast(pl.Utf8),
+                    pl.col("cli").cast(pl.Float64),
+                    pl.col("cpi").cast(pl.Float64)
+                    * 100,  # Convert CPI to percentage
+                ]
+            )
+            .rename(
+                {
+                    "date": "date_cli",
+                }
+            )
+            .select(
+                [
+                    "date_month_start",
+                    "date_cli",
+                    "date_cpi",
+                    "country",
+                    "cli",
+                    "cpi",
+                ]
+            )
+        )
 
-        # Implement 3 month delta CLI calc + 3mo delta + 3yr trailing z-score
+        # Calculate 3-month deltas
+        delta_window = 3
+        transformed_data = combined_data.with_columns(
+            [
+                (pl.col("cli") - pl.col("cli").shift(delta_window)).alias(
+                    "cli_3m_delta"
+                ),
+                (pl.col("cpi") - pl.col("cpi").shift(delta_window)).alias(
+                    "cpi_3m_delta"
+                ),
+            ]
+        )
 
-        # Implement 3 month delta CPI calc + 3mo delta + 3yr trailing z-score
+        # Validate the data using HumblCompassData
+        self.transformed_data = HumblCompassData(
+            transformed_data.collect().drop_nulls()
+        ).lazy()
 
-        # Add humblREGIME column based on the CPI and CLI values
+        self.transformed_data = self.transformed_data.select(
+            [
+                pl.col("date_month_start"),
+                pl.col("date_cli"),
+                pl.col("date_cpi"),
+                pl.col("country"),
+                pl.col("cpi"),
+                pl.col("cpi_3m_delta"),
+                pl.col("cli"),
+                pl.col("cli_3m_delta"),
+            ]
+        )
 
-        self.transformed_data = HumblCompassData(self.data)
-        self.transformed_data = self.transformed_data.serialize()
         return self
 
     @log_start_end(logger=logger)
