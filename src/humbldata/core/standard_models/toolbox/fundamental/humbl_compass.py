@@ -13,6 +13,8 @@ import pandera.polars as pa
 import polars as pl
 from openbb import obb
 from pydantic import Field, field_validator
+from dateutil.relativedelta import relativedelta
+from datetime import datetime
 
 from humbldata.core.standard_models.abstract.data import Data
 from humbldata.core.standard_models.abstract.humblobject import HumblObject
@@ -51,13 +53,10 @@ class HumblCompassQueryParams(QueryParams):
     ----------
     country : Literal
         The country or group of countries to collect humblCOMPASS data for.
-        Default is "united_states".
-        Possible values include:
-        - Individual countries: "australia", "brazil", "canada", "china", "france",
-        "germany", "india", "indonesia", "italy", "japan", "mexico", "south_africa",
-        "south_korea", "spain", "turkey", "united_kingdom", "united_states"
-        - Country groups: "g20", "g7", "asia5", "north_america", "europe4"
-        - "all" for all available countries
+    cli_start_date : str
+        The adjusted start date for CLI data collection.
+    cpi_start_date : str
+        The adjusted start date for CPI data collection.
     """
 
     country: Literal[
@@ -89,11 +88,16 @@ class HumblCompassQueryParams(QueryParams):
         title="Country for humblCOMPASS data",
         description=HUMBLCOMPASS_QUERY_DESCRIPTIONS.get("country", ""),
     )
-
-    # @field_validator("example_field1")
-    # @classmethod
-    # def validate_example_field1(cls, v: str) -> str:
-    #     return v.upper()
+    cli_start_date: str = Field(
+        default=None,
+        title="Adjusted start date for CLI data",
+        description="The adjusted start date for CLI data collection.",
+    )
+    cpi_start_date: str = Field(
+        default=None,
+        title="Adjusted start date for CPI data",
+        description="The adjusted start date for CPI data collection.",
+    )
 
 
 class HumblCompassData(Data):
@@ -221,11 +225,42 @@ class HumblCompassFetcher:
         Transform the command-specific parameters into a query.
 
         If command_params is not provided, it initializes a default HumblCompassQueryParams object.
+        Calculates adjusted start dates for CLI and CPI data collection.
         """
         if not self.command_params:
             self.command_params = HumblCompassQueryParams()
         else:
-            self.command_params = HumblCompassQueryParams(**self.command_params)
+            # self.command_params = HumblCompassQueryParams(**self.command_params)
+
+            # Calculate adjusted start dates
+            if isinstance(self.context_params.start_date, str):
+                start_date = pl.Series(
+                    [
+                        datetime.strptime(
+                            self.context_params.start_date, "%Y-%m-%d"
+                        )
+                    ]
+                )
+            else:
+                start_date = pl.Series([self.context_params.start_date])
+
+            cli_start_date = start_date.dt.offset_by("-4mo").dt.strftime(
+                "%Y-%m-%d"
+            )[0]
+            cpi_start_date = start_date.dt.offset_by("-3mo").dt.strftime(
+                "%Y-%m-%d"
+            )[0]
+
+        # Update the command_params with the new start dates
+        self.command_params["cli_start_date"] = cli_start_date
+        self.command_params["cpi_start_date"] = cpi_start_date
+
+        # Validate the updated parameters
+        self.command_params = HumblCompassQueryParams(**self.command_params)
+
+        logger.info(
+            f"CLI start date: {cli_start_date} and CPI start date: {cpi_start_date}. Dates are adjusted to account for CLI data release lag."
+        )
 
     def extract_data(self):
         """
@@ -239,7 +274,7 @@ class HumblCompassFetcher:
         # Collect CLI Data
         self.oecd_cli_data = (
             obb.economy.composite_leading_indicator(
-                start_date=self.context_params.start_date,
+                start_date=self.command_params.cli_start_date,
                 end_date=self.context_params.end_date,
                 provider="oecd",
                 country=self.command_params.country,
@@ -255,7 +290,7 @@ class HumblCompassFetcher:
         # Collect YoY CPI Data
         self.oecd_cpi_data = (
             obb.economy.cpi(
-                start_date=self.context_params.start_date,
+                start_date=self.command_params.cpi_start_date,
                 end_date=self.context_params.end_date,
                 frequency="monthly",
                 country=self.command_params.country,
@@ -332,7 +367,7 @@ class HumblCompassFetcher:
 
         # Validate the data using HumblCompassData
         self.transformed_data = HumblCompassData(
-            transformed_data.collect().drop_nulls()
+            transformed_data.collect().drop_nulls()  # removes preceding 3 months used for delta calculations
         ).lazy()
 
         self.transformed_data = self.transformed_data.select(
@@ -341,10 +376,10 @@ class HumblCompassFetcher:
                 pl.col("date_cli"),
                 pl.col("date_cpi"),
                 pl.col("country"),
-                pl.col("cpi"),
-                pl.col("cpi_3m_delta"),
-                pl.col("cli"),
-                pl.col("cli_3m_delta"),
+                pl.col("cpi").round(2),
+                pl.col("cpi_3m_delta").round(2),
+                pl.col("cli").round(2),
+                pl.col("cli_3m_delta").round(2),
             ]
         )
 
