@@ -7,14 +7,13 @@ This module is used to define the QueryParams and Data model for the
 HumblCompass command.
 """
 
+from datetime import datetime
 from typing import Literal, TypeVar
 
 import pandera.polars as pa
 import polars as pl
 from openbb import obb
-from pydantic import Field, field_validator
-from dateutil.relativedelta import relativedelta
-from datetime import datetime
+from pydantic import Field
 
 from humbldata.core.standard_models.abstract.data import Data
 from humbldata.core.standard_models.abstract.humblobject import HumblObject
