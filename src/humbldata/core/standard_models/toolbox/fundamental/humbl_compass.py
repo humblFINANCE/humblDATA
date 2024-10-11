@@ -8,7 +8,7 @@ HumblCompass command.
 """
 
 from datetime import datetime
-from typing import Literal, TypeVar
+from typing import Literal, TypeVar, Optional
 
 import pandera.polars as pa
 import polars as pl
@@ -21,6 +21,12 @@ from humbldata.core.standard_models.abstract.query_params import QueryParams
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
 from humbldata.core.utils.env import Env
 from humbldata.core.utils.logger import log_start_end, setup_logger
+from humbldata.toolbox.toolbox_helpers import (
+    _window_format,
+    _window_format_monthly,
+)
+from humbldata.toolbox.fundamental.humbl_compass.view import generate_plots
+from humbldata.core.standard_models.abstract.chart import ChartTemplate
 
 env = Env()
 Q = TypeVar("Q", bound=ToolboxQueryParams)
@@ -29,6 +35,8 @@ logger = setup_logger("HumblCompassFetcher", level=env.LOGGER_LEVEL)
 HUMBLCOMPASS_QUERY_DESCRIPTIONS = {
     "example_field1": "Description for example field 1",
     "example_field2": "Description for example field 2",
+    "chart": "Whether to return a chart object.",
+    "template": "The template/theme to use for the plotly figure.",
 }
 
 HUMBLCOMPASS_DATA_DESCRIPTIONS = {
@@ -36,10 +44,10 @@ HUMBLCOMPASS_DATA_DESCRIPTIONS = {
     "country": "The country or group of countries the data represents",
     "cpi": "Consumer Price Index (CPI) value",
     "cpi_3m_delta": "3-month delta of CPI",
-    "cpi_3yr_zscore": "3-year trailing z-score of CPI",
+    "cpi_1yr_zscore": "1-year rolling z-score of CPI",
     "cli": "Composite Leading Indicator (CLI) value",
     "cli_3m_delta": "3-month delta of CLI",
-    "cli_3yr_zscore": "3-year trailing z-score of CLI",
+    "cli_1yr_zscore": "1-year rolling z-score of CLI",
     "humbl_regime": "HUMBL Regime classification based on CPI and CLI values",
 }
 
@@ -56,6 +64,12 @@ class HumblCompassQueryParams(QueryParams):
         The adjusted start date for CLI data collection.
     cpi_start_date : str
         The adjusted start date for CPI data collection.
+    z_score : Optional[str]
+        The time window for z-score calculation (e.g., "1 year", "18 months").
+    chart : bool
+        Whether to return a chart object.
+    template : Literal
+        The template/theme to use for the plotly figure.
     """
 
     country: Literal[
@@ -97,6 +111,35 @@ class HumblCompassQueryParams(QueryParams):
         title="Adjusted start date for CPI data",
         description="The adjusted start date for CPI data collection.",
     )
+    z_score: str | None = Field(
+        default=None,
+        title="Z-score calculation window",
+        description="The time window for z-score calculation (e.g., '1 year', '18 months').",
+    )
+    chart: bool = Field(
+        default=False,
+        title="Results Chart",
+        description=HUMBLCOMPASS_QUERY_DESCRIPTIONS.get("chart", ""),
+    )
+    template: Literal[
+        "humbl_dark",
+        "humbl_light",
+        "ggplot2",
+        "seaborn",
+        "simple_white",
+        "plotly",
+        "plotly_white",
+        "plotly_dark",
+        "presentation",
+        "xgridoff",
+        "ygridoff",
+        "gridon",
+        "none",
+    ] = Field(
+        default="humbl_dark",
+        title="Plotly Template",
+        description=HUMBLCOMPASS_QUERY_DESCRIPTIONS.get("template", ""),
+    )
 
 
 class HumblCompassData(Data):
@@ -126,11 +169,11 @@ class HumblCompassData(Data):
         title="Consumer Price Index (CPI) 3-Month Delta",
         description=HUMBLCOMPASS_DATA_DESCRIPTIONS["cpi_3m_delta"],
     )
-    # cpi_3yr_zscore: pl.Float64 = pa.Field(
-    #     default=None,
-    #     title="Consumer Price Index (CPI) 3-Year Z-Score",
-    #     description=HUMBLCOMPASS_DATA_DESCRIPTIONS["cpi_3yr_zscore"],
-    # )
+    cpi_zscore: pl.Float64 | None = pa.Field(
+        default=None,
+        title="Consumer Price Index (CPI) 1-Year Z-Score",
+        description=HUMBLCOMPASS_DATA_DESCRIPTIONS["cpi_1yr_zscore"],
+    )
     cli: pl.Float64 = pa.Field(
         default=None,
         title="Composite Leading Indicator (CLI)",
@@ -141,16 +184,11 @@ class HumblCompassData(Data):
         title="Composite Leading Indicator (CLI) 3-Month Delta",
         description=HUMBLCOMPASS_DATA_DESCRIPTIONS["cli_3m_delta"],
     )
-    # cli_3yr_zscore: pl.Float64 = pa.Field(
-    #     default=None,
-    #     title="Composite Leading Indicator (CLI) 3-Year Z-Score",
-    #     description=HUMBLCOMPASS_DATA_DESCRIPTIONS["cli_3yr_zscore"],
-    # )
-    # humbl_regime: pl.Utf8 = pa.Field(
-    #     default=None,
-    #     title="humblREGIME",
-    #     description=HUMBLCOMPASS_DATA_DESCRIPTIONS["humbl_regime"],
-    # )
+    cli_zscore: pl.Float64 | None = pa.Field(
+        default=None,
+        title="Composite Leading Indicator (CLI) 1-Year Z-Score",
+        description=HUMBLCOMPASS_DATA_DESCRIPTIONS["cli_1yr_zscore"],
+    )
 
 
 class HumblCompassFetcher:
@@ -228,37 +266,43 @@ class HumblCompassFetcher:
         """
         if not self.command_params:
             self.command_params = HumblCompassQueryParams()
+        elif isinstance(self.command_params, dict):
+            self.command_params = HumblCompassQueryParams(**self.command_params)
+
+        # Calculate adjusted start dates
+        if isinstance(self.context_params.start_date, str):
+            start_date = pl.Series(
+                [datetime.strptime(self.context_params.start_date, "%Y-%m-%d")]
+            )
         else:
-            # self.command_params = HumblCompassQueryParams(**self.command_params)
+            start_date = pl.Series([self.context_params.start_date])
 
-            # Calculate adjusted start dates
-            if isinstance(self.context_params.start_date, str):
-                start_date = pl.Series(
-                    [
-                        datetime.strptime(
-                            self.context_params.start_date, "%Y-%m-%d"
-                        )
-                    ]
-                )
-            else:
-                start_date = pl.Series([self.context_params.start_date])
+        # Calculate z-score window in months
+        self.z_score_months = 0
+        if self.command_params.z_score is not None:
+            z_score_months_str = _window_format(
+                self.command_params.z_score, _return_timedelta=False
+            )
+            self.z_score_months = _window_format_monthly(z_score_months_str)
 
-            cli_start_date = start_date.dt.offset_by("-4mo").dt.strftime(
-                "%Y-%m-%d"
-            )[0]
-            cpi_start_date = start_date.dt.offset_by("-3mo").dt.strftime(
-                "%Y-%m-%d"
-            )[0]
+        cli_start_date = start_date.dt.offset_by(
+            f"-{4 + self.z_score_months}mo"
+        ).dt.strftime("%Y-%m-%d")[0]
+        cpi_start_date = start_date.dt.offset_by(
+            f"-{3 + self.z_score_months}mo"
+        ).dt.strftime("%Y-%m-%d")[0]
 
         # Update the command_params with the new start dates
-        self.command_params["cli_start_date"] = cli_start_date
-        self.command_params["cpi_start_date"] = cpi_start_date
-
-        # Validate the updated parameters
-        self.command_params = HumblCompassQueryParams(**self.command_params)
+        self.command_params = self.command_params.model_copy(
+            update={
+                "cli_start_date": cli_start_date,
+                "cpi_start_date": cpi_start_date,
+            }
+        )
 
         logger.info(
-            f"CLI start date: {cli_start_date} and CPI start date: {cpi_start_date}. Dates are adjusted to account for CLI data release lag."
+            f"CLI start date: {self.command_params.cli_start_date} and CPI start date: {self.command_params.cpi_start_date}. "
+            f"Dates are adjusted to account for CLI data release lag and z-score calculation window."
         )
 
     def extract_data(self):
@@ -364,23 +408,69 @@ class HumblCompassFetcher:
             ]
         )
 
+        # Calculate z-scores only if self.z_score_months is greater than 0
+        if self.z_score_months > 0:
+            transformed_data = transformed_data.with_columns(
+                [
+                    pl.when(
+                        pl.col("cli").count().over("country")
+                        >= self.z_score_months
+                    )
+                    .then(
+                        (
+                            pl.col("cli")
+                            - pl.col("cli").rolling_mean(self.z_score_months)
+                        )
+                        / pl.col("cli").rolling_std(self.z_score_months)
+                    )
+                    .alias("cli_zscore"),
+                    pl.when(
+                        pl.col("cpi").count().over("country")
+                        >= self.z_score_months
+                    )
+                    .then(
+                        (
+                            pl.col("cpi")
+                            - pl.col("cpi").rolling_mean(self.z_score_months)
+                        )
+                        / pl.col("cpi").rolling_std(self.z_score_months)
+                    )
+                    .alias("cpi_zscore"),
+                ]
+            )
+
         # Validate the data using HumblCompassData
         self.transformed_data = HumblCompassData(
             transformed_data.collect().drop_nulls()  # removes preceding 3 months used for delta calculations
         ).lazy()
 
-        self.transformed_data = self.transformed_data.select(
-            [
-                pl.col("date_month_start"),
-                pl.col("date_cli"),
-                pl.col("date_cpi"),
-                pl.col("country"),
-                pl.col("cpi").round(2),
-                pl.col("cpi_3m_delta").round(2),
-                pl.col("cli").round(2),
-                pl.col("cli_3m_delta").round(2),
-            ]
-        )
+        # Select columns based on whether z-scores were calculated
+        columns_to_select = [
+            pl.col("date_month_start"),
+            pl.col("country"),
+            pl.col("cpi").round(2),
+            pl.col("cpi_3m_delta").round(2),
+            pl.col("cli").round(2),
+            pl.col("cli_3m_delta").round(2),
+        ]
+
+        if self.z_score_months > 0:
+            columns_to_select.extend(
+                [
+                    pl.col("cpi_zscore").round(2),
+                    pl.col("cli_zscore").round(2),
+                ]
+            )
+
+        self.transformed_data = self.transformed_data.select(columns_to_select)
+
+        # Generate chart if requested
+        self.chart = None
+        if self.command_params.chart:
+            self.chart = generate_plots(
+                self.transformed_data,
+                template=ChartTemplate(self.command_params.template),
+            )
 
         return self
 
@@ -410,7 +500,7 @@ class HumblCompassFetcher:
             results=self.transformed_data,
             provider=self.context_params.provider,
             warnings=self.context_params.warnings,
-            chart=None,
+            chart=self.chart,
             context_params=self.context_params,
             command_params=self.command_params,
         )
