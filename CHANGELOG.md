@@ -1,3 +1,18 @@
+## v1.9.0 (2024-10-14)
+
+### ✨ Features
+
+- **humblCOMPASS**: v1 of humblCOMPASS finished
+- **command**: new humbl_compass command in fundamental category
+
+### 🐛🚑️ Fixes
+
+- **humblCOMPASS**: cannot calculate z-score if you are a peon member
+- **imports**: removed unused imports and organized
+- **commitizen**: added small keyboard commit shortcut
+- **poe: add_command**: added new logging and warnings to the standard_model
+- **poe: add_command**: fixed logic to not overwrite files and updates content instead
+
 ## v1.8.1 (2024-07-25)
 
 ### 🐛🚑️ Fixes
