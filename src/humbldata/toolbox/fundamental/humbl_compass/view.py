@@ -146,8 +146,8 @@ def create_humbl_compass_plot(
     fig.update_layout(
         title="humblCOMPASS: CLI 3m Delta vs CPI 3m Delta",
         title_font_color="white",
-        xaxis_title="Inflation 3-Month Delta",
-        yaxis_title="Growth 3-Month Delta",
+        xaxis_title="Inflation (CPI) 3-Month Delta",
+        yaxis_title="Growth (CLI) 3-Month Delta",
         xaxis=dict(
             range=x_axis_range,
             color="white",

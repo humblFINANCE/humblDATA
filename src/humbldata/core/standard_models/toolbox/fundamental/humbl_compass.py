@@ -279,11 +279,18 @@ class HumblCompassFetcher:
 
         # Calculate z-score window in months
         self.z_score_months = 0
-        if self.command_params.z_score is not None:
+        if (
+            self.command_params.z_score is not None
+            and self.context_params.membership != "peon"
+        ):
             z_score_months_str = _window_format(
                 self.command_params.z_score, _return_timedelta=False
             )
             self.z_score_months = _window_format_monthly(z_score_months_str)
+        elif self.context_params.membership == "peon":
+            logger.warning(
+                "Z-score is not calculated for peon membership level."
+            )
 
         cli_start_date = start_date.dt.offset_by(
             f"-{4 + self.z_score_months}mo"
@@ -408,8 +415,8 @@ class HumblCompassFetcher:
             ]
         )
 
-        # Calculate z-scores only if self.z_score_months is greater than 0
-        if self.z_score_months > 0:
+        # Calculate z-scores only if self.z_score_months is greater than 0 and membership is not peon
+        if self.z_score_months > 0 and self.context_params.membership != "peon":
             transformed_data = transformed_data.with_columns(
                 [
                     pl.when(
@@ -454,7 +461,7 @@ class HumblCompassFetcher:
             pl.col("cli_3m_delta").round(2),
         ]
 
-        if self.z_score_months > 0:
+        if self.z_score_months > 0 and self.context_params.membership != "peon":
             columns_to_select.extend(
                 [
                     pl.col("cpi_zscore").round(2),
