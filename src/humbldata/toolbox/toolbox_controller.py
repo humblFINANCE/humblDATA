@@ -3,6 +3,8 @@
 
 The Toolbox Controller Module.
 """
+from humbldata.toolbox.fundamental.fundamental_controller import Fundamental
+
 
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
 from humbldata.toolbox.technical.technical_controller import Technical
@@ -72,3 +74,15 @@ class Toolbox(ToolboxQueryParams):
         symbol, interval, start_date, and end_date.
         """
         return Technical(context_params=self)
+
+    @property
+    def fundamental(self):
+        """
+        The fundamental submodule of the Toolbox controller.
+
+        Access to all the Fundamental indicators. When the Toolbox class is
+        instantiated the parameters are initialized with the ToolboxQueryParams
+        class, which hold all the fields needed for the context_params, like the
+        symbol, interval, start_date, and end_date.
+        """
+        return Fundamental(context_params=self)
