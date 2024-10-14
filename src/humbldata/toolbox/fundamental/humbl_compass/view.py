@@ -8,7 +8,7 @@ from typing import List
 
 import plotly.graph_objs as go
 import polars as pl
-from plotly.colors import sequential
+from plotly.colors import sequential, sample_colorscale
 import datetime
 
 from humbldata.core.standard_models.abstract.chart import Chart, ChartTemplate
@@ -35,7 +35,15 @@ def create_humbl_compass_plot(
     """
     # Sort data by date and create a color scale
     data = data.sort("date_month_start")
-    color_scale = sequential.Bluered
+    full_color_scale = sequential.Reds
+
+    # Use only a portion of the colorscale (e.g., from 20% to 80%)
+    start = 0.2
+    end = 0.8
+    custom_colorscale = sample_colorscale(
+        full_color_scale,
+        [i / 100 for i in range(int(start * 100), int(end * 100) + 1, 10)],
+    )
 
     fig = go.Figure()
 
@@ -101,6 +109,9 @@ def create_humbl_compass_plot(
             layer="below",
         )
 
+    # Create a color array based on the date order
+    color_array = list(range(len(data)))
+
     fig.add_trace(
         go.Scatter(
             x=data["cpi_3m_delta"],
@@ -115,27 +126,28 @@ def create_humbl_compass_plot(
             textfont=dict(size=10, color="white"),
             marker=dict(
                 size=10,
-                color=list(range(len(data))),
-                colorscale=color_scale,
-                colorbar=dict(
-                    title="Time",
-                    titlefont=dict(color="white"),
-                    tickfont=dict(color="white"),
-                ),
+                color=color_array,
+                colorscale=custom_colorscale,
+                showscale=False,  # This line removes the colorbar
             ),
-            line=dict(color="white"),
+            line=dict(
+                color="white",
+                shape="spline",  # This line smooths the curve
+                smoothing=1.3,  # Adjust this value to control the smoothness (0 to 1.3)
+            ),
             hovertemplate="<b>%{text}</b><br>CPI 3m Δ: %{x:.2f}<br>CLI 3m Δ: %{y:.2f}<extra></extra>",
         )
     )
 
-    fig.add_hline(y=0, line_dash="dash", line_color="white", opacity=0.7)
-    fig.add_vline(x=0, line_dash="dash", line_color="white", opacity=0.7)
+    # Change the axis lines from dashed to solid
+    fig.add_hline(y=0, line_dash="solid", line_color="white", opacity=0.7)
+    fig.add_vline(x=0, line_dash="solid", line_color="white", opacity=0.7)
 
     fig.update_layout(
         title="humblCOMPASS: CLI 3m Delta vs CPI 3m Delta",
         title_font_color="white",
-        xaxis_title="CPI 3-Month Delta",
-        yaxis_title="CLI 3-Month Delta",
+        xaxis_title="Inflation 3-Month Delta",
+        yaxis_title="Growth 3-Month Delta",
         xaxis=dict(
             range=x_axis_range,
             color="white",
@@ -154,25 +166,6 @@ def create_humbl_compass_plot(
         paper_bgcolor="rgba(0,0,0,0)",
         font=dict(color="white"),
         margin=dict(l=50, r=50, t=50, b=50),
-    )
-
-    # Update colorbar ticks to show actual dates
-    min_date = data["date_month_start"].min()
-    max_date = data["date_month_start"].max()
-
-    fig.update_coloraxes(
-        colorbar=dict(
-            tickvals=[0, len(data) - 1],
-            ticktext=[
-                min_date.strftime("%b %Y")
-                if isinstance(min_date, datetime.date)
-                else "",
-                max_date.strftime("%b %Y")
-                if isinstance(max_date, datetime.date)
-                else "",
-            ],
-            tickfont=dict(color="white"),
-        )
     )
 
     return fig
