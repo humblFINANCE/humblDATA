@@ -1,3 +1,9 @@
+## v1.9.1 (2024-10-14)
+
+### 🐛🚑️ Fixes
+
+- **humblCOMPASS**: serialize the transformed_data
+
 ## v1.9.0 (2024-10-14)
 
 ### ✨ Features
