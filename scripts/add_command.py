@@ -125,7 +125,8 @@ def generate_context_files(project_root: Path, context: str) -> None:
         The context name.
     """
     file_path = project_root / "src" / "humbldata" / context / "__init__.py"
-    content = f'''
+    if not file_path.exists():
+        content = f'''
 """
 **Context: {clean_name(context, case="PascalCase")}**.
 
@@ -134,11 +135,12 @@ A category to group in the `{clean_name(context)}()`
 """
 
 '''
-    write_file(file_path, content)
+        write_file(file_path, content)
 
-    # Create __init__.py in the context directory
+    # Create __init__.py in the context directory if it doesn't exist
     init_file_path = file_path.parent / "__init__.py"
-    write_file(init_file_path, "")
+    if not init_file_path.exists():
+        write_file(init_file_path, "")
 
 
 def generate_command_files(
@@ -218,7 +220,47 @@ def generate_context_controller(
         / context
         / f"{context}_controller.py"
     )
-    content = f'''
+
+    if file_path.exists():
+        # If the file exists, we'll update it instead of overwriting
+        with file_path.open("r") as f:
+            content = f.read()
+
+        # Check if the category is already imported
+        import_line = f"from humbldata.{context.lower()}.{category.lower()}.{category.lower()}_controller import {clean_name(category, case='PascalCase')}"
+        if import_line not in content:
+            # Add the import below the docstring
+            docstring_end = content.index('"""', content.index('"""') + 3) + 3
+            content = (
+                content[:docstring_end]
+                + "\n"
+                + import_line
+                + "\n"
+                + content[docstring_end:]
+            )
+
+        # Check if the category property already exists
+        property_def = f"@property\n    def {category.lower()}(self):"
+        if property_def not in content:
+            # Add the property
+            content += f'''
+    {property_def}
+        """
+        The {category.lower()} submodule of the {clean_name(context, case="PascalCase")} controller.
+
+        Access to all the {clean_name(category, case="PascalCase")} indicators. When the {clean_name(context, case="PascalCase")} class is
+        instantiated the parameters are initialized with the {clean_name(context, case="PascalCase")}QueryParams
+        class, which hold all the fields needed for the context_params, like the
+        symbol, interval, start_date, and end_date.
+        """
+        return {clean_name(category, case="PascalCase")}(context_params=self)
+'''
+
+        # Write the updated content back to the file
+        write_file(file_path, content)
+    else:
+        # If the file doesn't exist, create it with the original content
+        content = f'''
 """
 **Context: {clean_name(context, case="PascalCase")}**.
 
@@ -282,11 +324,12 @@ class {clean_name(context, case="PascalCase")}({clean_name(context, case="Pascal
         """
         return {clean_name(category, case="PascalCase")}(context_params=self)
 '''
-    write_file(file_path, content.strip())
+        write_file(file_path, content.strip())
 
-    # Create __init__.py in the context directory
+    # Create __init__.py in the context directory if it doesn't exist
     init_file_path = file_path.parent / "__init__.py"
-    write_file(init_file_path, "")
+    if not init_file_path.exists():
+        write_file(init_file_path, "")
 
 
 def generate_category_controller(
@@ -365,11 +408,12 @@ class {clean_name(category, case="PascalCase")}:
         # Use the fetcher to get the data
         return fetcher.fetch_data()
 '''
-    write_file(file_path, content.strip())
+    write_file(file_path, content)
 
-    # Create __init__.py in the category directory
+    # Create __init__.py in the category directory if it doesn't exist
     init_file_path = file_path.parent / "__init__.py"
-    write_file(init_file_path, "")
+    if not init_file_path.exists():
+        write_file(init_file_path, "")
 
 
 def generate_standard_model(
@@ -399,7 +443,8 @@ def generate_standard_model(
         / context
         / "__init__.py"
     )
-    context_content = f'''
+    if not context_file_path.exists():
+        context_content = f'''
 """
 Context: {clean_name(context, case="PascalCase")} || **Category: {clean_name(category, case="PascalCase")}**.
 
@@ -426,12 +471,12 @@ class {clean_name(context, case="PascalCase")}QueryParams(QueryParams):
         Another example field.
     """
 
-    example_field1: str = pa.Field(
+    example_field1: str = Field(
         default="default_value",
         title="Example Field 1",
         description="Description for example field 1",
     )
-    example_field2: int | None = pa.Field(
+    example_field2: int | None = Field(
         default=None,
         title="Example Field 2",
         description="Description for example field 2",
@@ -451,7 +496,7 @@ class {clean_name(context, case="PascalCase")}Data(Data):
     # Add your data model fields here
     pass
 '''
-    write_file(context_file_path, context_content)
+        write_file(context_file_path, context_content)
 
     # Generate command standard model
     command_file_path = (
@@ -484,8 +529,12 @@ from humbldata.core.standard_models.abstract.data import Data
 from humbldata.core.standard_models.abstract.humblobject import HumblObject
 from humbldata.core.standard_models.abstract.query_params import QueryParams
 from humbldata.core.standard_models.{context} import {clean_name(context, case="PascalCase")}QueryParams
+from humbldata.core.utils.env import Env
+from humbldata.core.utils.logger import log_start_end, setup_logger
 
+env = Env()
 Q = TypeVar("Q", bound={clean_name(context, case="PascalCase")}QueryParams)
+logger = setup_logger("{clean_name(command, case="PascalCase")}Fetcher", level=env.LOGGER_LEVEL)
 
 {clean_name(command, case="PascalCase").upper()}_QUERY_DESCRIPTIONS = {{
     "example_field1": "Description for example field 1",
@@ -505,14 +554,14 @@ class {clean_name(command, case="PascalCase")}QueryParams(QueryParams):
         Another example field.
     """
 
-    example_field1: str = pa.Field(
+    example_field1: str = Field(
         default="default_value",
         title="Example Field 1",
         description={clean_name(command, case="PascalCase").upper()}_QUERY_DESCRIPTIONS.get("example_field1", ""),
     )
-    example_field2: bool = pa.Field(
+    example_field2: bool = Field(
         default=True,
-        title="Example pa.Field 2",
+        title="Example Field 2",
         description={clean_name(command, case="PascalCase").upper()}_QUERY_DESCRIPTIONS.get("example_field2", ""),
     )
 
@@ -529,7 +578,7 @@ class {clean_name(command, case="PascalCase")}Data(Data):
     This Data model is used to validate data in the `.transform_data()` method of the `{clean_name(command, case="PascalCase")}Fetcher` class.
     """
 
-    example_column: pl.Date = pa.Field(
+    example_column: pl.Date = Field(
         default=None,
         title="Example Column",
         description="Description for example column",
@@ -608,15 +657,9 @@ class {clean_name(command, case="PascalCase")}Fetcher:
         If command_params is not provided, it initializes a default {clean_name(command, case="PascalCase")}QueryParams object.
         """
         if not self.command_params:
-            self.command_params = None
-            # Set Default Arguments
-            self.command_params: {clean_name(command, case="PascalCase")}QueryParams = (
-                {clean_name(command, case="PascalCase")}QueryParams()
-            )
+            self.command_params = {clean_name(command, case="PascalCase")}QueryParams()
         else:
-            self.command_params: {clean_name(command, case="PascalCase")}QueryParams = (
-                {clean_name(command, case="PascalCase")}QueryParams(**self.command_params)
-            )
+            self.command_params = {clean_name(command, case="PascalCase")}QueryParams(**self.command_params)
 
     def extract_data(self):
         """
@@ -645,6 +688,7 @@ class {clean_name(command, case="PascalCase")}Fetcher:
         self.transformed_data = self.transformed_data.serialize()
         return self
 
+    @log_start_end(logger=logger)
     def fetch_data(self):
         """
         Execute TET Pattern.
@@ -663,10 +707,13 @@ class {clean_name(command, case="PascalCase")}Fetcher:
         self.extract_data()
         self.transform_data()
 
+        if not hasattr(self.context_params, "warnings"):
+            self.context_params.warnings = []
+
         return HumblObject(
             results=self.transformed_data,
             provider=self.context_params.provider,
-            warnings=None,
+            warnings=self.context_params.warnings,
             chart=None,
             context_params=self.context_params,
             command_params=self.command_params,
@@ -675,9 +722,10 @@ class {clean_name(command, case="PascalCase")}Fetcher:
 '''
     write_file(command_file_path, command_content)
 
-    # Create __init__.py in the category directory
+    # Create __init__.py in the category directory if it doesn't exist
     init_file_path = command_file_path.parent / "__init__.py"
-    write_file(init_file_path, "")
+    if not init_file_path.exists():
+        write_file(init_file_path, "")
 
 
 def generate_helpers(
