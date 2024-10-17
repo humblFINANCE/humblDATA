@@ -1,3 +1,10 @@
+## v1.9.2 (2024-10-17)
+
+### 🐛🚑️ Fixes
+
+- **humblCOMPASS**: added humblREGIME annotations
+- **humblCOMPASS**: shading quadrants and showing data with a buffer
+
 ## v1.9.1 (2024-10-14)
 
 ### 🐛🚑️ Fixes
