@@ -10,6 +10,7 @@ from typing import List
 import plotly.graph_objs as go
 import polars as pl
 from plotly.colors import sample_colorscale, sequential
+import plotly.io as pio
 
 from humbldata.core.standard_models.abstract.chart import Chart, ChartTemplate
 
@@ -115,15 +116,86 @@ def create_humbl_compass_plot(
     y_min, y_max = data["cli_3m_delta"].min(), data["cli_3m_delta"].max()
 
     # Ensure minimum range of -0.3 to 0.3 on both axes
-    x_min = min(x_min, -0.3)
-    x_max = max(x_max, 0.3)
-    y_min = min(y_min, -0.3)
-    y_max = max(y_max, 0.3)
+    x_min = min(x_min if x_min is not None else 0, -0.3)
+    x_max = max(x_max if x_max is not None else 0, 0.3)
+    y_min = min(y_min if y_min is not None else 0, -0.3)
+    y_max = max(y_max if y_max is not None else 0, 0.3)
 
     # Add some padding to the ranges (e.g., 10% on each side)
     x_padding = max((x_max - x_min) * 0.1, 0.05)  # Ensure minimum padding
     y_padding = max((y_max - y_min) * 0.1, 0.05)  # Ensure minimum padding
 
+    # Calculate the center of each visible quadrant
+    x_center_pos = (x_max + x_padding + 0) / 2
+    x_center_neg = (x_min - x_padding + 0) / 2
+    y_center_pos = (y_max + y_padding + 0) / 2
+    y_center_neg = (y_min - y_padding + 0) / 2
+
+    # Add quadrant labels
+    quadrant_labels = [
+        {
+            "text": "humblBOOM",
+            "x": x_center_neg,
+            "y": y_center_pos,
+            "color": "rgba(144, 238, 144, 0.5)",  # Changed opacity to 0.5
+        },
+        {
+            "text": "humblBOUNCE",
+            "x": x_center_pos,
+            "y": y_center_pos,
+            "color": "rgba(173, 216, 230, 0.5)",  # Changed opacity to 0.5
+        },
+        {
+            "text": "humblBLOAT",
+            "x": x_center_pos,
+            "y": y_center_neg,
+            "color": "rgba(255, 165, 0, 0.5)",  # Changed opacity to 0.5
+        },
+        {
+            "text": "humblBUST",
+            "x": x_center_neg,
+            "y": y_center_neg,
+            "color": "rgba(255, 99, 71, 0.5)",  # Changed opacity to 0.5
+        },
+    ]
+
+    for label in quadrant_labels:
+        fig.add_annotation(
+            x=label["x"],
+            y=label["y"],
+            text=label["text"],
+            showarrow=False,
+            font=dict(size=20, color=label["color"]),
+            opacity=0.5,  # Changed opacity to 0.5
+        )
+
+    # Add custom watermark
+    fig.add_annotation(
+        x=0,
+        y=0,
+        text="humblDATA",
+        showarrow=False,
+        font=dict(size=40, color="rgba(255, 255, 255, 0.1)"),
+        textangle=-25,
+        xanchor="center",
+        yanchor="middle",
+        xref="x",
+        yref="y",
+    )
+
+    # Create a copy of the template without the watermark
+    custom_template = pio.templates[template.value].to_plotly_json()
+    if (
+        "layout" in custom_template
+        and "annotations" in custom_template["layout"]
+    ):
+        custom_template["layout"]["annotations"] = [
+            ann
+            for ann in custom_template["layout"]["annotations"]
+            if ann.get("name") != "draft watermark"
+        ]
+
+    # Update layout
     fig.update_layout(
         title="humblCOMPASS: CLI 3m Delta vs CPI 3m Delta",
         title_font_color="white",
@@ -141,7 +213,7 @@ def create_humbl_compass_plot(
             zeroline=False,
             range=[y_min - y_padding, y_max + y_padding],
         ),
-        template=template,
+        template=custom_template,  # Use the custom template without watermark
         hovermode="closest",
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
