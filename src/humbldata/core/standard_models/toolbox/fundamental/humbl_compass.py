@@ -8,25 +8,25 @@ HumblCompass command.
 """
 
 from datetime import datetime
-from typing import Literal, TypeVar, Optional
+from typing import Literal, Optional, TypeVar
 
 import pandera.polars as pa
 import polars as pl
 from openbb import obb
 from pydantic import Field
 
+from humbldata.core.standard_models.abstract.chart import ChartTemplate
 from humbldata.core.standard_models.abstract.data import Data
 from humbldata.core.standard_models.abstract.humblobject import HumblObject
 from humbldata.core.standard_models.abstract.query_params import QueryParams
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
 from humbldata.core.utils.env import Env
 from humbldata.core.utils.logger import log_start_end, setup_logger
+from humbldata.toolbox.fundamental.humbl_compass.view import generate_plots
 from humbldata.toolbox.toolbox_helpers import (
     _window_format,
     _window_format_monthly,
 )
-from humbldata.toolbox.fundamental.humbl_compass.view import generate_plots
-from humbldata.core.standard_models.abstract.chart import ChartTemplate
 
 env = Env()
 Q = TypeVar("Q", bound=ToolboxQueryParams)
@@ -446,11 +446,6 @@ class HumblCompassFetcher:
                 ]
             )
 
-        # Validate the data using HumblCompassData
-        self.transformed_data = HumblCompassData(
-            transformed_data.collect().drop_nulls()  # removes preceding 3 months used for delta calculations
-        ).lazy()
-
         # Select columns based on whether z-scores were calculated
         columns_to_select = [
             pl.col("date_month_start"),
@@ -469,7 +464,12 @@ class HumblCompassFetcher:
                 ]
             )
 
-        self.transformed_data = self.transformed_data.select(columns_to_select)
+        self.transformed_data = transformed_data.select(columns_to_select)
+
+        # Validate the data using HumblCompassData
+        self.transformed_data = HumblCompassData(
+            self.transformed_data.collect().drop_nulls()  # removes preceding 3 months used for delta calculations
+        ).lazy()
 
         # Generate chart if requested
         self.chart = None
