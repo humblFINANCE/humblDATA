@@ -8,9 +8,9 @@ import datetime
 from typing import List
 
 import plotly.graph_objs as go
+import plotly.io as pio
 import polars as pl
 from plotly.colors import sample_colorscale, sequential
-import plotly.io as pio
 
 from humbldata.core.standard_models.abstract.chart import Chart, ChartTemplate
 
@@ -91,18 +91,18 @@ def create_humbl_compass_plot(
                 for d in data["date_month_start"]
             ],
             textposition="top center",
-            textfont=dict(size=10, color="white"),
-            marker=dict(
-                size=10,
-                color=color_array,
-                colorscale=custom_colorscale,
-                showscale=False,
-            ),
-            line=dict(
-                color="white",
-                shape="spline",
-                smoothing=1.3,
-            ),
+            textfont={"size": 10, "color": "white"},
+            marker={
+                "size": 10,
+                "color": color_array,
+                "colorscale": custom_colorscale,
+                "showscale": False,
+            },
+            line={
+                "color": "white",
+                "shape": "spline",
+                "smoothing": 1.3,
+            },
             hovertemplate="<b>%{text}</b><br>CPI 3m Δ: %{x:.2f}<br>CLI 3m Δ: %{y:.2f}<extra></extra>",
         )
     )
@@ -165,7 +165,7 @@ def create_humbl_compass_plot(
             y=label["y"],
             text=label["text"],
             showarrow=False,
-            font=dict(size=20, color=label["color"]),
+            font={"size": 20, "color": label["color"]},
             opacity=0.5,  # Changed opacity to 0.5
         )
 
@@ -175,7 +175,7 @@ def create_humbl_compass_plot(
         y=0,
         text="humblDATA",
         showarrow=False,
-        font=dict(size=40, color="rgba(255, 255, 255, 0.1)"),
+        font={"size": 40, "color": "rgba(255, 255, 255, 0.1)"},
         textangle=-25,
         xanchor="center",
         yanchor="middle",
@@ -201,24 +201,24 @@ def create_humbl_compass_plot(
         title_font_color="white",
         xaxis_title="Inflation (CPI) 3-Month Delta",
         yaxis_title="Growth (CLI) 3-Month Delta",
-        xaxis=dict(
-            color="white",
-            showgrid=False,
-            zeroline=False,
-            range=[x_min - x_padding, x_max + x_padding],
-        ),
-        yaxis=dict(
-            color="white",
-            showgrid=False,
-            zeroline=False,
-            range=[y_min - y_padding, y_max + y_padding],
-        ),
+        xaxis={
+            "color": "white",
+            "showgrid": False,
+            "zeroline": False,
+            "range": [x_min - x_padding, x_max + x_padding],
+        },
+        yaxis={
+            "color": "white",
+            "showgrid": False,
+            "zeroline": False,
+            "range": [y_min - y_padding, y_max + y_padding],
+        },
         template=custom_template,  # Use the custom template without watermark
         hovermode="closest",
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="white"),
-        margin=dict(l=50, r=50, t=50, b=50),
+        font={"color": "white"},
+        margin={"l": 50, "r": 50, "t": 50, "b": 50},
     )
 
     return fig
