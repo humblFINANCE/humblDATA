@@ -4,12 +4,12 @@
 The HumblCompass View Module.
 """
 
+import datetime
 from typing import List
 
 import plotly.graph_objs as go
 import polars as pl
-from plotly.colors import sequential, sample_colorscale
-import datetime
+from plotly.colors import sample_colorscale, sequential
 
 from humbldata.core.standard_models.abstract.chart import Chart, ChartTemplate
 
