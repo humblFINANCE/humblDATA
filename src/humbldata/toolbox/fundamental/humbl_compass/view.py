@@ -36,63 +36,30 @@ def create_humbl_compass_plot(
     # Sort data by date and create a color scale
     data = data.sort("date_month_start")
     full_color_scale = sequential.Reds
-
-    # Use only a portion of the colorscale (e.g., from 20% to 80%)
-    start = 0.2
-    end = 0.8
-    custom_colorscale = sample_colorscale(
-        full_color_scale,
-        [i / 100 for i in range(int(start * 100), int(end * 100) + 1, 10)],
-    )
+    custom_colorscale = sample_colorscale(full_color_scale, [0.2, 0.8])
 
     fig = go.Figure()
 
-    # Calculate the range for x and y axes
-    x_max = max(
-        abs(float(data["cpi_3m_delta"].max() or 0)),
-        abs(float(data["cpi_3m_delta"].min() or 0)),
-    )
-    y_max = max(
-        abs(float(data["cli_3m_delta"].max() or 0)),
-        abs(float(data["cli_3m_delta"].min() or 0)),
-    )
-    max_range = max(x_max, y_max)
-
-    # Add asymmetric buffers to the x-axis range
-    x_buffer_right = max_range * 0.05
-    x_buffer_left = max_range * 0.15  # Larger buffer on the left side
-    x_axis_range = [-max_range - x_buffer_left, max_range + x_buffer_right]
-
-    # Calculate a tighter y-axis range
-    y_data_max = float(data["cli_3m_delta"].max() or 0)
-    y_data_min = float(data["cli_3m_delta"].min() or 0)
-    y_buffer = (y_data_max - y_data_min) * 0.1  # 10% buffer
-    y_axis_range = [y_data_min - y_buffer, y_data_max + y_buffer]
-
-    # Extend the quadrants beyond the data range
-    quadrant_extension = max_range * 0.1
-    extended_max_range = max_range + quadrant_extension
-
-    # Add colored quadrants
+    # Add colored quadrants from -10 to 10
     quadrants = [
         {
-            "x": [0, extended_max_range],
-            "y": [0, extended_max_range],
+            "x": [0, 10],
+            "y": [0, 10],
             "fillcolor": "rgba(173, 216, 230, 0.3)",
         },  # Light blue
         {
-            "x": [-extended_max_range, 0],
-            "y": [0, extended_max_range],
+            "x": [-10, 0],
+            "y": [0, 10],
             "fillcolor": "rgba(144, 238, 144, 0.3)",
         },  # Green
         {
-            "x": [0, extended_max_range],
-            "y": [-extended_max_range, 0],
+            "x": [0, 10],
+            "y": [-10, 0],
             "fillcolor": "rgba(255, 165, 0, 0.3)",
         },  # Orange
         {
-            "x": [-extended_max_range, 0],
-            "y": [-extended_max_range, 0],
+            "x": [-10, 0],
+            "y": [-10, 0],
             "fillcolor": "rgba(255, 99, 71, 0.3)",
         },  # Red
     ]
@@ -128,20 +95,34 @@ def create_humbl_compass_plot(
                 size=10,
                 color=color_array,
                 colorscale=custom_colorscale,
-                showscale=False,  # This line removes the colorbar
+                showscale=False,
             ),
             line=dict(
                 color="white",
-                shape="spline",  # This line smooths the curve
-                smoothing=1.3,  # Adjust this value to control the smoothness (0 to 1.3)
+                shape="spline",
+                smoothing=1.3,
             ),
             hovertemplate="<b>%{text}</b><br>CPI 3m Δ: %{x:.2f}<br>CLI 3m Δ: %{y:.2f}<extra></extra>",
         )
     )
 
-    # Change the axis lines from dashed to solid
+    # Add axis lines
     fig.add_hline(y=0, line_dash="solid", line_color="white", opacity=0.7)
     fig.add_vline(x=0, line_dash="solid", line_color="white", opacity=0.7)
+
+    # Calculate the range for x and y axes based on data
+    x_min, x_max = data["cpi_3m_delta"].min(), data["cpi_3m_delta"].max()
+    y_min, y_max = data["cli_3m_delta"].min(), data["cli_3m_delta"].max()
+
+    # Ensure minimum range of -0.3 to 0.3 on both axes
+    x_min = min(x_min, -0.3)
+    x_max = max(x_max, 0.3)
+    y_min = min(y_min, -0.3)
+    y_max = max(y_max, 0.3)
+
+    # Add some padding to the ranges (e.g., 10% on each side)
+    x_padding = max((x_max - x_min) * 0.1, 0.05)  # Ensure minimum padding
+    y_padding = max((y_max - y_min) * 0.1, 0.05)  # Ensure minimum padding
 
     fig.update_layout(
         title="humblCOMPASS: CLI 3m Delta vs CPI 3m Delta",
@@ -149,16 +130,16 @@ def create_humbl_compass_plot(
         xaxis_title="Inflation (CPI) 3-Month Delta",
         yaxis_title="Growth (CLI) 3-Month Delta",
         xaxis=dict(
-            range=x_axis_range,
             color="white",
             showgrid=False,
             zeroline=False,
+            range=[x_min - x_padding, x_max + x_padding],
         ),
         yaxis=dict(
-            range=y_axis_range,
             color="white",
             showgrid=False,
             zeroline=False,
+            range=[y_min - y_padding, y_max + y_padding],
         ),
         template=template,
         hovermode="closest",
