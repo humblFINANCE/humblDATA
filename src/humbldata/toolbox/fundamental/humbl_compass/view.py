@@ -8,9 +8,9 @@ import datetime
 from typing import List
 
 import plotly.graph_objs as go
+import plotly.io as pio
 import polars as pl
 from plotly.colors import sample_colorscale, sequential
-import plotly.io as pio
 
 from humbldata.core.standard_models.abstract.chart import Chart, ChartTemplate
 
@@ -40,6 +40,30 @@ def create_humbl_compass_plot(
     custom_colorscale = sample_colorscale(full_color_scale, [0.2, 0.8])
 
     fig = go.Figure()
+
+    # Calculate the range for x and y axes based on data
+    x_min, x_max = data["cpi_3m_delta"].min(), data["cpi_3m_delta"].max()
+    y_min, y_max = data["cli_3m_delta"].min(), data["cli_3m_delta"].max()
+
+    # Ensure minimum range of -0.3 to 0.3 on both axes
+    x_min = min(x_min if x_min is not None else 0, -0.3)
+    x_max = max(x_max if x_max is not None else 0, 0.3)
+    y_min = min(y_min if y_min is not None else 0, -0.3)
+    y_max = max(y_max if y_max is not None else 0, 0.3)
+
+    # Add some padding to the ranges (e.g., 10% on each side)
+    x_padding = max((x_max - x_min) * 0.1, 0.05)  # Ensure minimum padding
+    y_padding = max((y_max - y_min) * 0.1, 0.05)  # Ensure minimum padding
+
+    # Calculate tick values (e.g., every 0.1)
+    x_ticks = [
+        round(i * 0.1, 1)
+        for i in range(int(x_min * 10) - 1, int(x_max * 10) + 2)
+    ]
+    y_ticks = [
+        round(i * 0.1, 1)
+        for i in range(int(y_min * 10) - 1, int(y_max * 10) + 2)
+    ]
 
     # Add colored quadrants from -10 to 10
     quadrants = [
@@ -91,39 +115,79 @@ def create_humbl_compass_plot(
                 for d in data["date_month_start"]
             ],
             textposition="top center",
-            textfont=dict(size=10, color="white"),
-            marker=dict(
-                size=10,
-                color=color_array,
-                colorscale=custom_colorscale,
-                showscale=False,
-            ),
-            line=dict(
-                color="white",
-                shape="spline",
-                smoothing=1.3,
-            ),
+            textfont={"size": 10, "color": "white"},
+            marker={
+                "size": 10,
+                "color": color_array,
+                "colorscale": custom_colorscale,
+                "showscale": False,
+            },
+            line={
+                "color": "white",
+                "shape": "spline",
+                "smoothing": 1.3,
+            },
             hovertemplate="<b>%{text}</b><br>CPI 3m Δ: %{x:.2f}<br>CLI 3m Δ: %{y:.2f}<extra></extra>",
         )
     )
 
-    # Add axis lines
-    fig.add_hline(y=0, line_dash="solid", line_color="white", opacity=0.7)
-    fig.add_vline(x=0, line_dash="solid", line_color="white", opacity=0.7)
+    # Add axis lines with tick marks
+    fig.add_shape(
+        type="line",
+        x0=x_min - x_padding,
+        y0=0,
+        x1=x_max + x_padding,
+        y1=0,
+        line=dict(color="white", width=1),
+    )
+    fig.add_shape(
+        type="line",
+        x0=0,
+        y0=y_min - y_padding,
+        x1=0,
+        y1=y_max + y_padding,
+        line=dict(color="white", width=1),
+    )
 
-    # Calculate the range for x and y axes based on data
-    x_min, x_max = data["cpi_3m_delta"].min(), data["cpi_3m_delta"].max()
-    y_min, y_max = data["cli_3m_delta"].min(), data["cli_3m_delta"].max()
+    # Add tick marks and labels to the x-axis
+    for x in x_ticks:
+        if x != 0:  # Skip the center point
+            fig.add_shape(
+                type="line",
+                x0=x,
+                y0=-0.005,
+                x1=x,
+                y1=0.005,
+                line=dict(color="white", width=1),
+            )
+            fig.add_annotation(
+                x=x,
+                y=0,
+                text=f"{x:.1f}",
+                showarrow=False,
+                yshift=-15,
+                font=dict(size=8, color="white"),
+            )
 
-    # Ensure minimum range of -0.3 to 0.3 on both axes
-    x_min = min(x_min if x_min is not None else 0, -0.3)
-    x_max = max(x_max if x_max is not None else 0, 0.3)
-    y_min = min(y_min if y_min is not None else 0, -0.3)
-    y_max = max(y_max if y_max is not None else 0, 0.3)
-
-    # Add some padding to the ranges (e.g., 10% on each side)
-    x_padding = max((x_max - x_min) * 0.1, 0.05)  # Ensure minimum padding
-    y_padding = max((y_max - y_min) * 0.1, 0.05)  # Ensure minimum padding
+    # Add tick marks and labels to the y-axis
+    for y in y_ticks:
+        if y != 0:  # Skip the center point
+            fig.add_shape(
+                type="line",
+                x0=-0.005,
+                y0=y,
+                x1=0.005,
+                y1=y,
+                line=dict(color="white", width=1),
+            )
+            fig.add_annotation(
+                x=0,
+                y=y,
+                text=f"{y:.1f}",
+                showarrow=False,
+                xshift=-15,
+                font=dict(size=8, color="white"),
+            )
 
     # Calculate the center of each visible quadrant
     x_center_pos = (x_max + x_padding + 0) / 2
@@ -165,7 +229,7 @@ def create_humbl_compass_plot(
             y=label["y"],
             text=label["text"],
             showarrow=False,
-            font=dict(size=20, color=label["color"]),
+            font={"size": 20, "color": label["color"]},
             opacity=0.5,  # Changed opacity to 0.5
         )
 
@@ -175,7 +239,7 @@ def create_humbl_compass_plot(
         y=0,
         text="humblDATA",
         showarrow=False,
-        font=dict(size=40, color="rgba(255, 255, 255, 0.1)"),
+        font={"size": 40, "color": "rgba(255, 255, 255, 0.1)"},
         textangle=-25,
         xanchor="center",
         yanchor="middle",
@@ -201,24 +265,28 @@ def create_humbl_compass_plot(
         title_font_color="white",
         xaxis_title="Inflation (CPI) 3-Month Delta",
         yaxis_title="Growth (CLI) 3-Month Delta",
-        xaxis=dict(
-            color="white",
-            showgrid=False,
-            zeroline=False,
-            range=[x_min - x_padding, x_max + x_padding],
-        ),
-        yaxis=dict(
-            color="white",
-            showgrid=False,
-            zeroline=False,
-            range=[y_min - y_padding, y_max + y_padding],
-        ),
+        xaxis={
+            "color": "white",
+            "showgrid": False,
+            "zeroline": False,
+            "range": [x_min - x_padding, x_max + x_padding],
+            "showticklabels": False,  # Hide default tick labels
+            "ticks": "",  # Hide default ticks
+        },
+        yaxis={
+            "color": "white",
+            "showgrid": False,
+            "zeroline": False,
+            "range": [y_min - y_padding, y_max + y_padding],
+            "showticklabels": False,  # Hide default tick labels
+            "ticks": "",  # Hide default ticks
+        },
         template=custom_template,  # Use the custom template without watermark
         hovermode="closest",
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="white"),
-        margin=dict(l=50, r=50, t=50, b=50),
+        font={"color": "white"},
+        margin={"l": 50, "r": 50, "t": 50, "b": 50},
     )
 
     return fig

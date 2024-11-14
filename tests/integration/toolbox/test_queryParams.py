@@ -126,12 +126,12 @@ from datetime import datetime, timedelta
             datetime(2023, 1, 1).date(),
         ),
         (
-            "peon",
+            "humblPEON",
             datetime(2021, 1, 5).date(),
             datetime(2022, 1, 1).date(),
         ),
         (
-            "premium",
+            "humblPREMIUM",
             datetime(2018, 6, 10).date(),
             datetime(2019, 1, 2).date(),
         ),
@@ -141,7 +141,7 @@ from datetime import datetime, timedelta
             datetime(2004, 1, 6).date(),
         ),
         (
-            "permanent",
+            "humblPERMANENT",
             datetime(1993, 7, 15).date(),
             datetime(1994, 10, 5).date(),
         ),
