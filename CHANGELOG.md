@@ -1,3 +1,9 @@
+## v1.9.4 (2024-11-14)
+
+### ♻️ Refactorings
+
+- **rename**: renmed power to humblPOWER
+
 ## v1.9.3 (2024-11-14)
 
 ### ♻️ Refactorings
