@@ -134,7 +134,12 @@ class ToolboxQueryParams(QueryParams):
         description=QUERY_DESCRIPTIONS.get("provider", ""),
     )
     membership: Literal[
-        "anonymous", "peon", "premium", "power", "permanent", "admin"
+        "anonymous",
+        "humblPEON",
+        "humblPREMIUM",
+        "humblPOWER",
+        "humblPERMANENT",
+        "admin",
     ] = Field(
         default="anonymous",
         title="Membership",
@@ -259,10 +264,10 @@ class ToolboxQueryParams(QueryParams):
 
         start_date_mapping = {
             "anonymous": (end_date - timedelta(days=365), "1Y"),
-            "peon": (end_date - timedelta(days=730), "2Y"),
-            "premium": (end_date - timedelta(days=1825), "5Y"),
+            "humblPEON": (end_date - timedelta(days=730), "2Y"),
+            "humblPREMIUM": (end_date - timedelta(days=1825), "5Y"),
             "power": (end_date - timedelta(days=7300), "20Y"),
-            "permanent": (end_date - timedelta(days=10680), "30Y"),
+            "humblPERMANENT": (end_date - timedelta(days=10680), "30Y"),
             "admin": (
                 datetime(
                     1950, 1, 1, tzinfo=pytz.timezone("America/New_York")

@@ -58,7 +58,9 @@ def test_portfolio_provider_validator(provider):
     assert params.provider == provider
 
 
-@pytest.mark.parametrize("membership", ["peon", "premium", "power", "admin"])
+@pytest.mark.parametrize(
+    "membership", ["humblPEON", "humblPREMIUM", "power", "admin"]
+)
 def test_portfolio_membership_validator(membership):
     """Test valid user role inputs."""
     params = PortfolioQueryParams(membership=membership)

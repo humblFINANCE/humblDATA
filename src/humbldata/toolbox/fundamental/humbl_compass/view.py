@@ -41,6 +41,30 @@ def create_humbl_compass_plot(
 
     fig = go.Figure()
 
+    # Calculate the range for x and y axes based on data
+    x_min, x_max = data["cpi_3m_delta"].min(), data["cpi_3m_delta"].max()
+    y_min, y_max = data["cli_3m_delta"].min(), data["cli_3m_delta"].max()
+
+    # Ensure minimum range of -0.3 to 0.3 on both axes
+    x_min = min(x_min if x_min is not None else 0, -0.3)
+    x_max = max(x_max if x_max is not None else 0, 0.3)
+    y_min = min(y_min if y_min is not None else 0, -0.3)
+    y_max = max(y_max if y_max is not None else 0, 0.3)
+
+    # Add some padding to the ranges (e.g., 10% on each side)
+    x_padding = max((x_max - x_min) * 0.1, 0.05)  # Ensure minimum padding
+    y_padding = max((y_max - y_min) * 0.1, 0.05)  # Ensure minimum padding
+
+    # Calculate tick values (e.g., every 0.1)
+    x_ticks = [
+        round(i * 0.1, 1)
+        for i in range(int(x_min * 10) - 1, int(x_max * 10) + 2)
+    ]
+    y_ticks = [
+        round(i * 0.1, 1)
+        for i in range(int(y_min * 10) - 1, int(y_max * 10) + 2)
+    ]
+
     # Add colored quadrants from -10 to 10
     quadrants = [
         {
@@ -107,23 +131,63 @@ def create_humbl_compass_plot(
         )
     )
 
-    # Add axis lines
-    fig.add_hline(y=0, line_dash="solid", line_color="white", opacity=0.7)
-    fig.add_vline(x=0, line_dash="solid", line_color="white", opacity=0.7)
+    # Add axis lines with tick marks
+    fig.add_shape(
+        type="line",
+        x0=x_min - x_padding,
+        y0=0,
+        x1=x_max + x_padding,
+        y1=0,
+        line=dict(color="white", width=1),
+    )
+    fig.add_shape(
+        type="line",
+        x0=0,
+        y0=y_min - y_padding,
+        x1=0,
+        y1=y_max + y_padding,
+        line=dict(color="white", width=1),
+    )
 
-    # Calculate the range for x and y axes based on data
-    x_min, x_max = data["cpi_3m_delta"].min(), data["cpi_3m_delta"].max()
-    y_min, y_max = data["cli_3m_delta"].min(), data["cli_3m_delta"].max()
+    # Add tick marks and labels to the x-axis
+    for x in x_ticks:
+        if x != 0:  # Skip the center point
+            fig.add_shape(
+                type="line",
+                x0=x,
+                y0=-0.005,
+                x1=x,
+                y1=0.005,
+                line=dict(color="white", width=1),
+            )
+            fig.add_annotation(
+                x=x,
+                y=0,
+                text=f"{x:.1f}",
+                showarrow=False,
+                yshift=-15,
+                font=dict(size=8, color="white"),
+            )
 
-    # Ensure minimum range of -0.3 to 0.3 on both axes
-    x_min = min(x_min if x_min is not None else 0, -0.3)
-    x_max = max(x_max if x_max is not None else 0, 0.3)
-    y_min = min(y_min if y_min is not None else 0, -0.3)
-    y_max = max(y_max if y_max is not None else 0, 0.3)
-
-    # Add some padding to the ranges (e.g., 10% on each side)
-    x_padding = max((x_max - x_min) * 0.1, 0.05)  # Ensure minimum padding
-    y_padding = max((y_max - y_min) * 0.1, 0.05)  # Ensure minimum padding
+    # Add tick marks and labels to the y-axis
+    for y in y_ticks:
+        if y != 0:  # Skip the center point
+            fig.add_shape(
+                type="line",
+                x0=-0.005,
+                y0=y,
+                x1=0.005,
+                y1=y,
+                line=dict(color="white", width=1),
+            )
+            fig.add_annotation(
+                x=0,
+                y=y,
+                text=f"{y:.1f}",
+                showarrow=False,
+                xshift=-15,
+                font=dict(size=8, color="white"),
+            )
 
     # Calculate the center of each visible quadrant
     x_center_pos = (x_max + x_padding + 0) / 2
@@ -206,12 +270,16 @@ def create_humbl_compass_plot(
             "showgrid": False,
             "zeroline": False,
             "range": [x_min - x_padding, x_max + x_padding],
+            "showticklabels": False,  # Hide default tick labels
+            "ticks": "",  # Hide default ticks
         },
         yaxis={
             "color": "white",
             "showgrid": False,
             "zeroline": False,
             "range": [y_min - y_padding, y_max + y_padding],
+            "showticklabels": False,  # Hide default tick labels
+            "ticks": "",  # Hide default ticks
         },
         template=custom_template,  # Use the custom template without watermark
         hovermode="closest",

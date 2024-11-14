@@ -27,7 +27,7 @@ class PortfolioQueryParams(QueryParams):
         The stock symbol(s) to query. Default is "AAPL".
     provider : OBB_EQUITY_PRICE_HISTORICAL_PROVIDERS
         The data provider for historical price data. Default is "yahoo".
-    membership : Literal["anonymous", "peon", "premium", "power", "permanent", "admin"]
+    membership : Literal["anonymous", "humblPEON", "humblPREMIUM", "humblPOWER", "humblPERMANENT", "admin"]
         The membership level of the user accessing the data. Default is "anonymous".
 
     Attributes
@@ -36,7 +36,7 @@ class PortfolioQueryParams(QueryParams):
         The stock symbol(s) to query.
     provider : OBB_EQUITY_PRICE_HISTORICAL_PROVIDERS
         The data provider for historical price data.
-    membership : Literal["anonymous", "peon", "premium", "power", "permanent", "admin"]
+    membership : Literal["anonymous", "humblPEON", "humblPREMIUM", "humblPOWER", "humblPERMANENT", "admin"]
         The membership level of the user.
     """
 
@@ -51,7 +51,12 @@ class PortfolioQueryParams(QueryParams):
         description=QUERY_DESCRIPTIONS.get("provider", ""),
     )
     membership: Literal[
-        "anonymous", "peon", "premium", "power", "permanent", "admin"
+        "anonymous",
+        "humblPEON",
+        "humblPREMIUM",
+        "humblPOWER",
+        "humblPERMANENT",
+        "admin",
     ] = Field(
         default="anonymous",
         title="Membership",
