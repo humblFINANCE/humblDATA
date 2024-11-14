@@ -30,7 +30,7 @@ async def user_table_engine(
     toolbox: Toolbox | None = None,
     mandelbrot_data: pl.LazyFrame | None = None,
     membership: Literal[
-        "anonymous", "humblPEON", "humblPREMIUM", "power", "admin"
+        "anonymous", "humblPEON", "humblPREMIUM", "humblPOWER", "admin"
     ] = "anonymous",
 ):
     """
@@ -46,7 +46,7 @@ async def user_table_engine(
         Pre-generated toolbox. If None, it will be generated, by default None.
     mandelbrot_data : pl.LazyFrame or None, optional
         Pre-calculated Mandelbrot channel data. If None, it will be calculated, by default None.
-    membership : Literal["anonymous", "humblPEON", "humblPREMIUM", "power", "admin"], optional
+    membership : Literal["anonymous", "humblPEON", "humblPREMIUM", "humblPOWER", "admin"], optional
         The user's role. If None, it will be calculated, by default None.
 
     Returns

@@ -266,7 +266,7 @@ class ToolboxQueryParams(QueryParams):
             "anonymous": (end_date - timedelta(days=365), "1Y"),
             "humblPEON": (end_date - timedelta(days=730), "2Y"),
             "humblPREMIUM": (end_date - timedelta(days=1825), "5Y"),
-            "power": (end_date - timedelta(days=7300), "20Y"),
+            "humblPOWER": (end_date - timedelta(days=7300), "20Y"),
             "humblPERMANENT": (end_date - timedelta(days=10680), "30Y"),
             "admin": (
                 datetime(

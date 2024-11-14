@@ -136,7 +136,7 @@ from datetime import datetime, timedelta
             datetime(2019, 1, 2).date(),
         ),
         (
-            "power",
+            "humblPOWER",
             datetime(2001, 1, 1).date(),
             datetime(2004, 1, 6).date(),
         ),

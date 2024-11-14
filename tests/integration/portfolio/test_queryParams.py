@@ -59,7 +59,8 @@ def test_portfolio_provider_validator(provider):
 
 
 @pytest.mark.parametrize(
-    "membership", ["humblPEON", "humblPREMIUM", "power", "admin"]
+    "membership",
+    ["humblPEON", "humblPREMIUM", "humblPOWER", "humblPERMANENT", "admin"],
 )
 def test_portfolio_membership_validator(membership):
     """Test valid user role inputs."""
