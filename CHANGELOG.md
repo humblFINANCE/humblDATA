@@ -1,3 +1,13 @@
+## v1.9.3 (2024-11-14)
+
+### ♻️ Refactorings
+
+- **rename**: updated membership names to prefix with humbl
+
+### ⚡️ Performance
+
+- **humblCOMPASS:view**: rewrite dicts as literals
+
 ## v1.9.2 (2024-10-17)
 
 ### 🐛🚑️ Fixes
