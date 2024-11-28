@@ -72,6 +72,8 @@ You should use `__init__.py` files to group tests together and provide the corre
 
 Take a look at tests that have already been created to get a sense of how to test your classes and functions.
 
+!!! warning When you update Polars version, you need to update the `humblobject` pickle files as serialization is not always backwards compatible.
+
 ### Expectations for Test Creation
 - **Independence**: Ensure unit tests do not rely on external systems or other tests.
 - **Comprehensiveness**: Write tests to cover all possible edge cases.

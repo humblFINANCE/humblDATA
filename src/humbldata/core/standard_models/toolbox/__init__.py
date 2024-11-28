@@ -277,20 +277,19 @@ class ToolboxQueryParams(QueryParams):
         }
 
         allowed_start_date, data_length = start_date_mapping.get(
-            self.membership.lower(), (end_date - timedelta(days=365), "1Y")
+            self.membership, (end_date - timedelta(days=365), "1Y")
         )
 
         if self.start_date < allowed_start_date:  # type: ignore  # noqa: PGH003 the date has already been converted to date
-            logger.warning(
-                f"Start date adjusted to {allowed_start_date} based on {self.membership} membership ({data_length} of data)."
-            )
+            warning_msg = f"Start date adjusted to {allowed_start_date} based on {self.membership} membership ({data_length} of data)."
+            logger.warning(warning_msg)
             self.start_date = allowed_start_date
             if not hasattr(self, "warnings"):
                 self.warnings = []
             self.warnings.append(
                 HumblDataWarning(
                     category="ToolboxQueryParams",
-                    message=f"Start date adjusted to {allowed_start_date} based on {self.membership} membership ({data_length} of data).",
+                    message=warning_msg,
                 )
             )
 
