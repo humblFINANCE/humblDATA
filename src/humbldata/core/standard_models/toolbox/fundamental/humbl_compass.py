@@ -19,6 +19,7 @@ from humbldata.core.standard_models.abstract.chart import ChartTemplate
 from humbldata.core.standard_models.abstract.data import Data
 from humbldata.core.standard_models.abstract.humblobject import HumblObject
 from humbldata.core.standard_models.abstract.query_params import QueryParams
+from humbldata.core.standard_models.abstract.warnings import HumblDataWarning
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
 from humbldata.core.utils.env import Env
 from humbldata.core.utils.logger import log_start_end, setup_logger
@@ -188,6 +189,11 @@ class HumblCompassData(Data):
         default=None,
         title="Composite Leading Indicator (CLI) 1-Year Z-Score",
         description=HUMBLCOMPASS_DATA_DESCRIPTIONS["cli_1yr_zscore"],
+    )
+    humbl_regime: pl.Utf8 = pa.Field(
+        default=None,
+        title="HUMBL Regime",
+        description=HUMBLCOMPASS_DATA_DESCRIPTIONS["humbl_regime"],
     )
 
 
@@ -415,6 +421,30 @@ class HumblCompassFetcher:
             ]
         )
 
+        # Add this after calculating 3-month deltas in transform_data()
+        transformed_data = transformed_data.with_columns(
+            [
+                pl.when(
+                    (pl.col("cpi_3m_delta") > 0) & (pl.col("cli_3m_delta") < 0)
+                )
+                .then(pl.lit("humblBLOAT"))
+                .when(
+                    (pl.col("cpi_3m_delta") > 0) & (pl.col("cli_3m_delta") > 0)
+                )
+                .then(pl.lit("humblBOUNCE"))
+                .when(
+                    (pl.col("cpi_3m_delta") < 0) & (pl.col("cli_3m_delta") > 0)
+                )
+                .then(pl.lit("humblBOOM"))
+                .when(
+                    (pl.col("cpi_3m_delta") < 0) & (pl.col("cli_3m_delta") < 0)
+                )
+                .then(pl.lit("humblBUST"))
+                .otherwise(None)
+                .alias("humbl_regime")
+            ]
+        )
+
         # Calculate z-scores only if self.z_score_months is greater than 0 and membership is not humblPEON
         if (
             self.z_score_months > 0
@@ -457,6 +487,7 @@ class HumblCompassFetcher:
             pl.col("cpi_3m_delta").round(2),
             pl.col("cli").round(2),
             pl.col("cli_3m_delta").round(2),
+            pl.col("humbl_regime"),
         ]
 
         if (
@@ -487,6 +518,17 @@ class HumblCompassFetcher:
 
         self.transformed_data = self.transformed_data.serialize(format="binary")
 
+        # Add warning if z_score is None
+        if self.command_params.z_score is None:
+            if not hasattr(self, "warnings"):
+                self.warnings = []
+            self.warnings.append(
+                HumblDataWarning(
+                    category="HumblCompassFetcher",
+                    message="Z-score defaulted to None. No z-score data will be calculated.",
+                )
+            )
+
         return self
 
     @log_start_end(logger=logger)
@@ -508,13 +550,21 @@ class HumblCompassFetcher:
         self.extract_data()
         self.transform_data()
 
+        # Initialize warnings list if it doesn't exist
         if not hasattr(self.context_params, "warnings"):
             self.context_params.warnings = []
+
+        # Initialize fetcher warnings if they don't exist
+        if not hasattr(self, "warnings"):
+            self.warnings = []
+
+        # Combine warnings from both sources
+        all_warnings = self.context_params.warnings + self.warnings
 
         return HumblObject(
             results=self.transformed_data,
             provider=self.context_params.provider,
-            warnings=self.context_params.warnings,
+            warnings=all_warnings,  # Use combined warnings
             chart=self.chart,
             context_params=self.context_params,
             command_params=self.command_params,

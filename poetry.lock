@@ -4195,17 +4195,17 @@ poetry-plugin = ["poetry (>=1.0,<2.0)"]
 
 [[package]]
 name = "polars"
-version = "1.2.1"
+version = "1.15.0"
 description = "Blazingly fast DataFrame library"
 optional = false
-python-versions = ">=3.8"
+python-versions = ">=3.9"
 files = [
-    {file = "polars-1.2.1-cp38-abi3-macosx_10_12_x86_64.whl", hash = "sha256:baa5d1f032d7b82075cf926d40a4c6d74dd897cae9fa529f6bc1f68608db53e0"},
-    {file = "polars-1.2.1-cp38-abi3-macosx_11_0_arm64.whl", hash = "sha256:a113fe7e378044c621be329bedfaa19cb0d7fff4bb05642dc91bb9413e662b8f"},
-    {file = "polars-1.2.1-cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:2094877da694bb59bfb7f5af50471955012b950068dc6f3ef5ecc41653a3b04f"},
-    {file = "polars-1.2.1-cp38-abi3-manylinux_2_24_aarch64.whl", hash = "sha256:d71f87f7ef9f4f4a1d52127399b1dae4a2622d528eea90f94912d92e0e9e3998"},
-    {file = "polars-1.2.1-cp38-abi3-win_amd64.whl", hash = "sha256:764c2701b8ca8a27dcd7f23c94ba9031aec4d392061dfa7d1c2fdcbfd132d6ba"},
-    {file = "polars-1.2.1.tar.gz", hash = "sha256:a46aba51acce7ecf85151f72d25ef2a3eeb5735d55f4b7cc69ec4a596e9fbefd"},
+    {file = "polars-1.15.0-cp39-abi3-macosx_10_12_x86_64.whl", hash = "sha256:d66ae8aae1a5b1273f7235173ad8022e479378eb36ff7ea6b1dd8224430d18bd"},
+    {file = "polars-1.15.0-cp39-abi3-macosx_11_0_arm64.whl", hash = "sha256:537df3259543956248c62b636a4e00b11becb30f97d1b4bd80a9e11f46c038bd"},
+    {file = "polars-1.15.0-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:c6686bc8acaaed24f337ae1623536210370ab4d3099c1dbb79ccfc9ec083914a"},
+    {file = "polars-1.15.0-cp39-abi3-manylinux_2_24_aarch64.whl", hash = "sha256:1d15b86b73653befd834e48418d759954daeb831a08b32cd21034c88378c4037"},
+    {file = "polars-1.15.0-cp39-abi3-win_amd64.whl", hash = "sha256:e4602b715dc58b84e38102c9ffcc7738f078373415f55acf0760204443d62371"},
+    {file = "polars-1.15.0.tar.gz", hash = "sha256:4f60a64ceb2e56fd0f9f403d4b6734e033876904d04cb9a29c43653c6b2b2d43"},
 ]
 
 [package.extras]
@@ -4219,12 +4219,13 @@ database = ["nest-asyncio", "polars[adbc,connectorx,sqlalchemy]"]
 deltalake = ["deltalake (>=0.15.0)"]
 excel = ["polars[calamine,openpyxl,xlsx2csv,xlsxwriter]"]
 fsspec = ["fsspec"]
+gpu = ["cudf-polars-cu12"]
 graph = ["matplotlib"]
 iceberg = ["pyiceberg (>=0.5.0)"]
 numpy = ["numpy (>=1.16.0)"]
 openpyxl = ["openpyxl (>=3.0.0)"]
 pandas = ["pandas", "polars[pyarrow]"]
-plot = ["hvplot (>=0.9.1)", "polars[pandas]"]
+plot = ["altair (>=5.4.0)"]
 pyarrow = ["pyarrow (>=7.0.0)"]
 pydantic = ["pydantic"]
 sqlalchemy = ["polars[pandas]", "sqlalchemy"]
