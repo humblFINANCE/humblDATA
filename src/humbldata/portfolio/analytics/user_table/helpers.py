@@ -206,7 +206,7 @@ def calc_up_down_pct(
 
     This function computes the percentage change from the recent price to the bottom price,
     and from the recent price to the top price. The results are combined into a single string
-    column, and the ratio is provided in a separate column.
+    column, and the ratio is provided in a separate column normalized between 0 and 1.
 
     Parameters
     ----------
@@ -226,39 +226,51 @@ def calc_up_down_pct(
     Returns
     -------
     pl.DataFrame
-        DataFrame with additional columns containing the calculated price percentages and ratio.
+        DataFrame with additional columns containing the calculated price percentages and normalized ratio.
 
     Notes
     -----
     The output column will contain strings in the format "-X.XX / +Y.YY", where X.XX is the
     percentage decrease from recent to bottom price, and Y.YY is the percentage increase from
-    recent to top price. The ratio column will contain the ratio of these two percentages.
-    This function is to be used in `user_table_engine`.
+    recent to top price. The ratio column will contain a normalized value between 0 and 1,
+    where values closer to 1 indicate a better upside/downside ratio.
     """
     return data.with_columns(
         [
             (
-                "-"
-                + (
-                    (pl.col(recent_price_col) - pl.col(bottom_price_col))
-                    / pl.col(recent_price_col)
-                    * 100
+                pl.concat_str(
+                    [
+                        pl.lit("-"),
+                        (
+                            (
+                                pl.col(recent_price_col)
+                                - pl.col(bottom_price_col)
+                            )
+                            / pl.col(recent_price_col)
+                            * 100
+                        )
+                        .abs()
+                        .round(2)
+                        .cast(pl.Utf8),
+                        pl.lit(" / +"),
+                        (
+                            (pl.col(top_price_col) - pl.col(recent_price_col))
+                            / pl.col(recent_price_col)
+                            * 100
+                        )
+                        .round(2)
+                        .cast(pl.Utf8),
+                    ]
                 )
-                .abs()
-                .round(2)
-                .cast(pl.Utf8)
-                + " / +"
-                + (
-                    (pl.col(top_price_col) - pl.col(recent_price_col))
-                    / pl.col(recent_price_col)
-                    * 100
-                )
-                .round(2)
-                .cast(pl.Utf8)
             ).alias(pct_output_col),
             (
-                (pl.col(recent_price_col) - pl.col(bottom_price_col))
-                / (pl.col(top_price_col) - pl.col(recent_price_col))
+                (pl.col(top_price_col) - pl.col(recent_price_col)).abs()
+                / (
+                    (pl.col(top_price_col) - pl.col(recent_price_col)).abs()
+                    + (
+                        pl.col(recent_price_col) - pl.col(bottom_price_col)
+                    ).abs()
+                )
             )
             .round(2)
             .alias(ratio_output_col),
