@@ -190,6 +190,11 @@ class HumblCompassData(Data):
         title="Composite Leading Indicator (CLI) 1-Year Z-Score",
         description=HUMBLCOMPASS_DATA_DESCRIPTIONS["cli_1yr_zscore"],
     )
+    humbl_regime: pl.Utf8 = pa.Field(
+        default=None,
+        title="HUMBL Regime",
+        description=HUMBLCOMPASS_DATA_DESCRIPTIONS["humbl_regime"],
+    )
 
 
 class HumblCompassFetcher:
@@ -416,6 +421,30 @@ class HumblCompassFetcher:
             ]
         )
 
+        # Add this after calculating 3-month deltas in transform_data()
+        transformed_data = transformed_data.with_columns(
+            [
+                pl.when(
+                    (pl.col("cpi_3m_delta") > 0) & (pl.col("cli_3m_delta") < 0)
+                )
+                .then(pl.lit("humblBLOAT"))
+                .when(
+                    (pl.col("cpi_3m_delta") > 0) & (pl.col("cli_3m_delta") > 0)
+                )
+                .then(pl.lit("humblBOUNCE"))
+                .when(
+                    (pl.col("cpi_3m_delta") < 0) & (pl.col("cli_3m_delta") > 0)
+                )
+                .then(pl.lit("humblBOOM"))
+                .when(
+                    (pl.col("cpi_3m_delta") < 0) & (pl.col("cli_3m_delta") < 0)
+                )
+                .then(pl.lit("humblBUST"))
+                .otherwise(None)
+                .alias("humbl_regime")
+            ]
+        )
+
         # Calculate z-scores only if self.z_score_months is greater than 0 and membership is not humblPEON
         if (
             self.z_score_months > 0
@@ -458,6 +487,7 @@ class HumblCompassFetcher:
             pl.col("cpi_3m_delta").round(2),
             pl.col("cli").round(2),
             pl.col("cli_3m_delta").round(2),
+            pl.col("humbl_regime"),
         ]
 
         if (
