@@ -277,7 +277,7 @@ class ToolboxQueryParams(QueryParams):
         }
 
         allowed_start_date, data_length = start_date_mapping.get(
-            self.membership.lower(), (end_date - timedelta(days=365), "1Y")
+            self.membership, (end_date - timedelta(days=365), "1Y")
         )
 
         if self.start_date < allowed_start_date:  # type: ignore  # noqa: PGH003 the date has already been converted to date
