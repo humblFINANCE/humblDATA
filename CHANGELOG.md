@@ -1,3 +1,23 @@
+## v1.10.0 (2024-11-28)
+
+### ✨ Features
+
+- **humbl_compass**: added humbl_regime column
+- **user_table**: normalize U/D Ratio to 0-1
+
+### 🐛🚑️ Fixes
+
+- **humblobject**: reserialized object with neew polars version
+- **user_table**: updated values to match using new normalized ratio
+- **humbl_compass**: mor informative categroy
+- **humbl_compass**: merge warnings form context and fetcher
+- **toolbox**: added warning message variable --> DRY
+- **toolbox**: removed .lower() to match the membership tiers
+
+### 📌➕⬇️➖⬆️ Dependencies
+
+- **update**: polars
+
 ## v1.9.4 (2024-11-14)
 
 ### ♻️ Refactorings
