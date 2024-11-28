@@ -41,7 +41,7 @@ def test_calc_up_down_pct(price_data):
         result = result.collect()
 
     expected_ud_pct = ["-20.0 / +6.67", "-3.57 / +3.57", "-3.33 / +13.33"]
-    expected_ud_ratio = [3.0, 1.0, -0.25]
+    expected_ud_ratio = [0.25, 0.5, 0.8]
 
     assert result["ud_pct"].to_list() == expected_ud_pct
     assert result["ud_ratio"].to_list() == expected_ud_ratio
@@ -59,8 +59,8 @@ def test_calc_up_down_pct_custom_column_names(price_data):
         recent_price_col="recent_price",
         bottom_price_col="bottom_price",
         top_price_col="top_price",
-        output_col="custom_ud_pct",
-        ratio_col="custom_ud_ratio",
+        pct_output_col="custom_ud_pct",
+        ratio_output_col="custom_ud_ratio",
     )
 
     if isinstance(result, pl.LazyFrame):
