@@ -198,8 +198,8 @@ def calc_up_down_pct(
     recent_price_col: str = "recent_price",
     bottom_price_col: str = "bottom_price",
     top_price_col: str = "top_price",
-    output_col: str = "ud_pct",
-    ratio_col: str = "ud_ratio",
+    pct_output_col: str = "ud_pct",
+    ratio_output_col: str = "ud_ratio",
 ) -> pl.LazyFrame:
     """
     Calculate the difference between recent and bottom prices, and recent and top prices, and express the ratio of the two.
@@ -218,9 +218,9 @@ def calc_up_down_pct(
         Name of the column containing bottom prices. Default is "bottom_price".
     top_price_col : str, optional
         Name of the column containing top prices. Default is "top_price".
-    output_col : str, optional
+    pct_output_col : str, optional
         Name of the output column for price percentages. Default is "price_percentages".
-    ratio_col : str, optional
+    ratio_output_col : str, optional
         Name of the output column for the up/down ratio. Default is "ud_ratio".
 
     Returns
@@ -255,12 +255,12 @@ def calc_up_down_pct(
                 )
                 .round(2)
                 .cast(pl.Utf8)
-            ).alias(output_col),
+            ).alias(pct_output_col),
             (
                 (pl.col(recent_price_col) - pl.col(bottom_price_col))
                 / (pl.col(top_price_col) - pl.col(recent_price_col))
             )
             .round(2)
-            .alias(ratio_col),
+            .alias(ratio_output_col),
         ]
     )
