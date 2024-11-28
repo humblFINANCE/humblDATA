@@ -1,3 +1,13 @@
+## v1.10.1 (2024-11-28)
+
+### 🐛🚑️ Fixes
+
+- **toolbox**: symbols param can now be nullable
+
+### 📌➕⬇️➖⬆️ Dependencies
+
+- **update**: security updates
+
 ## v1.10.0 (2024-11-28)
 
 ### ✨ Features
