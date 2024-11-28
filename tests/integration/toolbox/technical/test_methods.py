@@ -25,7 +25,7 @@ def context_params(request):
         The context parameters for the Toolbox.
     """
     return ToolboxQueryParams(
-        symbol=request.param["symbol"],
+        symbols=request.param["symbol"],
         interval=request.param["interval"],
         start_date=request.param["start_date"],
         end_date=request.param["end_date"],

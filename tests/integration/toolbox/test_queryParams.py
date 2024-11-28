@@ -177,7 +177,7 @@ def test_toolbox_default_values():
     expected_start_date = expected_end_date - timedelta(days=365)
 
     params = ToolboxQueryParams()
-    assert params.symbols == ["AAPL"]
+    assert params.symbols == None
     assert params.provider == "yfinance"
     assert params.interval == "1d"
     assert params.start_date == expected_start_date
