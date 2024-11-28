@@ -494,7 +494,7 @@ class HumblCompassFetcher:
                 self.warnings = []
             self.warnings.append(
                 HumblDataWarning(
-                    category="HumblCompass",
+                    category="HumblCompassFetcher",
                     message="Z-score defaulted to None. No z-score data will be calculated.",
                 )
             )
