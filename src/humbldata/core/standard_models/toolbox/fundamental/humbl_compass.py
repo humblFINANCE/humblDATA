@@ -19,6 +19,7 @@ from humbldata.core.standard_models.abstract.chart import ChartTemplate
 from humbldata.core.standard_models.abstract.data import Data
 from humbldata.core.standard_models.abstract.humblobject import HumblObject
 from humbldata.core.standard_models.abstract.query_params import QueryParams
+from humbldata.core.standard_models.abstract.warnings import HumblDataWarning
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
 from humbldata.core.utils.env import Env
 from humbldata.core.utils.logger import log_start_end, setup_logger
@@ -487,6 +488,17 @@ class HumblCompassFetcher:
 
         self.transformed_data = self.transformed_data.serialize(format="binary")
 
+        # Add warning if z_score is None
+        if self.command_params.z_score is None:
+            if not hasattr(self, "warnings"):
+                self.warnings = []
+            self.warnings.append(
+                HumblDataWarning(
+                    category="HumblCompass",
+                    message="Z-score defaulted to None. No z-score data will be calculated.",
+                )
+            )
+
         return self
 
     @log_start_end(logger=logger)
@@ -508,13 +520,21 @@ class HumblCompassFetcher:
         self.extract_data()
         self.transform_data()
 
+        # Initialize warnings list if it doesn't exist
         if not hasattr(self.context_params, "warnings"):
             self.context_params.warnings = []
+
+        # Initialize fetcher warnings if they don't exist
+        if not hasattr(self, "warnings"):
+            self.warnings = []
+
+        # Combine warnings from both sources
+        all_warnings = self.context_params.warnings + self.warnings
 
         return HumblObject(
             results=self.transformed_data,
             provider=self.context_params.provider,
-            warnings=self.context_params.warnings,
+            warnings=all_warnings,  # Use combined warnings
             chart=self.chart,
             context_params=self.context_params,
             command_params=self.command_params,
