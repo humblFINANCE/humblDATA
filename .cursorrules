@@ -1,0 +1,156 @@
+type ProjectConfig = {
+  persona: {
+    expertise: [
+      "Python",
+      "Poetry",
+      "Commitizen",
+      "MkDocs",
+      "GitHub Actions",
+      "Docker",
+      "JupyterLab",
+      "Polars",
+      "Pydantic"
+    ];
+    focus: [
+      "Code standardization",
+      "Documentation clarity",
+      "Testing coverage",
+      "Modular design",
+      "CCCC architecture pattern",
+      "MVCDB pattern"
+    ];
+    style: "Expert level, standardization-focused, documentation-driven";
+  };
+
+  stack: {
+    framework: "Python 3.12.4";
+    packageManager: "Poetry";
+    documentation: "MkDocs";
+    core: [
+      "Commitizen",
+      "Cruft",
+      "Pre-commit",
+      "Ruff",
+      "MyPy",
+      "Polars",
+      "OpenBB",
+      "Pydantic",
+      "JupyterLab"
+    ];
+  };
+
+  structure: {
+    root: {
+      src: {
+        core: {
+          description: "Core functionality and shared logic",
+          components: [
+            "standard_models",
+            "utils",
+            "shared_functions"
+          ]
+        },
+        context: {
+          description: "Business domain specific modules",
+          examples: ["Toolbox", "Portfolio"],
+          components: ["Technical", "Quantitative", "Fundamental"]
+        },
+        category: {
+          description: "Feature categories within contexts",
+          examples: ["mandelbrot_channel", "humbl_compass"]
+        },
+        command: {
+          description: "Specific implementations and endpoints",
+          pattern: {
+            components: [
+              "QueryParams",
+              "Data",
+              "Fetcher",
+              "Controller"
+            ],
+            flow: "Controller -> QueryParams -> Fetcher -> Data"
+          }
+        }
+      },
+      tests: {
+        unit: "Unit tests",
+        integration: "Integration tests"
+      },
+      docs: {
+        codeDesign: "Architecture and design documentation",
+        gettingStarted: "Setup and configuration guides",
+        contributing: "Contribution guidelines"
+      }
+    }
+  };
+
+  architecture: {
+    patterns: {
+      cccc: {
+        core: "Shared logic and standard models",
+        context: "Top-level domain modules",
+        category: "Feature groupings",
+        command: "Executable units"
+      },
+      mvcdb: {
+        model: "Data structure and business logic",
+        view: "User interface layer",
+        controller: "Request handling and routing",
+        database: "Data persistence layer"
+      }
+    },
+    dataFlow: {
+      standardization: {
+        models: ["QueryParams", "Data"],
+        validation: "Pydantic",
+        pattern: "Controller -> QueryParams -> Fetcher -> Data"
+      },
+      request: {
+        flow: "User -> Routes -> Controller -> Model -> Database",
+        response: "Database -> Model -> View -> Controller -> User"
+      }
+    }
+  };
+
+  conventions: {
+    commits: {
+      types: [
+        "✨ feat", "🐛 fix", "🚑 hotfix", "🔧 chore",
+        "♻️ refactor", "🚧 WIP", "📚 docs", "⚡️ perf",
+        "💄 style", "🏗️ build", "👷 ci", "✅ test",
+        "⏪ revert", "➕ dep-add", "➖ dep-rm", "💥 boom"
+      ],
+      format: "<type>(<scope>): <subject>",
+      scopes: ["conda", "pip", "poetry"]
+    },
+    documentation: {
+      style: "NumPy",
+      tool: "pdoc",
+      sections: [
+        "About",
+        "Getting Started",
+        "Code Design",
+        "Contributing",
+        "Roadmap"
+      ]
+    },
+    development: {
+      environment: "strict",
+      pythonVersion: "3.11.7",
+      dockerImage: "python:3.11.7-slim"
+    }
+  };
+
+  config: {
+    location: "./",
+    files: [
+      "pyproject.toml",
+      ".pre-commit-config.yaml",
+      "mkdocs.yml",
+      ".cz-config.js",
+      ".cruft.json",
+      ".devcontainer/devcontainer.json",
+      ".vscode/settings.json"
+    ]
+  };
+};
