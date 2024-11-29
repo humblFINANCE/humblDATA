@@ -63,6 +63,7 @@ class AssetRecommendation(str, Enum):
     FX = "FX"
     FIXED_INCOME = "Fixed Income"
     USD = "USD"
+    GOLD = "Gold"
     TECHNOLOGY = "Technology"
     CONSUMER_DISCRETIONARY = "Consumer Discretionary"
     MATERIALS = "Materials"
@@ -71,6 +72,9 @@ class AssetRecommendation(str, Enum):
     REITS = "REITs"
     CONSUMER_STAPLES = "Consumer Staples"
     FINANCIALS = "Financials"
+    ENERGY = "Energy"
+    HEALTH_CARE = "Health Care"
+    TELECOM = "Telecom"
     HIGH_BETA = "High Beta"
     MOMENTUM = "Momentum"
     CYCLICALS = "Cyclicals"
@@ -79,14 +83,24 @@ class AssetRecommendation(str, Enum):
     DEFENSIVES = "Defensives"
     VALUE = "Value"
     DIVIDEND_YIELD = "Dividend Yield"
+    QUALITY = "Quality"
+    CYCLICAL_GROWTH = "Cyclical Growth"
+    SMALL_CAPS = "Small Caps"
+    MID_CAPS = "Mid Caps"
     BDCS = "BDCs"
     CONVERTIBLES = "Convertibles"
     HY_CREDIT = "HY Credit"
     EM_DEBT = "EM Debt"
     TIPS = "TIPS"
     SHORT_DURATION_TREASURIES = "Short Duration Treasuries"
-    MBS = "MBS"
+    MORTGAGE_BACKED_SECURITIES = "Mortgage Backed Securities"
     MEDIUM_DURATION_TREASURIES = "Medium Duration Treasuries"
+    LONG_DURATION_TREASURIES = "Long Duration Treasuries"
+    IG_CREDIT = "Investment Grade Credit"
+    MUNIS = "Municipal Bonds"
+    PREFERREDS = "Preferreds"
+    EM_LOCAL_CURRENCY = "Emerging Market Local Currency"
+    LEVERAGED_LOANS = "Leveraged Loans"
 
 
 class RecommendationCategory(BaseModel):
@@ -256,19 +270,214 @@ REGIME_RECOMMENDATIONS: dict[str, RegimeRecommendations] = {
             worst=[
                 AssetRecommendation.TIPS,
                 AssetRecommendation.SHORT_DURATION_TREASURIES,
-                AssetRecommendation.MBS,
+                AssetRecommendation.MORTGAGE_BACKED_SECURITIES,
                 AssetRecommendation.MEDIUM_DURATION_TREASURIES,
             ],
             rationale="Credit risk outperforms duration risk",
         ),
-        regime_description="Strong growth and rising inflation environment favors risk assets",
+        regime_description="Strong growth and rising inflation environment favors risk assets with big market multiples in equities, junk bonds, and real growth",
         key_risks=[
             "Inflation overshooting",
             "Policy tightening",
             "Valuation compression",
         ],
     ),
-    # ... Add similar mappings for humblBUST, humblBLOAT, humblBOUNCE
+    "humblBUST": RegimeRecommendations(
+        asset_classes=RecommendationCategory(
+            best=[
+                AssetRecommendation.FIXED_INCOME,
+                AssetRecommendation.GOLD,
+                AssetRecommendation.USD,
+            ],
+            worst=[
+                AssetRecommendation.COMMODITIES,
+                AssetRecommendation.EQUITIES,
+                AssetRecommendation.CREDIT,
+                AssetRecommendation.FX,
+            ],
+            rationale="Deflationary environment favors safe-haven assets and cash",
+        ),
+        equity_sectors=RecommendationCategory(
+            best=[
+                AssetRecommendation.CONSUMER_STAPLES,
+                AssetRecommendation.UTILITIES,
+                AssetRecommendation.REITS,
+                AssetRecommendation.HEALTH_CARE,
+            ],
+            worst=[
+                AssetRecommendation.ENERGY,
+                AssetRecommendation.TECHNOLOGY,
+                AssetRecommendation.INDUSTRIALS,
+                AssetRecommendation.FINANCIALS,
+            ],
+            rationale="Defensive sectors outperform in contractionary environments",
+        ),
+        equity_factors=RecommendationCategory(
+            best=[
+                AssetRecommendation.LOW_BETA,
+                AssetRecommendation.DIVIDEND_YIELD,
+                AssetRecommendation.QUALITY,
+                AssetRecommendation.DEFENSIVES,
+            ],
+            worst=[
+                AssetRecommendation.HIGH_BETA,
+                AssetRecommendation.MOMENTUM,
+                AssetRecommendation.CYCLICALS,
+                AssetRecommendation.SECULAR_GROWTH,
+            ],
+            rationale="Low-risk factors outperform in risk-off environments",
+        ),
+        fixed_income=RecommendationCategory(
+            best=[
+                AssetRecommendation.LONG_DURATION_TREASURIES,
+                AssetRecommendation.MEDIUM_DURATION_TREASURIES,
+                AssetRecommendation.IG_CREDIT,
+                AssetRecommendation.MUNIS,
+            ],
+            worst=[
+                AssetRecommendation.PREFERREDS,
+                AssetRecommendation.EM_LOCAL_CURRENCY,
+                AssetRecommendation.BDCS,
+                AssetRecommendation.LEVERAGED_LOANS,
+            ],
+            rationale="Duration risk outperforms credit risk in deflationary environments",
+        ),
+        regime_description="Deflationary environment favors treasuries and cash while avoiding high yield credit and stocks",
+        key_risks=[
+            "Policy response delay",
+            "Deflation spiral",
+            "Credit market stress",
+        ],
+    ),
+    "humblBOUNCE": RegimeRecommendations(
+        asset_classes=RecommendationCategory(
+            best=[
+                AssetRecommendation.COMMODITIES,
+                AssetRecommendation.EQUITIES,
+                AssetRecommendation.CREDIT,
+                AssetRecommendation.FX,
+            ],
+            worst=[
+                AssetRecommendation.FIXED_INCOME,
+                AssetRecommendation.USD,
+            ],
+            rationale="Rising yields and improving growth favor risk assets",
+        ),
+        equity_sectors=RecommendationCategory(
+            best=[
+                AssetRecommendation.TECHNOLOGY,
+                AssetRecommendation.CONSUMER_DISCRETIONARY,
+                AssetRecommendation.INDUSTRIALS,
+                AssetRecommendation.MATERIALS,
+            ],
+            worst=[
+                AssetRecommendation.TELECOM,
+                AssetRecommendation.UTILITIES,
+                AssetRecommendation.REITS,
+                AssetRecommendation.CONSUMER_STAPLES,
+            ],
+            rationale="Growth and cyclical sectors benefit from improving conditions",
+        ),
+        equity_factors=RecommendationCategory(
+            best=[
+                AssetRecommendation.SECULAR_GROWTH,
+                AssetRecommendation.MOMENTUM,
+                AssetRecommendation.CYCLICAL_GROWTH,
+                AssetRecommendation.SMALL_CAPS,
+            ],
+            worst=[
+                AssetRecommendation.LOW_BETA,
+                AssetRecommendation.VALUE,
+                AssetRecommendation.DIVIDEND_YIELD,
+                AssetRecommendation.DEFENSIVES,
+            ],
+            rationale="Growth and high-beta factors lead in recovery phases",
+        ),
+        fixed_income=RecommendationCategory(
+            best=[
+                AssetRecommendation.CONVERTIBLES,
+                AssetRecommendation.BDCS,
+                AssetRecommendation.PREFERREDS,
+                AssetRecommendation.LEVERAGED_LOANS,
+            ],
+            worst=[
+                AssetRecommendation.LONG_DURATION_TREASURIES,
+                AssetRecommendation.MEDIUM_DURATION_TREASURIES,
+                AssetRecommendation.MUNIS,
+                AssetRecommendation.IG_CREDIT,
+            ],
+            rationale="Credit-sensitive sectors outperform as rates rise and spreads tighten",
+        ),
+        regime_description="Recovery phase with rising bond yields, improving financials, and strengthening commodities",
+        key_risks=[
+            "False recovery",
+            "Policy tightening too soon",
+            "Inflation resurgence",
+        ],
+    ),
+    "humblBLOAT": RegimeRecommendations(
+        asset_classes=RecommendationCategory(
+            best=[
+                AssetRecommendation.GOLD,
+                AssetRecommendation.COMMODITIES,
+            ],
+            worst=[
+                AssetRecommendation.CREDIT,
+            ],
+            rationale="USD devaluation and money printing favor real assets",
+        ),
+        equity_sectors=RecommendationCategory(
+            best=[
+                AssetRecommendation.UTILITIES,
+                AssetRecommendation.TECHNOLOGY,
+                AssetRecommendation.ENERGY,
+                AssetRecommendation.INDUSTRIALS,
+            ],
+            worst=[
+                AssetRecommendation.FINANCIALS,
+                AssetRecommendation.REITS,
+                AssetRecommendation.MATERIALS,
+                AssetRecommendation.TELECOM,
+            ],
+            rationale="Sectors with pricing power and real asset exposure outperform",
+        ),
+        equity_factors=RecommendationCategory(
+            best=[
+                AssetRecommendation.SECULAR_GROWTH,
+                AssetRecommendation.MOMENTUM,
+                AssetRecommendation.MID_CAPS,
+                AssetRecommendation.LOW_BETA,
+            ],
+            worst=[
+                AssetRecommendation.SMALL_CAPS,
+                AssetRecommendation.DIVIDEND_YIELD,
+                AssetRecommendation.VALUE,
+                AssetRecommendation.DEFENSIVES,
+            ],
+            rationale="Quality growth outperforms as real growth slows but inflation accelerates",
+        ),
+        fixed_income=RecommendationCategory(
+            best=[
+                AssetRecommendation.MUNIS,
+                AssetRecommendation.EM_DEBT,
+                AssetRecommendation.LONG_DURATION_TREASURIES,
+                AssetRecommendation.TIPS,
+            ],
+            worst=[
+                AssetRecommendation.BDCS,
+                AssetRecommendation.PREFERREDS,
+                AssetRecommendation.CONVERTIBLES,
+                AssetRecommendation.LEVERAGED_LOANS,
+            ],
+            rationale="High-quality duration outperforms as real yields decline",
+        ),
+        regime_description="FED response to slowdown creates illusion of growth through inflation acceleration while real growth slows",
+        key_risks=[
+            "Stagflation",
+            "Policy credibility loss",
+            "Real growth deterioration",
+        ],
+    ),
 }
 
 
