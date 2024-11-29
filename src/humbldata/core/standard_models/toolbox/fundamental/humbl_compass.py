@@ -8,12 +8,13 @@ HumblCompass command.
 """
 
 from datetime import datetime
-from typing import Literal, Optional, TypeVar
+from typing import Literal, Optional, TypeVar, Dict, List
+from enum import Enum
 
 import pandera.polars as pa
 import polars as pl
 from openbb import obb
-from pydantic import Field
+from pydantic import BaseModel, Field
 
 from humbldata.core.standard_models.abstract.chart import ChartTemplate
 from humbldata.core.standard_models.abstract.data import Data
@@ -51,6 +52,61 @@ HUMBLCOMPASS_DATA_DESCRIPTIONS = {
     "cli_1yr_zscore": "1-year rolling z-score of CLI",
     "humbl_regime": "HUMBL Regime classification based on CPI and CLI values",
 }
+
+
+class AssetRecommendation(str, Enum):
+    """Asset recommendation categories."""
+
+    EQUITIES = "Equities"
+    CREDIT = "Credit"
+    COMMODITIES = "Commodities"
+    FX = "FX"
+    FIXED_INCOME = "Fixed Income"
+    USD = "USD"
+    TECHNOLOGY = "Technology"
+    CONSUMER_DISCRETIONARY = "Consumer Discretionary"
+    MATERIALS = "Materials"
+    INDUSTRIALS = "Industrials"
+    UTILITIES = "Utilities"
+    REITS = "REITs"
+    CONSUMER_STAPLES = "Consumer Staples"
+    FINANCIALS = "Financials"
+    HIGH_BETA = "High Beta"
+    MOMENTUM = "Momentum"
+    CYCLICALS = "Cyclicals"
+    SECULAR_GROWTH = "Secular Growth"
+    LOW_BETA = "Low Beta"
+    DEFENSIVES = "Defensives"
+    VALUE = "Value"
+    DIVIDEND_YIELD = "Dividend Yield"
+    BDCS = "BDCs"
+    CONVERTIBLES = "Convertibles"
+    HY_CREDIT = "HY Credit"
+    EM_DEBT = "EM Debt"
+    TIPS = "TIPS"
+    SHORT_DURATION_TREASURIES = "Short Duration Treasuries"
+    MBS = "MBS"
+    MEDIUM_DURATION_TREASURIES = "Medium Duration Treasuries"
+
+
+class RecommendationCategory(BaseModel):
+    """Category-specific recommendations with rationale."""
+
+    best: list[AssetRecommendation]
+    worst: list[AssetRecommendation]
+    rationale: str
+
+
+class RegimeRecommendations(BaseModel):
+    """Complete set of recommendations for a specific regime."""
+
+    asset_classes: RecommendationCategory
+    equity_sectors: RecommendationCategory
+    equity_factors: RecommendationCategory
+    fixed_income: RecommendationCategory
+    regime_description: str
+    key_risks: list[str]
+    last_updated: datetime = Field(default_factory=datetime.utcnow)
 
 
 class HumblCompassQueryParams(QueryParams):
@@ -141,6 +197,79 @@ class HumblCompassQueryParams(QueryParams):
         title="Plotly Template",
         description=HUMBLCOMPASS_QUERY_DESCRIPTIONS.get("template", ""),
     )
+    recommendations: bool = Field(
+        default=False,
+        title="Investment Recommendations",
+        description="Whether to include investment recommendations based on the HUMBL regime.",
+    )
+
+
+REGIME_RECOMMENDATIONS: dict[str, RegimeRecommendations] = {
+    "humblBOOM": RegimeRecommendations(
+        asset_classes=RecommendationCategory(
+            best=[
+                AssetRecommendation.EQUITIES,
+                AssetRecommendation.CREDIT,
+                AssetRecommendation.COMMODITIES,
+                AssetRecommendation.FX,
+            ],
+            worst=[AssetRecommendation.FIXED_INCOME, AssetRecommendation.USD],
+            rationale="Strong growth and inflation expectations favor risk assets",
+        ),
+        equity_sectors=RecommendationCategory(
+            best=[
+                AssetRecommendation.TECHNOLOGY,
+                AssetRecommendation.CONSUMER_DISCRETIONARY,
+                AssetRecommendation.MATERIALS,
+                AssetRecommendation.INDUSTRIALS,
+            ],
+            worst=[
+                AssetRecommendation.UTILITIES,
+                AssetRecommendation.REITS,
+                AssetRecommendation.CONSUMER_STAPLES,
+                AssetRecommendation.FINANCIALS,
+            ],
+            rationale="Growth sectors outperform in expansionary environments",
+        ),
+        equity_factors=RecommendationCategory(
+            best=[
+                AssetRecommendation.HIGH_BETA,
+                AssetRecommendation.MOMENTUM,
+                AssetRecommendation.CYCLICALS,
+                AssetRecommendation.SECULAR_GROWTH,
+            ],
+            worst=[
+                AssetRecommendation.LOW_BETA,
+                AssetRecommendation.DEFENSIVES,
+                AssetRecommendation.VALUE,
+                AssetRecommendation.DIVIDEND_YIELD,
+            ],
+            rationale="Risk-on factors perform well in growth environments",
+        ),
+        fixed_income=RecommendationCategory(
+            best=[
+                AssetRecommendation.BDCS,
+                AssetRecommendation.CONVERTIBLES,
+                AssetRecommendation.HY_CREDIT,
+                AssetRecommendation.EM_DEBT,
+            ],
+            worst=[
+                AssetRecommendation.TIPS,
+                AssetRecommendation.SHORT_DURATION_TREASURIES,
+                AssetRecommendation.MBS,
+                AssetRecommendation.MEDIUM_DURATION_TREASURIES,
+            ],
+            rationale="Credit risk outperforms duration risk",
+        ),
+        regime_description="Strong growth and rising inflation environment favors risk assets",
+        key_risks=[
+            "Inflation overshooting",
+            "Policy tightening",
+            "Valuation compression",
+        ],
+    ),
+    # ... Add similar mappings for humblBUST, humblBLOAT, humblBOUNCE
+}
 
 
 class HumblCompassData(Data):
@@ -516,8 +645,6 @@ class HumblCompassFetcher:
                 template=ChartTemplate(self.command_params.template),
             )
 
-        self.transformed_data = self.transformed_data.serialize(format="binary")
-
         # Add warning if z_score is None
         if self.command_params.z_score is None:
             if not hasattr(self, "warnings"):
@@ -529,6 +656,32 @@ class HumblCompassFetcher:
                 )
             )
 
+        # Add recommendations if requested
+        if self.command_params.recommendations:
+            latest_regime = (
+                self.transformed_data.select(pl.col("humbl_regime"))
+                .collect()
+                .row(-1)[0]
+            )
+
+            if latest_regime not in REGIME_RECOMMENDATIONS:
+                if not hasattr(self, "warnings"):
+                    self.warnings = []
+                self.warnings.append(
+                    HumblDataWarning(
+                        category="HumblCompassFetcher",
+                        message=f"No recommendations available for regime: {latest_regime}",
+                    )
+                )
+            else:
+                recommendations = REGIME_RECOMMENDATIONS[latest_regime]
+                if not hasattr(self, "extra"):
+                    self.extra = {}
+                self.extra["humbl_regime_recommendations"] = (
+                    recommendations.model_dump()
+                )
+
+        self.transformed_data = self.transformed_data.serialize(format="binary")
         return self
 
     @log_start_end(logger=logger)
@@ -568,4 +721,5 @@ class HumblCompassFetcher:
             chart=self.chart,
             context_params=self.context_params,
             command_params=self.command_params,
+            extra=self.extra,  # pipe in extra from transform_data()
         )
