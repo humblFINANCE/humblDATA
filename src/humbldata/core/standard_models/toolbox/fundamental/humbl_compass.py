@@ -920,6 +920,10 @@ class HumblCompassFetcher:
         if not hasattr(self, "warnings"):
             self.warnings = []
 
+        # Initialize extra dict if it doesn't exist
+        if not hasattr(self, "extra"):
+            self.extra = {}
+
         # Combine warnings from both sources
         all_warnings = self.context_params.warnings + self.warnings
 
