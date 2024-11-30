@@ -715,9 +715,16 @@ class HumblCompassFetcher:
         # CLI data is released before CPI data, so we use a left join
         combined_data = (
             self.oecd_cli_data.join(
-                self.oecd_cpi_data,
+                self.oecd_cpi_data.with_columns(
+                    [
+                        pl.col("country")
+                        .str.replace("_", " ")
+                        .str.to_titlecase(),
+                        pl.col("date_month_start").cast(pl.Date),
+                    ]
+                ),
                 on=["date_month_start", "country"],
-                how="left",
+                how="inner",  # Changed to inner from left to only return rows where dates & country match
                 suffix="_cpi",
             )
             .sort("date_month_start")
@@ -725,15 +732,10 @@ class HumblCompassFetcher:
                 [
                     pl.col("country").cast(pl.Utf8),
                     pl.col("cli").cast(pl.Float64),
-                    pl.col("cpi").cast(pl.Float64)
-                    * 100,  # Convert CPI to percentage
+                    pl.col("cpi").cast(pl.Float64) * 100,
                 ]
             )
-            .rename(
-                {
-                    "date": "date_cli",
-                }
-            )
+            .rename({"date": "date_cli"})
             .select(
                 [
                     "date_month_start",
