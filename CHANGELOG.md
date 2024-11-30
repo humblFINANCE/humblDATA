@@ -1,3 +1,10 @@
+## v1.11.4 (2024-11-30)
+
+### 🐛🚑️ Fixes
+
+- **notebooks, src**: enhance humblCHANNEL and humblCOMPASS functionality
+- **tests**: changed column name in a view test
+
 ## v1.11.3 (2024-11-30)
 
 ### 🐛🚑️ Fixes
