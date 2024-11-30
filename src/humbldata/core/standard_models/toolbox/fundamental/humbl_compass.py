@@ -8,12 +8,13 @@ HumblCompass command.
 """
 
 from datetime import datetime
-from typing import Literal, Optional, TypeVar
+from typing import Literal, Optional, TypeVar, Dict, List
+from enum import Enum
 
 import pandera.polars as pa
 import polars as pl
 from openbb import obb
-from pydantic import Field
+from pydantic import BaseModel, Field
 
 from humbldata.core.standard_models.abstract.chart import ChartTemplate
 from humbldata.core.standard_models.abstract.data import Data
@@ -51,6 +52,75 @@ HUMBLCOMPASS_DATA_DESCRIPTIONS = {
     "cli_1yr_zscore": "1-year rolling z-score of CLI",
     "humbl_regime": "HUMBL Regime classification based on CPI and CLI values",
 }
+
+
+class AssetRecommendation(str, Enum):
+    """Asset recommendation categories."""
+
+    EQUITIES = "Equities"
+    CREDIT = "Credit"
+    COMMODITIES = "Commodities"
+    FX = "FX"
+    FIXED_INCOME = "Fixed Income"
+    USD = "USD"
+    GOLD = "Gold"
+    TECHNOLOGY = "Technology"
+    CONSUMER_DISCRETIONARY = "Consumer Discretionary"
+    MATERIALS = "Materials"
+    INDUSTRIALS = "Industrials"
+    UTILITIES = "Utilities"
+    REITS = "REITs"
+    CONSUMER_STAPLES = "Consumer Staples"
+    FINANCIALS = "Financials"
+    ENERGY = "Energy"
+    HEALTH_CARE = "Health Care"
+    TELECOM = "Telecom"
+    HIGH_BETA = "High Beta"
+    MOMENTUM = "Momentum"
+    CYCLICALS = "Cyclicals"
+    SECULAR_GROWTH = "Secular Growth"
+    LOW_BETA = "Low Beta"
+    DEFENSIVES = "Defensives"
+    VALUE = "Value"
+    DIVIDEND_YIELD = "Dividend Yield"
+    QUALITY = "Quality"
+    CYCLICAL_GROWTH = "Cyclical Growth"
+    SMALL_CAPS = "Small Caps"
+    MID_CAPS = "Mid Caps"
+    BDCS = "BDCs"
+    CONVERTIBLES = "Convertibles"
+    HY_CREDIT = "HY Credit"
+    EM_DEBT = "EM Debt"
+    TIPS = "TIPS"
+    SHORT_DURATION_TREASURIES = "Short Duration Treasuries"
+    MORTGAGE_BACKED_SECURITIES = "Mortgage Backed Securities"
+    MEDIUM_DURATION_TREASURIES = "Medium Duration Treasuries"
+    LONG_DURATION_TREASURIES = "Long Duration Treasuries"
+    IG_CREDIT = "Investment Grade Credit"
+    MUNIS = "Municipal Bonds"
+    PREFERREDS = "Preferreds"
+    EM_LOCAL_CURRENCY = "Emerging Market Local Currency"
+    LEVERAGED_LOANS = "Leveraged Loans"
+
+
+class RecommendationCategory(BaseModel):
+    """Category-specific recommendations with rationale."""
+
+    best: list[AssetRecommendation]
+    worst: list[AssetRecommendation]
+    rationale: str
+
+
+class RegimeRecommendations(BaseModel):
+    """Complete set of recommendations for a specific regime."""
+
+    asset_classes: RecommendationCategory
+    equity_sectors: RecommendationCategory
+    equity_factors: RecommendationCategory
+    fixed_income: RecommendationCategory
+    regime_description: str
+    key_risks: list[str]
+    last_updated: datetime = Field(default_factory=datetime.utcnow)
 
 
 class HumblCompassQueryParams(QueryParams):
@@ -141,6 +211,274 @@ class HumblCompassQueryParams(QueryParams):
         title="Plotly Template",
         description=HUMBLCOMPASS_QUERY_DESCRIPTIONS.get("template", ""),
     )
+    recommendations: bool = Field(
+        default=False,
+        title="Investment Recommendations",
+        description="Whether to include investment recommendations based on the HUMBL regime.",
+    )
+
+
+REGIME_RECOMMENDATIONS: dict[str, RegimeRecommendations] = {
+    "humblBOOM": RegimeRecommendations(
+        asset_classes=RecommendationCategory(
+            best=[
+                AssetRecommendation.EQUITIES,
+                AssetRecommendation.CREDIT,
+                AssetRecommendation.COMMODITIES,
+                AssetRecommendation.FX,
+            ],
+            worst=[AssetRecommendation.FIXED_INCOME, AssetRecommendation.USD],
+            rationale="Strong growth and inflation expectations favor risk assets",
+        ),
+        equity_sectors=RecommendationCategory(
+            best=[
+                AssetRecommendation.TECHNOLOGY,
+                AssetRecommendation.CONSUMER_DISCRETIONARY,
+                AssetRecommendation.MATERIALS,
+                AssetRecommendation.INDUSTRIALS,
+            ],
+            worst=[
+                AssetRecommendation.UTILITIES,
+                AssetRecommendation.REITS,
+                AssetRecommendation.CONSUMER_STAPLES,
+                AssetRecommendation.FINANCIALS,
+            ],
+            rationale="Growth sectors outperform in expansionary environments",
+        ),
+        equity_factors=RecommendationCategory(
+            best=[
+                AssetRecommendation.HIGH_BETA,
+                AssetRecommendation.MOMENTUM,
+                AssetRecommendation.CYCLICALS,
+                AssetRecommendation.SECULAR_GROWTH,
+            ],
+            worst=[
+                AssetRecommendation.LOW_BETA,
+                AssetRecommendation.DEFENSIVES,
+                AssetRecommendation.VALUE,
+                AssetRecommendation.DIVIDEND_YIELD,
+            ],
+            rationale="Risk-on factors perform well in growth environments",
+        ),
+        fixed_income=RecommendationCategory(
+            best=[
+                AssetRecommendation.BDCS,
+                AssetRecommendation.CONVERTIBLES,
+                AssetRecommendation.HY_CREDIT,
+                AssetRecommendation.EM_DEBT,
+            ],
+            worst=[
+                AssetRecommendation.TIPS,
+                AssetRecommendation.SHORT_DURATION_TREASURIES,
+                AssetRecommendation.MORTGAGE_BACKED_SECURITIES,
+                AssetRecommendation.MEDIUM_DURATION_TREASURIES,
+            ],
+            rationale="Credit risk outperforms duration risk",
+        ),
+        regime_description="Strong growth and rising inflation environment favors risk assets with big market multiples in equities, junk bonds, and real growth",
+        key_risks=[
+            "Inflation overshooting",
+            "Policy tightening",
+            "Valuation compression",
+        ],
+    ),
+    "humblBUST": RegimeRecommendations(
+        asset_classes=RecommendationCategory(
+            best=[
+                AssetRecommendation.FIXED_INCOME,
+                AssetRecommendation.GOLD,
+                AssetRecommendation.USD,
+            ],
+            worst=[
+                AssetRecommendation.COMMODITIES,
+                AssetRecommendation.EQUITIES,
+                AssetRecommendation.CREDIT,
+                AssetRecommendation.FX,
+            ],
+            rationale="Deflationary environment favors safe-haven assets and cash",
+        ),
+        equity_sectors=RecommendationCategory(
+            best=[
+                AssetRecommendation.CONSUMER_STAPLES,
+                AssetRecommendation.UTILITIES,
+                AssetRecommendation.REITS,
+                AssetRecommendation.HEALTH_CARE,
+            ],
+            worst=[
+                AssetRecommendation.ENERGY,
+                AssetRecommendation.TECHNOLOGY,
+                AssetRecommendation.INDUSTRIALS,
+                AssetRecommendation.FINANCIALS,
+            ],
+            rationale="Defensive sectors outperform in contractionary environments",
+        ),
+        equity_factors=RecommendationCategory(
+            best=[
+                AssetRecommendation.LOW_BETA,
+                AssetRecommendation.DIVIDEND_YIELD,
+                AssetRecommendation.QUALITY,
+                AssetRecommendation.DEFENSIVES,
+            ],
+            worst=[
+                AssetRecommendation.HIGH_BETA,
+                AssetRecommendation.MOMENTUM,
+                AssetRecommendation.CYCLICALS,
+                AssetRecommendation.SECULAR_GROWTH,
+            ],
+            rationale="Low-risk factors outperform in risk-off environments",
+        ),
+        fixed_income=RecommendationCategory(
+            best=[
+                AssetRecommendation.LONG_DURATION_TREASURIES,
+                AssetRecommendation.MEDIUM_DURATION_TREASURIES,
+                AssetRecommendation.IG_CREDIT,
+                AssetRecommendation.MUNIS,
+            ],
+            worst=[
+                AssetRecommendation.PREFERREDS,
+                AssetRecommendation.EM_LOCAL_CURRENCY,
+                AssetRecommendation.BDCS,
+                AssetRecommendation.LEVERAGED_LOANS,
+            ],
+            rationale="Duration risk outperforms credit risk in deflationary environments",
+        ),
+        regime_description="Deflationary environment favors treasuries and cash while avoiding high yield credit and stocks",
+        key_risks=[
+            "Policy response delay",
+            "Deflation spiral",
+            "Credit market stress",
+        ],
+    ),
+    "humblBOUNCE": RegimeRecommendations(
+        asset_classes=RecommendationCategory(
+            best=[
+                AssetRecommendation.COMMODITIES,
+                AssetRecommendation.EQUITIES,
+                AssetRecommendation.CREDIT,
+                AssetRecommendation.FX,
+            ],
+            worst=[
+                AssetRecommendation.FIXED_INCOME,
+                AssetRecommendation.USD,
+            ],
+            rationale="Rising yields and improving growth favor risk assets",
+        ),
+        equity_sectors=RecommendationCategory(
+            best=[
+                AssetRecommendation.TECHNOLOGY,
+                AssetRecommendation.CONSUMER_DISCRETIONARY,
+                AssetRecommendation.INDUSTRIALS,
+                AssetRecommendation.MATERIALS,
+            ],
+            worst=[
+                AssetRecommendation.TELECOM,
+                AssetRecommendation.UTILITIES,
+                AssetRecommendation.REITS,
+                AssetRecommendation.CONSUMER_STAPLES,
+            ],
+            rationale="Growth and cyclical sectors benefit from improving conditions",
+        ),
+        equity_factors=RecommendationCategory(
+            best=[
+                AssetRecommendation.SECULAR_GROWTH,
+                AssetRecommendation.MOMENTUM,
+                AssetRecommendation.CYCLICAL_GROWTH,
+                AssetRecommendation.SMALL_CAPS,
+            ],
+            worst=[
+                AssetRecommendation.LOW_BETA,
+                AssetRecommendation.VALUE,
+                AssetRecommendation.DIVIDEND_YIELD,
+                AssetRecommendation.DEFENSIVES,
+            ],
+            rationale="Growth and high-beta factors lead in recovery phases",
+        ),
+        fixed_income=RecommendationCategory(
+            best=[
+                AssetRecommendation.CONVERTIBLES,
+                AssetRecommendation.BDCS,
+                AssetRecommendation.PREFERREDS,
+                AssetRecommendation.LEVERAGED_LOANS,
+            ],
+            worst=[
+                AssetRecommendation.LONG_DURATION_TREASURIES,
+                AssetRecommendation.MEDIUM_DURATION_TREASURIES,
+                AssetRecommendation.MUNIS,
+                AssetRecommendation.IG_CREDIT,
+            ],
+            rationale="Credit-sensitive sectors outperform as rates rise and spreads tighten",
+        ),
+        regime_description="Recovery phase with rising bond yields, improving financials, and strengthening commodities",
+        key_risks=[
+            "False recovery",
+            "Policy tightening too soon",
+            "Inflation resurgence",
+        ],
+    ),
+    "humblBLOAT": RegimeRecommendations(
+        asset_classes=RecommendationCategory(
+            best=[
+                AssetRecommendation.GOLD,
+                AssetRecommendation.COMMODITIES,
+            ],
+            worst=[
+                AssetRecommendation.CREDIT,
+            ],
+            rationale="USD devaluation and money printing favor real assets",
+        ),
+        equity_sectors=RecommendationCategory(
+            best=[
+                AssetRecommendation.UTILITIES,
+                AssetRecommendation.TECHNOLOGY,
+                AssetRecommendation.ENERGY,
+                AssetRecommendation.INDUSTRIALS,
+            ],
+            worst=[
+                AssetRecommendation.FINANCIALS,
+                AssetRecommendation.REITS,
+                AssetRecommendation.MATERIALS,
+                AssetRecommendation.TELECOM,
+            ],
+            rationale="Sectors with pricing power and real asset exposure outperform",
+        ),
+        equity_factors=RecommendationCategory(
+            best=[
+                AssetRecommendation.SECULAR_GROWTH,
+                AssetRecommendation.MOMENTUM,
+                AssetRecommendation.MID_CAPS,
+                AssetRecommendation.LOW_BETA,
+            ],
+            worst=[
+                AssetRecommendation.SMALL_CAPS,
+                AssetRecommendation.DIVIDEND_YIELD,
+                AssetRecommendation.VALUE,
+                AssetRecommendation.DEFENSIVES,
+            ],
+            rationale="Quality growth outperforms as real growth slows but inflation accelerates",
+        ),
+        fixed_income=RecommendationCategory(
+            best=[
+                AssetRecommendation.MUNIS,
+                AssetRecommendation.EM_DEBT,
+                AssetRecommendation.LONG_DURATION_TREASURIES,
+                AssetRecommendation.TIPS,
+            ],
+            worst=[
+                AssetRecommendation.BDCS,
+                AssetRecommendation.PREFERREDS,
+                AssetRecommendation.CONVERTIBLES,
+                AssetRecommendation.LEVERAGED_LOANS,
+            ],
+            rationale="High-quality duration outperforms as real yields decline",
+        ),
+        regime_description="FED response to slowdown creates illusion of growth through inflation acceleration while real growth slows",
+        key_risks=[
+            "Stagflation",
+            "Policy credibility loss",
+            "Real growth deterioration",
+        ],
+    ),
+}
 
 
 class HumblCompassData(Data):
@@ -377,9 +715,16 @@ class HumblCompassFetcher:
         # CLI data is released before CPI data, so we use a left join
         combined_data = (
             self.oecd_cli_data.join(
-                self.oecd_cpi_data,
+                self.oecd_cpi_data.with_columns(
+                    [
+                        pl.col("country")
+                        .str.replace("_", " ")
+                        .str.to_titlecase(),
+                        pl.col("date_month_start").cast(pl.Date),
+                    ]
+                ),
                 on=["date_month_start", "country"],
-                how="left",
+                how="inner",  # Changed to inner from left to only return rows where dates & country match
                 suffix="_cpi",
             )
             .sort("date_month_start")
@@ -387,15 +732,10 @@ class HumblCompassFetcher:
                 [
                     pl.col("country").cast(pl.Utf8),
                     pl.col("cli").cast(pl.Float64),
-                    pl.col("cpi").cast(pl.Float64)
-                    * 100,  # Convert CPI to percentage
+                    pl.col("cpi").cast(pl.Float64) * 100,
                 ]
             )
-            .rename(
-                {
-                    "date": "date_cli",
-                }
-            )
+            .rename({"date": "date_cli"})
             .select(
                 [
                     "date_month_start",
@@ -516,8 +856,6 @@ class HumblCompassFetcher:
                 template=ChartTemplate(self.command_params.template),
             )
 
-        self.transformed_data = self.transformed_data.serialize(format="binary")
-
         # Add warning if z_score is None
         if self.command_params.z_score is None:
             if not hasattr(self, "warnings"):
@@ -529,6 +867,32 @@ class HumblCompassFetcher:
                 )
             )
 
+        # Add recommendations if requested
+        if self.command_params.recommendations:
+            latest_regime = (
+                self.transformed_data.select(pl.col("humbl_regime"))
+                .collect()
+                .row(-1)[0]
+            )
+
+            if latest_regime not in REGIME_RECOMMENDATIONS:
+                if not hasattr(self, "warnings"):
+                    self.warnings = []
+                self.warnings.append(
+                    HumblDataWarning(
+                        category="HumblCompassFetcher",
+                        message=f"No recommendations available for regime: {latest_regime}",
+                    )
+                )
+            else:
+                recommendations = REGIME_RECOMMENDATIONS[latest_regime]
+                if not hasattr(self, "extra"):
+                    self.extra = {}
+                self.extra["humbl_regime_recommendations"] = (
+                    recommendations.model_dump()
+                )
+
+        self.transformed_data = self.transformed_data.serialize(format="binary")
         return self
 
     @log_start_end(logger=logger)
@@ -558,6 +922,10 @@ class HumblCompassFetcher:
         if not hasattr(self, "warnings"):
             self.warnings = []
 
+        # Initialize extra dict if it doesn't exist
+        if not hasattr(self, "extra"):
+            self.extra = {}
+
         # Combine warnings from both sources
         all_warnings = self.context_params.warnings + self.warnings
 
@@ -568,4 +936,5 @@ class HumblCompassFetcher:
             chart=self.chart,
             context_params=self.context_params,
             command_params=self.command_params,
+            extra=self.extra,  # pipe in extra from transform_data()
         )
