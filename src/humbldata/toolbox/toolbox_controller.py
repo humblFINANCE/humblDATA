@@ -5,10 +5,12 @@ The Toolbox Controller Module.
 """
 
 from humbldata.toolbox.fundamental.fundamental_controller import Fundamental
-
-
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
 from humbldata.toolbox.technical.technical_controller import Technical
+from humbldata.core.standard_models.abstract.errors import HumblDataError
+from humbldata.core.utils.logger import setup_logger
+
+logger = setup_logger(__name__)
 
 
 class Toolbox(ToolboxQueryParams):
@@ -62,7 +64,14 @@ class Toolbox(ToolboxQueryParams):
 
         This method does not take any parameters and does not return anything.
         """
-        super().__init__(*args, **kwargs)
+        try:
+            logger.debug(
+                f"Initializing Toolbox with args: {args}, kwargs: {kwargs}"
+            )
+            super().__init__(*args, **kwargs)
+        except Exception as e:
+            logger.error(f"Failed to initialize Toolbox: {str(e)}")
+            raise HumblDataError(f"Toolbox initialization failed: {str(e)}")
 
     @property
     def technical(self):
@@ -74,7 +83,12 @@ class Toolbox(ToolboxQueryParams):
         class, which hold all the fields needed for the context_params, like the
         symbol, interval, start_date, and end_date.
         """
-        return Technical(context_params=self)
+        try:
+            logger.debug("Accessing technical module")
+            return Technical(context_params=self)
+        except Exception as e:
+            logger.error(f"Failed to access technical module: {str(e)}")
+            raise HumblDataError(f"Technical module access failed: {str(e)}")
 
     @property
     def fundamental(self):
@@ -86,4 +100,9 @@ class Toolbox(ToolboxQueryParams):
         class, which hold all the fields needed for the context_params, like the
         symbol, interval, start_date, and end_date.
         """
-        return Fundamental(context_params=self)
+        try:
+            logger.debug("Accessing fundamental module")
+            return Fundamental(context_params=self)
+        except Exception as e:
+            logger.error(f"Failed to access fundamental module: {str(e)}")
+            raise HumblDataError(f"Fundamental module access failed: {str(e)}")

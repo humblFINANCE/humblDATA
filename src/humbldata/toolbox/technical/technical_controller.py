@@ -9,6 +9,10 @@ from humbldata.core.standard_models.toolbox import ToolboxQueryParams
 from humbldata.core.standard_models.toolbox.technical.mandelbrot_channel import (
     MandelbrotChannelQueryParams,
 )
+from humbldata.core.standard_models.abstract.errors import HumblDataError
+from humbldata.core.utils.logger import setup_logger
+
+logger = setup_logger(__name__)
 
 
 class Technical:
@@ -72,14 +76,26 @@ class Technical:
         HumblObject
             An object containing the Mandelbrot Channel data and metadata.
         """
-        from humbldata.core.standard_models.toolbox.technical.mandelbrot_channel import (
-            MandelbrotChannelFetcher,
-        )
+        try:
+            logger.debug(
+                f"Initializing Mandelbrot Channel calculation with params: {kwargs}"
+            )
 
-        # Instantiate the Fetcher with the query parameters
-        fetcher = MandelbrotChannelFetcher(
-            context_params=self.context_params, command_params=kwargs
-        )
+            from humbldata.core.standard_models.toolbox.technical.mandelbrot_channel import (
+                MandelbrotChannelFetcher,
+            )
 
-        # Use the fetcher to get the data
-        return fetcher.fetch_data()
+            # Instantiate the Fetcher with the query parameters
+            fetcher = MandelbrotChannelFetcher(
+                context_params=self.context_params,
+                command_params=kwargs,
+            )
+
+            logger.debug("Fetching Mandelbrot Channel data")
+            return fetcher.fetch_data()
+
+        except Exception as e:
+            logger.error(f"Error calculating Mandelbrot Channel: {str(e)}")
+            raise HumblDataError(
+                f"Failed to calculate Mandelbrot Channel: {str(e)}"
+            )

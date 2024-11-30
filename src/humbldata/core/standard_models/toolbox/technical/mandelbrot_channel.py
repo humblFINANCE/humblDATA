@@ -332,12 +332,11 @@ class MandelbrotChannelFetcher:
                 start_date=self.context_params.start_date,
                 end_date=self.context_params.end_date,
                 provider=self.context_params.provider,
-                adjustment="splits_and_dividends",
                 # add kwargs
             )
             .to_polars()
             .lazy()
-        ).drop(["dividend", "split_ratio"])  # TODO: drop `capital_gains` col
+        )
 
         if len(self.context_params.symbols) == 1:
             self.equity_historical_data = (
@@ -410,8 +409,11 @@ class MandelbrotChannelFetcher:
             The transformed data as a Polars DataFrame, ready for further analysis
             or visualization.
         """
+        logger.debug("Running .transform_query()")
         self.transform_query()
+        logger.debug("Running .extract_data()")
         self.extract_data()
+        logger.debug("Running .transform_data()")
         self.transform_data()
 
         if not hasattr(self.context_params, "warnings"):
