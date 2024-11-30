@@ -1,3 +1,9 @@
+## v1.11.2 (2024-11-30)
+
+### 🐛🚑️ Fixes
+
+- **humbl_compass**: changed to inner join
+
 ## v1.11.1 (2024-11-29)
 
 ### 🐛🚑️ Fixes
