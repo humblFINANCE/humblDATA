@@ -1,3 +1,9 @@
+## v1.11.3 (2024-11-30)
+
+### 🐛🚑️ Fixes
+
+- **rename**: renamed IPYNB and bumping for openbb req
+
 ## v1.11.2 (2024-11-30)
 
 ### 🐛🚑️ Fixes
