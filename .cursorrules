@@ -121,7 +121,8 @@ type ProjectConfig = {
         "⏪ revert", "➕ dep-add", "➖ dep-rm", "💥 boom"
       ],
       format: "<type>(<scope>): <subject>",
-      scopes: ["conda", "pip", "poetry"]
+      scopes: [""]
+      requirement: ["When generating a commit, you must only use available commit types"]
     },
     documentation: {
       style: "NumPy",
