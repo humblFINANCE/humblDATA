@@ -1,3 +1,9 @@
+## v1.12.0 (2024-12-01)
+
+### ✨ Features
+
+- **humbl_compass**: added CLI/CPI Z-Score to the hover template
+
 ## v1.11.6 (2024-12-01)
 
 ### 🐛🚑️ Fixes
