@@ -1,3 +1,9 @@
+## v1.11.6 (2024-12-01)
+
+### 🐛🚑️ Fixes
+
+- **humbl_compass**: added warning and set minimum z_score to 3 months
+
 ## v1.11.5 (2024-12-01)
 
 ### 🐛🚑️ Fixes
