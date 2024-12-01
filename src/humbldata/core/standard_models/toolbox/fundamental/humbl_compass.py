@@ -8,8 +8,8 @@ HumblCompass command.
 """
 
 from datetime import datetime
-from typing import Literal, Optional, TypeVar, Dict, List
 from enum import Enum
+from typing import Literal, TypeVar
 
 import pandera.polars as pa
 import polars as pl
@@ -640,7 +640,7 @@ class HumblCompassFetcher:
             f"-{4 + self.z_score_months}mo"
         ).dt.strftime("%Y-%m-%d")[0]
         cpi_start_date = start_date.dt.offset_by(
-            f"-{3 + self.z_score_months}mo"
+            f"-{4 + self.z_score_months}mo"
         ).dt.strftime("%Y-%m-%d")[0]
 
         # Update the command_params with the new start dates
@@ -748,18 +748,42 @@ class HumblCompassFetcher:
             )
         )
 
-        # Calculate 3-month deltas
-        delta_window = 3
+        # Calculate 3-month deltas with adaptive shift based on data frequency
         transformed_data = combined_data.with_columns(
             [
-                (pl.col("cli") - pl.col("cli").shift(delta_window)).alias(
-                    "cli_3m_delta"
-                ),
-                (pl.col("cpi") - pl.col("cpi").shift(delta_window)).alias(
-                    "cpi_3m_delta"
-                ),
+                # Calculate the average time difference between observations in days
+                (
+                    pl.col("date_month_start")
+                    .diff()
+                    .dt.total_days()  # Get total days directly
+                    .mean()
+                    .over("country")
+                    .alias("avg_days_between_obs")
+                )
             ]
         )
+
+        # Now use this to determine the appropriate shift
+        transformed_data = transformed_data.with_columns(
+            [
+                pl.when(pl.col("avg_days_between_obs") >= 85)  # ~3 months
+                .then(
+                    pl.col("cli") - pl.col("cli").shift(1)
+                )  # For quarterly data
+                .otherwise(
+                    pl.col("cli") - pl.col("cli").shift(3)
+                )  # For monthly data
+                .alias("cli_3m_delta"),
+                pl.when(pl.col("avg_days_between_obs") >= 85)  # ~3 months
+                .then(
+                    pl.col("cpi") - pl.col("cpi").shift(1)
+                )  # For quarterly data
+                .otherwise(
+                    pl.col("cpi") - pl.col("cpi").shift(3)
+                )  # For monthly data
+                .alias("cpi_3m_delta"),
+            ]
+        ).drop("avg_days_between_obs")
 
         # Add this after calculating 3-month deltas in transform_data()
         transformed_data = transformed_data.with_columns(

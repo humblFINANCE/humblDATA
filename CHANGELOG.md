@@ -2,6 +2,7 @@
 
 ### 🐛🚑️ Fixes
 
+- **mandelbrot_channel**: removed adjustments parameter
 - **notebooks, src**: enhance humblCHANNEL and humblCOMPASS functionality
 - **tests**: changed column name in a view test
 
