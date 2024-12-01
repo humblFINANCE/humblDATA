@@ -1,3 +1,9 @@
+## v1.11.5 (2024-12-01)
+
+### 🐛🚑️ Fixes
+
+- **humbl_compass**: change delta calculation to work with quarterly and monthly data
+
 ## v1.11.4 (2024-11-30)
 
 ### 🐛🚑️ Fixes
