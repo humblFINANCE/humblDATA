@@ -631,6 +631,11 @@ class HumblCompassFetcher:
                 self.command_params.z_score, _return_timedelta=False
             )
             self.z_score_months = _window_format_monthly(z_score_months_str)
+        if 0 < self.z_score_months < 3:
+            logger.warning(
+                "Z-score calculation requires a minimum of 3 months. Setting z_score to 3 months."
+            )
+            self.z_score_months = 3
         elif self.context_params.membership == "humblPEON":
             logger.warning(
                 "Z-score is not calculated for humblPEON membership level."
@@ -811,7 +816,7 @@ class HumblCompassFetcher:
 
         # Calculate z-scores only if self.z_score_months is greater than 0 and membership is not humblPEON
         if (
-            self.z_score_months > 0
+            self.z_score_months >= 3
             and self.context_params.membership != "humblPEON"
         ):
             transformed_data = transformed_data.with_columns(
@@ -855,7 +860,7 @@ class HumblCompassFetcher:
         ]
 
         if (
-            self.z_score_months > 0
+            self.z_score_months >= 3
             and self.context_params.membership != "humblPEON"
         ):
             columns_to_select.extend(
