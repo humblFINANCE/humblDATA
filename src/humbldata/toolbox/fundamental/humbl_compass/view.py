@@ -104,6 +104,29 @@ def create_humbl_compass_plot(
     # Create a color array based on the date order
     color_array = list(range(len(data)))
 
+    # Check if z-scores are present in the data
+    has_zscores = "cli_zscore" in data.columns and "cpi_zscore" in data.columns
+
+    # Modify the hover template based on z-score presence
+    hover_template = (
+        "<b>%{text}</b><br>" "CPI 3m Δ: %{x:.2f}<br>" "CLI 3m Δ: %{y:.2f}"
+    )
+
+    if has_zscores:
+        hover_template += (
+            "<br>CPI Z-Score: %{customdata[0]:.2f}<br>"
+            "CLI Z-Score: %{customdata[1]:.2f}"
+        )
+
+    hover_template += "<extra></extra>"
+
+    # Prepare customdata for hover if z-scores exist
+    customdata = (
+        list(zip(data["cpi_zscore"], data["cli_zscore"]))
+        if has_zscores
+        else None
+    )
+
     fig.add_trace(
         go.Scatter(
             x=data["cpi_3m_delta"],
@@ -127,7 +150,8 @@ def create_humbl_compass_plot(
                 "shape": "spline",
                 "smoothing": 1.3,
             },
-            hovertemplate="<b>%{text}</b><br>CPI 3m Δ: %{x:.2f}<br>CLI 3m Δ: %{y:.2f}<extra></extra>",
+            customdata=customdata,
+            hovertemplate=hover_template,
         )
     )
 
