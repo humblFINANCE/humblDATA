@@ -68,23 +68,23 @@ def create_humbl_compass_plot(
     # Add colored quadrants from -10 to 10
     quadrants = [
         {
-            "x": [0, 10],
-            "y": [0, 10],
+            "x": [0, 25],
+            "y": [0, 25],
             "fillcolor": "rgba(173, 216, 230, 0.3)",
         },  # Light blue
         {
-            "x": [-10, 0],
-            "y": [0, 10],
+            "x": [-25, 0],
+            "y": [0, 25],
             "fillcolor": "rgba(144, 238, 144, 0.3)",
         },  # Green
         {
-            "x": [0, 10],
-            "y": [-10, 0],
+            "x": [0, 25],
+            "y": [-25, 0],
             "fillcolor": "rgba(255, 165, 0, 0.3)",
         },  # Orange
         {
-            "x": [-10, 0],
-            "y": [-10, 0],
+            "x": [-25, 0],
+            "y": [-25, 0],
             "fillcolor": "rgba(255, 99, 71, 0.3)",
         },  # Red
     ]
@@ -112,6 +112,13 @@ def create_humbl_compass_plot(
         "<b>%{text}</b><br>" "CPI 3m Δ: %{x:.2f}<br>" "CLI 3m Δ: %{y:.2f}"
     )
 
+    # Prepare customdata for hover if z-scores exist
+    customdata = (
+        list(zip(data["cpi_zscore"], data["cli_zscore"]))
+        if has_zscores
+        else None
+    )
+
     if has_zscores:
         hover_template += (
             "<br>CPI Z-Score: %{customdata[0]:.2f}<br>"
@@ -119,13 +126,6 @@ def create_humbl_compass_plot(
         )
 
     hover_template += "<extra></extra>"
-
-    # Prepare customdata for hover if z-scores exist
-    customdata = (
-        list(zip(data["cpi_zscore"], data["cli_zscore"]))
-        if has_zscores
-        else None
-    )
 
     fig.add_trace(
         go.Scatter(
