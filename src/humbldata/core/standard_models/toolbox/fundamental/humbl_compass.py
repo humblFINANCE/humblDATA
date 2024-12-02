@@ -512,6 +512,7 @@ class HumblCompassData(Data):
         default=None,
         title="Consumer Price Index (CPI) 1-Year Z-Score",
         description=HUMBLCOMPASS_DATA_DESCRIPTIONS["cpi_1yr_zscore"],
+        nullable=True,
     )
     cli: pl.Float64 = pa.Field(
         default=None,
@@ -527,6 +528,7 @@ class HumblCompassData(Data):
         default=None,
         title="Composite Leading Indicator (CLI) 1-Year Z-Score",
         description=HUMBLCOMPASS_DATA_DESCRIPTIONS["cli_1yr_zscore"],
+        nullable=True,
     )
     humbl_regime: pl.Utf8 = pa.Field(
         default=None,
