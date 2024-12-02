@@ -1,3 +1,9 @@
+## v1.12.1 (2024-12-02)
+
+### 🐛🚑️ Fixes
+
+- **HumblCompassData**: made z-score columns nullable
+
 ## v1.12.0 (2024-12-01)
 
 ### ✨ Features
