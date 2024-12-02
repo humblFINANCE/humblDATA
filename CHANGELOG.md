@@ -1,3 +1,13 @@
+## v1.12.2 (2024-12-02)
+
+### 🐛🚑️ Fixes
+
+- **humbl_compass**: extended chart shading to 25 for large swings in economies
+
+### 📌➕⬇️➖⬆️ Dependencies
+
+- **dev**: added orjson
+
 ## v1.12.1 (2024-12-02)
 
 ### 🐛🚑️ Fixes
