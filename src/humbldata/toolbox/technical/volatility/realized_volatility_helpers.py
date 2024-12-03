@@ -303,33 +303,53 @@ def garman_klass(
     sessions.
     """
     sort_cols = _set_sort_cols(data, "symbol", "date")
+    over_cols = _set_over_cols(data, "symbol")  # Get symbol for grouping
+
     if _sort and sort_cols:
         data = data.lazy().sort(sort_cols)
         for col in sort_cols:
             data = data.set_sorted(col)
-    log_hi_lo = (
-        data.lazy()
-        .select((pl.col(_column_name_high) / pl.col(_column_name_low)).log())
-        .collect()
-        .to_series()
-    )
-    log_close_open = (
-        data.lazy()
-        .select((pl.col(_column_name_close) / pl.col(_column_name_open)).log())
-        .collect()
-        .to_series()
-    )
-    rs: pl.Series = 0.5 * log_hi_lo**2 - (2 * np.log(2) - 1) * log_close_open**2
 
     window_int: int = _window_format(
         window, _return_timedelta=True, _avg_trading_days=_avg_trading_days
     ).days
-    result = data.lazy().with_columns(
-        (
-            rs.rolling_map(_annual_vol, window_size=window_int, min_periods=1)
-            * 100
-        ).alias(f"gk_volatility_pct_{window_int}D")
+
+    # Keep everything in lazy context and calculate per symbol
+    result = (
+        data.lazy()
+        # Calculate intermediate values per symbol
+        .with_columns(
+            [
+                (pl.col(_column_name_high) / pl.col(_column_name_low))
+                .log()
+                .pow(2)
+                .alias("log_hi_lo_sq"),
+                (pl.col(_column_name_close) / pl.col(_column_name_open))
+                .log()
+                .pow(2)
+                .alias("log_close_open_sq"),
+            ]
+        )
+        # Calculate Garman-Klass estimator
+        .with_columns(
+            (
+                0.5 * pl.col("log_hi_lo_sq")
+                - (2 * math.log(2) - 1) * pl.col("log_close_open_sq")
+            ).alias("rs")
+        )
+        # Calculate rolling annual volatility per symbol using _annual_vol
+        .with_columns(
+            (
+                pl.col("rs")
+                .rolling_map(_annual_vol, window_size=window_int, min_periods=1)
+                .over(over_cols)  # Apply per symbol group
+                * 100
+            ).alias(f"gk_volatility_pct_{window_int}D")
+        )
+        # Remove intermediate calculations
+        .drop(["log_hi_lo_sq", "log_close_open_sq", "rs"])
     )
+
     if _drop_nulls:
         return result.drop_nulls(subset=f"gk_volatility_pct_{window_int}D")
     return result
