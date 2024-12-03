@@ -760,31 +760,41 @@ def squared_returns(
     _check_required_columns(data, _column_name_returns)
 
     sort_cols = _set_sort_cols(data, "symbol", "date")
+    over_cols = _set_over_cols(data, "symbol")  # Get symbol for grouping
+
     if _sort and sort_cols:
         data = data.lazy().sort(sort_cols)
         for col in sort_cols:
             data = data.set_sorted(col)
 
-    # assign window
     window_int: int = _window_format(
         window=window,
         _return_timedelta=True,
         _avg_trading_days=_avg_trading_days,
     ).days
 
-    data = data.lazy().with_columns(
-        ((pl.col(_column_name_returns) * 100) ** 2).alias("sq_log_returns_pct")
-    )
-    # Calculate rolling squared returns
+    # Keep everything in lazy context and calculate per symbol
     result = (
         data.lazy()
+        # Calculate squared returns per symbol
         .with_columns(
-            pl.col("sq_log_returns_pct")
-            .rolling_mean(window_size=window_int, min_periods=1)
-            .alias(f"sq_volatility_pct_{window_int}D")
+            (
+                (pl.col(_column_name_returns) * 100)
+                .pow(2)
+                .over(over_cols)  # Apply per symbol group
+            ).alias("sq_log_returns_pct")
         )
-        .drop("sq_log_returns_pct")
+        # Calculate rolling mean per symbol
+        .with_columns(
+            (
+                pl.col("sq_log_returns_pct")
+                .rolling_mean(window_size=window_int, min_periods=1)
+                .over(over_cols)  # Apply per symbol group
+            ).alias(f"sq_volatility_pct_{window_int}D")
+        )
+        .drop("sq_log_returns_pct")  # Remove intermediate calculation
     )
+
     if _drop_nulls:
         result = result.drop_nulls(subset=f"sq_volatility_pct_{window_int}D")
     return result
