@@ -275,11 +275,11 @@ REGIME_RECOMMENDATIONS: dict[str, RegimeRecommendations] = {
             ],
             rationale="Credit risk outperforms duration risk",
         ),
-        regime_description="Strong growth and rising inflation environment favors risk assets with big market multiples in equities, junk bonds, and real growth",
+        regime_description="Accelerating growth and decelerating inflation favors risk assets with big market multiples in equities, junk bonds, and real growth. This is the time to BUY 'anything'!",
         key_risks=[
-            "Inflation overshooting",
-            "Policy tightening",
-            "Valuation compression",
+            "Inflation Resurgence",
+            "Policy Tightening",
+            "Valuation Expansion",
         ],
     ),
     "humblBUST": RegimeRecommendations(
@@ -471,11 +471,11 @@ REGIME_RECOMMENDATIONS: dict[str, RegimeRecommendations] = {
             ],
             rationale="High-quality duration outperforms as real yields decline",
         ),
-        regime_description="FED response to slowdown creates illusion of growth through inflation acceleration while real growth slows",
+        regime_description="Central Bank Policy response to economic slowdown creates illusion of growth through inflation acceleration while real growth slows",
         key_risks=[
             "Stagflation",
-            "Policy credibility loss",
-            "Real growth deterioration",
+            "Policy Credibility Loss",
+            "Real Growth Deterioration",
         ],
     ),
 }
