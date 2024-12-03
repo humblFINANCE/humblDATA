@@ -1,3 +1,9 @@
+## v1.12.6 (2024-12-03)
+
+### 🐛🚑️ Fixes
+
+- **humbl_compass**: update regime descriptions and key risks for clarity
+
 ## v1.12.5 (2024-12-03)
 
 ### 🐛🚑️ Fixes
