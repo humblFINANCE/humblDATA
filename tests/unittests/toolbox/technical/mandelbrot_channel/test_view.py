@@ -28,6 +28,9 @@ def test_create_historical_plot(mandelbrot_data, request: FixtureRequest):
     current_param = request.node.callspec.params.get("mandelbrot_data")
 
     if current_param == "historical":
+        mandelbrot_data = mandelbrot_data.rename(
+            {"close_price": "recent_price"}
+        )
         plots = create_historical_plot(mandelbrot_data, symbol="AAPL")
         assert isinstance(plots, Figure)
 

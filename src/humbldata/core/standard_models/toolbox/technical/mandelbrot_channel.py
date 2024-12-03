@@ -382,6 +382,9 @@ class MandelbrotChannelFetcher:
         ).lazy()
 
         if self.command_params.chart:
+            self.transformed_data = self.transformed_data.with_columns(
+                pl.col("recent_price").alias("close_price")
+            )
             self.chart = generate_plots(
                 self.transformed_data,
                 self.equity_historical_data,

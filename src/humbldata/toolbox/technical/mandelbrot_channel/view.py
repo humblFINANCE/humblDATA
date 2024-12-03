@@ -45,7 +45,7 @@ def create_historical_plot(
     fig.add_trace(
         go.Scatter(
             x=filtered_data.select("date").to_series(),
-            y=filtered_data.select("close_price").to_series(),
+            y=filtered_data.select("recent_price").to_series(),
             name="Recent Price",
             line=dict(color="blue"),
         )
