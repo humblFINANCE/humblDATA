@@ -21,6 +21,7 @@ from humbldata.core.utils.constants import (
     OBB_ETF_INFO_PROVIDERS,
 )
 from humbldata.core.utils.env import Env
+from humbldata.core.utils.logger import setup_logger
 
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
@@ -87,7 +88,7 @@ def obb_login(pat: str | None = None) -> bool:
 def get_latest_price(
     symbol: str | list[str] | pl.Series,
     provider: OBB_EQUITY_PRICE_QUOTE_PROVIDERS | None = "yfinance",
-) -> pl.LazyFrame:
+) -> pl.LazyFrame | None:
     """
     Context: Core || Category: Utils || Subcategory: OpenBB Helpers || **Command: get_latest_price**.
 
@@ -106,21 +107,40 @@ def get_latest_price(
 
     Returns
     -------
-    pl.LazyFrame
+    pl.LazyFrame | None
         A Polars LazyFrame with columns for the stock symbols ('symbol') and
-        their latest prices ('last_price').
+        their latest prices ('last_price'). Returns None if there's an error.
     """
+    # Configure logger using the setup_logger utility
+    logger = setup_logger(__name__)
+
+    # Suppress OpenBB logging
     logging.getLogger("openbb_terminal.stocks.stocks_model").setLevel(
         logging.CRITICAL
     )
 
-    return (
-        obb.equity.price.quote(symbol, provider=provider)
-        .to_polars()
-        .lazy()
-        .select(["symbol", "last_price"])
-        .rename({"last_price": "recent_price"})
-    )
+    # Convert symbol to list format
+    if isinstance(symbol, str):
+        symbols = [symbol]
+    elif isinstance(symbol, pl.Series):
+        symbols = symbol.to_list()
+    else:
+        symbols = symbol
+
+    try:
+        logger.info(f"Fetching latest price for {symbols} using {provider}")
+        return (
+            obb.equity.price.quote(symbols, provider=provider)
+            .to_polars()
+            .select(["symbol", "last_price"])
+            .rename({"last_price": "recent_price"})
+            .lazy()
+        )
+    except pl.exceptions.ColumnNotFoundError as e:
+        logger.warning(
+            f"Failed to get latest price for {symbols}. Using latest close instead."
+        )
+        return None
 
 
 async def aget_latest_price(
