@@ -78,7 +78,8 @@ class Technical:
         """
         try:
             logger.debug(
-                f"Initializing Mandelbrot Channel calculation with params: {kwargs}"
+                "Initializing Mandelbrot Channel calculation with params: %s",
+                kwargs,
             )
 
             from humbldata.core.standard_models.toolbox.technical.mandelbrot_channel import (
@@ -95,7 +96,6 @@ class Technical:
             return fetcher.fetch_data()
 
         except Exception as e:
-            logger.error(f"Error calculating Mandelbrot Channel: {str(e)}")
-            raise HumblDataError(
-                f"Failed to calculate Mandelbrot Channel: {str(e)}"
-            )
+            logger.exception("Error calculating Mandelbrot Channel")
+            msg = f"Failed to calculate Mandelbrot Channel: {e!s}"
+            raise HumblDataError(msg) from e
