@@ -421,7 +421,7 @@ def log_returns(
     │ 100.0     ┆ NaN        │
     ├───────────┼────────────┤
     │ 105.0     ┆ 0.048790   │
-    ├───────────┼────────────┤
+    ├��─────��────┼────────────┤
     │ 103.0     ┆ -0.019418  │
     └───────────┴────────────┘
 
@@ -442,6 +442,10 @@ def log_returns(
     # Calculation for Polars DataFrame or LazyFrame
     elif isinstance(data, pl.DataFrame | pl.LazyFrame):
         sort_cols = _set_sort_cols(data, "symbol", "date")
+        over_cols = _set_over_cols(
+            data, "symbol"
+        )  # Only need symbol for grouping
+
         if _sort and sort_cols:
             data = data.sort(sort_cols)
             for col in sort_cols:
@@ -451,11 +455,23 @@ def log_returns(
             raise HumblDataError(msg)
 
         if "log_returns" not in data.collect_schema().names():
-            out = data.with_columns(
-                pl.col(_column_name).log().diff().alias("log_returns")
-            )
+            if over_cols:
+                # Calculate log returns per symbol group
+                out = data.with_columns(
+                    pl.col(_column_name)
+                    .log()
+                    .diff()
+                    .over(over_cols)
+                    .alias("log_returns")
+                )
+            else:
+                # If no symbol column, calculate normally
+                out = data.with_columns(
+                    pl.col(_column_name).log().diff().alias("log_returns")
+                )
         else:
             out = data
+
         if _drop_nulls:
             out = out.drop_nulls(subset="log_returns")
     else:
