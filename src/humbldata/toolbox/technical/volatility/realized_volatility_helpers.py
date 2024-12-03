@@ -372,51 +372,67 @@ def hodges_tompkins(
     overlapping data sample that produces unbiased estimates and a
     substantial gain in efficiency.
     """
-    # When calculating rv_mean, need a different adjustment factor,
-    # so window doesn't influence the Volatility_mean
-    # RV_MEAN
-
     # Define Window Size
     window_timedelta = _window_format(
         window, _return_timedelta=True, _avg_trading_days=_avg_trading_days
     )
-    # Calculate STD, assigned to `vol`
-    if isinstance(data, pl.Series):
-        vol = data.rolling_std(window_size=window_timedelta.days, min_periods=1)
-    else:
-        sort_cols = _set_sort_cols(data, "symbol", "date")
-        if _sort and sort_cols:
-            data = data.lazy().sort(sort_cols)
-            for col in sort_cols:
-                data = data.set_sorted(col)
-        vol = data.lazy().select(
-            pl.col(_column_name_returns).rolling_std_by(
-                window_size=window_timedelta, min_periods=1, by="date"
-            )
-            * np.sqrt(trading_periods)
-        )
-
-    # Assign window size to h for adjustment
     h: int = window_timedelta.days
 
     if isinstance(data, pl.Series):
+        vol = data.rolling_std(window_size=h, min_periods=1)
         count = data.len()
-    elif isinstance(data, pl.LazyFrame):
-        count = data.collect().shape[0]
-    else:
-        count = data.shape[0]
-
-    n = (count - h) + 1
-    adj_factor = 1.0 / (1.0 - (h / n) + ((h**2 - 1) / (3 * n**2)))
-
-    if isinstance(data, pl.Series):
+        n = (count - h) + 1
+        adj_factor = 1.0 / (1.0 - (h / n) + ((h**2 - 1) / (3 * n**2)))
         return (vol * adj_factor) * 100
-    else:
-        result = data.lazy().with_columns(
-            ((vol.collect() * adj_factor) * 100)
-            .to_series()
-            .alias(f"ht_volatility_pct_{h}D")
+
+    sort_cols = _set_sort_cols(data, "symbol", "date")
+    over_cols = _set_over_cols(data, "symbol")  # Get symbol for grouping
+
+    if _sort and sort_cols:
+        data = data.lazy().sort(sort_cols)
+        for col in sort_cols:
+            data = data.set_sorted(col)
+
+    # Keep everything in lazy context and calculate per symbol
+    result = (
+        data.lazy()
+        # Calculate count per symbol for adjustment factor
+        .with_columns(
+            [
+                pl.count().over(over_cols).alias("symbol_count"),
+                # Calculate std per symbol
+                (
+                    pl.col(_column_name_returns)
+                    .rolling_std_by(
+                        window_size=window_timedelta, min_periods=1, by="date"
+                    )
+                    .over(over_cols)
+                    * np.sqrt(trading_periods)
+                ).alias("vol"),
+            ]
         )
+        # Calculate n and adjustment factor per symbol
+        .with_columns(((pl.col("symbol_count") - h + 1).alias("n")))
+        .with_columns(
+            (
+                1.0
+                / (
+                    1.0
+                    - (h / pl.col("n"))
+                    + ((h**2 - 1) / (3 * pl.col("n").pow(2)))
+                )
+            ).alias("adj_factor")
+        )
+        # Calculate final Hodges-Tompkins volatility
+        .with_columns(
+            (pl.col("vol") * pl.col("adj_factor") * 100).alias(
+                f"ht_volatility_pct_{h}D"
+            )
+        )
+        # Remove intermediate calculations
+        .drop(["symbol_count", "n", "adj_factor", "vol"])
+    )
+
     if _drop_nulls:
         result = result.drop_nulls(subset=f"ht_volatility_pct_{h}D")
     return result
