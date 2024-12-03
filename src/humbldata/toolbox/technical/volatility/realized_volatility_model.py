@@ -6,6 +6,7 @@ A complete set of volatility estimators based on Euan Sinclair's Volatility Trad
 """
 
 import inspect
+import logging
 from typing import Literal
 
 import polars as pl
@@ -25,6 +26,8 @@ from humbldata.toolbox.technical.volatility.realized_volatility_helpers import (
     std,
     yang_zhang,
 )
+
+logger = logging.getLogger(__name__)
 
 # Mapping of method names to functions, consider switching to ENUM class for scalability and robustness and safety
 VOLATILITY_METHODS = {
@@ -147,7 +150,9 @@ def calc_realized_volatility(
     # Step 4: Calculate Realized Volatility ====================================
     if grouped_mean:
         # calculate volatility over multiple windows and average the result, add to a new column
-        print("🚧 WIP!")
+        logger.warning(
+            "Grouped mean calculation for realized volatility is not yet implemented. This will be added in a future update."
+        )
     else:
         out = func(**args_to_pass)
 
