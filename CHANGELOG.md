@@ -1,3 +1,13 @@
+## v1.12.4 (2024-12-03)
+
+### 🐛🚑️ Fixes
+
+- **realized_volatility_helpers**: refactor Rogers-Satchell volatility calculation for symbol grouping
+- **realized_volatility_helpers**: refactor Hodges-Tompkins volatility calculation for symbol grouping
+- **realized_volatility_helpers**: refactor Garman-Klass volatility calculation for symbol grouping
+- **realized_volatility_helpers**: refactor Parkinson's volatility calculation for symbol grouping
+- **mandelbrot_channel**: remove unnecessary transformation of recent_price column
+
 ## v1.12.3 (2024-12-03)
 
 ### 🐛🚑️ Fixes
