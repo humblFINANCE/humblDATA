@@ -13,6 +13,7 @@ import polars as pl
 
 from humbldata.toolbox.toolbox_helpers import (
     _check_required_columns,
+    _set_over_cols,
     _set_sort_cols,
     _window_format,
 )
@@ -113,24 +114,30 @@ def std(
         return data.rolling_std(
             window_size=window_timedelta.days, min_periods=1
         )
+
     sort_cols = _set_sort_cols(data, "symbol", "date")
+    over_cols = _set_over_cols(data, "symbol")  # Get symbol for grouping
+
     if _sort and sort_cols:
         data = data.lazy().sort(sort_cols)
         for col in sort_cols:
             data = data.set_sorted(col)
 
-    # convert window_timedelta to days to use fixed window
+    # Calculate std per symbol group using .over()
     result = data.lazy().with_columns(
         (
-            pl.col(_column_name_returns).rolling_std_by(
+            pl.col(_column_name_returns)
+            .rolling_std_by(
                 window_size=window_timedelta,
                 min_periods=2,  # using min_periods=2, bc if min_periods=1, the first value will be 0.
                 by="date",
             )
+            .over(over_cols)  # Apply per symbol group
             * math.sqrt(trading_periods)
             * 100
         ).alias(f"std_volatility_pct_{window_timedelta.days}D")
     )
+
     if _drop_nulls:
         return result.drop_nulls(
             subset=f"std_volatility_pct_{window_timedelta.days}D"
