@@ -502,47 +502,61 @@ def rogers_satchell(
         _column_name_close,
     )
     sort_cols = _set_sort_cols(data, "symbol", "date")
+    over_cols = _set_over_cols(data, "symbol")  # Get symbol for grouping
+
     if _sort and sort_cols:
         data = data.lazy().sort(sort_cols)
         for col in sort_cols:
             data = data.set_sorted(col)
-    # assign window
+
     window_int: int = _window_format(
         window=window,
         _return_timedelta=True,
         _avg_trading_days=_avg_trading_days,
     ).days
 
-    data = (
+    # Keep everything in lazy context and calculate per symbol
+    result = (
         data.lazy()
+        # Calculate intermediate log ratios per symbol
         .with_columns(
             [
                 (pl.col(_column_name_high) / pl.col(_column_name_open))
                 .log()
+                .over(over_cols)
                 .alias("log_ho"),
                 (pl.col(_column_name_low) / pl.col(_column_name_open))
                 .log()
+                .over(over_cols)
                 .alias("log_lo"),
                 (pl.col(_column_name_close) / pl.col(_column_name_open))
                 .log()
+                .over(over_cols)
                 .alias("log_co"),
             ]
         )
+        # Calculate Rogers-Satchell estimator per symbol
         .with_columns(
             (
                 pl.col("log_ho") * (pl.col("log_ho") - pl.col("log_co"))
                 + pl.col("log_lo") * (pl.col("log_lo") - pl.col("log_co"))
-            ).alias("rs")
-        )
-    )
-    result = data.lazy().with_columns(
-        (
-            pl.col("rs").rolling_map(
-                _annual_vol, window_size=window_int, min_periods=1
             )
-            * 100
-        ).alias(f"rs_volatility_pct_{window_int}D")
+            .over(over_cols)
+            .alias("rs")
+        )
+        # Calculate rolling annual volatility per symbol
+        .with_columns(
+            (
+                pl.col("rs")
+                .rolling_map(_annual_vol, window_size=window_int, min_periods=1)
+                .over(over_cols)  # Apply per symbol group
+                * 100
+            ).alias(f"rs_volatility_pct_{window_int}D")
+        )
+        # Remove intermediate calculations
+        .drop(["log_ho", "log_lo", "log_co", "rs"])
     )
+
     if _drop_nulls:
         result = result.drop_nulls(subset=f"rs_volatility_pct_{window_int}D")
     return result
