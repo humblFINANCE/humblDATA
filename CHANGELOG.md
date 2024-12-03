@@ -1,3 +1,12 @@
+## v1.12.3 (2024-12-03)
+
+### 🐛🚑️ Fixes
+
+- **log_returns**: enhance log return calculation to support grouping by symbol
+- **std**: adding .over() logic to calc over symbols
+- **calc_realized_volatility**: added more informative warning
+- **humblCHANNEL**: view column renamed to recent_price
+
 ## v1.12.2 (2024-12-02)
 
 ### 🐛🚑️ Fixes
