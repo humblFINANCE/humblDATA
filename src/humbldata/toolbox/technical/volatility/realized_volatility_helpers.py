@@ -208,29 +208,41 @@ def parkinson(
     A DataFrame with the calculated Parkinson's volatility.
     """
     sort_cols = _set_sort_cols(data, "symbol", "date")
+    over_cols = _set_over_cols(data, "symbol")  # Get symbol for grouping
+
     if _sort and sort_cols:
         data = data.lazy().sort(sort_cols)
         for col in sort_cols:
             data = data.set_sorted(col)
 
-    var1 = 1.0 / (4.0 * math.log(2.0))
-    var2 = (
-        data.lazy()
-        .select((pl.col(_column_name_high) / pl.col(_column_name_low)).log())
-        .collect()
-        .to_series()
-    )
-    rs = var1 * var2**2
-
     window_int: int = _window_format(
         window, _return_timedelta=True, _avg_trading_days=_avg_trading_days
     ).days
-    result = data.lazy().with_columns(
-        (
-            rs.rolling_map(_annual_vol, window_size=window_int, min_periods=1)
-            * 100
-        ).alias(f"parkinson_volatility_pct_{window_int}D")
+
+    # Keep everything in lazy context and calculate per symbol
+    result = (
+        data.lazy()
+        # Calculate log ratio and square it per symbol
+        .with_columns(
+            (
+                (pl.col(_column_name_high) / pl.col(_column_name_low))
+                .log()
+                .pow(2)
+                * (1.0 / (4.0 * math.log(2.0)))  # var1 constant
+            ).alias("rs")
+        )
+        # Calculate rolling annual volatility per symbol using _annual_vol
+        .with_columns(
+            (
+                pl.col("rs")
+                .rolling_map(_annual_vol, window_size=window_int, min_periods=1)
+                .over(over_cols)  # Apply per symbol group
+                * 100
+            ).alias(f"parkinson_volatility_pct_{window_int}D")
+        )
+        .drop("rs")  # Remove intermediate calculation
     )
+
     if _drop_nulls:
         return result.drop_nulls(
             subset=f"parkinson_volatility_pct_{window_int}D"
