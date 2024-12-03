@@ -1,3 +1,11 @@
+## v1.12.5 (2024-12-03)
+
+### 🐛🚑️ Fixes
+
+- **openbb_helpers**: enhance get_latest_price function with logging and error handling
+- **realized_volatility_helpers**: refactor squared returns calculation for symbol grouping
+- **realized_volatility_helpers**: refactor Yang-Zhang volatility calculation for symbol grouping
+
 ## v1.12.4 (2024-12-03)
 
 ### 🐛🚑️ Fixes
