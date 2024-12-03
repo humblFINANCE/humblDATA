@@ -565,25 +565,29 @@ def rogers_satchell(
 def _yang_zhang_engine(
     data: pl.DataFrame | pl.LazyFrame,
     window: int,
+    over_cols: list[str] | None,
 ) -> pl.DataFrame | pl.LazyFrame:
+    """Calculate Yang-Zhang components per symbol group."""
     _check_required_columns(data, "log_cc_sq", "log_oc_sq", "rs")
 
     out = data.lazy().with_columns(
         [
             (
-                pl.col("log_cc_sq").rolling_sum(
-                    window_size=window, min_periods=1
-                )
+                pl.col("log_cc_sq")
+                .rolling_sum(window_size=window, min_periods=1)
+                .over(over_cols)  # Apply per symbol
                 * (1.0 / (window - 1.0))
             ).alias("close_vol"),
             (
-                pl.col("log_oc_sq").rolling_sum(
-                    window_size=window, min_periods=1
-                )
+                pl.col("log_oc_sq")
+                .rolling_sum(window_size=window, min_periods=1)
+                .over(over_cols)  # Apply per symbol
                 * (1.0 / (window - 1.0))
             ).alias("open_vol"),
             (
-                pl.col("rs").rolling_sum(window_size=window, min_periods=1)
+                pl.col("rs")
+                .rolling_sum(window_size=window, min_periods=1)
+                .over(over_cols)  # Apply per symbol
                 * (1.0 / (window - 1.0))
             ).alias("window_rs"),
         ]
@@ -610,7 +614,6 @@ def yang_zhang(
     (close-to-open volatility), a weighted average of the Rogers-Satchell
     volatility and the day’s open-to-close volatility.
     """
-    # check required columns
     _check_required_columns(
         data,
         _column_name_high,
@@ -619,56 +622,70 @@ def yang_zhang(
         _column_name_close,
     )
     sort_cols = _set_sort_cols(data, "symbol", "date")
+    over_cols = _set_over_cols(data, "symbol")  # Get symbol for grouping
+
     if _sort and sort_cols:
         data = data.lazy().sort(sort_cols)
         for col in sort_cols:
             data = data.set_sorted(col)
 
-    # assign window
     window_int: int = _window_format(
         window=window,
         _return_timedelta=True,
         _avg_trading_days=_avg_trading_days,
     ).days
 
+    # Keep everything in lazy context and calculate per symbol
     data = (
         data.lazy()
+        # Calculate log ratios per symbol
         .with_columns(
             [
                 (pl.col(_column_name_high) / pl.col(_column_name_open))
                 .log()
+                .over(over_cols)
                 .alias("log_ho"),
                 (pl.col(_column_name_low) / pl.col(_column_name_open))
                 .log()
+                .over(over_cols)
                 .alias("log_lo"),
                 (pl.col(_column_name_close) / pl.col(_column_name_open))
                 .log()
+                .over(over_cols)
                 .alias("log_co"),
                 (pl.col(_column_name_open) / pl.col(_column_name_close).shift())
                 .log()
+                .over(over_cols)
                 .alias("log_oc"),
                 (
                     pl.col(_column_name_close)
                     / pl.col(_column_name_close).shift()
                 )
                 .log()
+                .over(over_cols)
                 .alias("log_cc"),
             ]
         )
+        # Calculate squared terms and RS per symbol
         .with_columns(
             [
-                (pl.col("log_oc") ** 2).alias("log_oc_sq"),
-                (pl.col("log_cc") ** 2).alias("log_cc_sq"),
+                (pl.col("log_oc").pow(2)).over(over_cols).alias("log_oc_sq"),
+                (pl.col("log_cc").pow(2)).over(over_cols).alias("log_cc_sq"),
                 (
                     pl.col("log_ho") * (pl.col("log_ho") - pl.col("log_co"))
                     + pl.col("log_lo") * (pl.col("log_lo") - pl.col("log_co"))
-                ).alias("rs"),
+                )
+                .over(over_cols)
+                .alias("rs"),
             ]
         )
     )
 
     k = 0.34 / (1.34 + (window_int + 1) / (window_int - 1))
-    data = _yang_zhang_engine(data=data, window=window_int)
+    # Pass over_cols to engine for per-symbol calculations
+    data = _yang_zhang_engine(data=data, window=window_int, over_cols=over_cols)
+
+    # Calculate final volatility per symbol
     result = (
         data.lazy()
         .with_columns(
@@ -677,7 +694,9 @@ def yang_zhang(
                     pl.col("open_vol")
                     + k * pl.col("close_vol")
                     + (1 - k) * pl.col("window_rs")
-                ).sqrt()
+                )
+                .sqrt()
+                .over(over_cols)  # Ensure final calculation is per symbol
                 * np.sqrt(trading_periods)
                 * 100
             ).alias(f"yz_volatility_pct_{window_int}D")
@@ -700,6 +719,7 @@ def yang_zhang(
             )
         )
     )
+
     if _drop_nulls:
         return result.drop_nulls(subset=f"yz_volatility_pct_{window_int}D")
     return result
