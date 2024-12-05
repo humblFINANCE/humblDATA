@@ -358,7 +358,8 @@ def _calc_mandelbrot_for_date(
     live_price,
     **kwargs,
 ):
-    """Helper function to calculate Mandelbrot Channel for a single date."""
+    """Calculate Mandelbrot Channel for a single date."""
+    # Only include data up to the target date, this prevents look-ahead bias
     filtered_data = data.filter(pl.col("date") <= date)
     return calc_mandelbrot_channel(
         data=filtered_data,
