@@ -405,9 +405,8 @@ class MandelbrotChannelFetcher:
 
         Returns
         -------
-        pl.DataFrame
-            The transformed data as a Polars DataFrame, ready for further analysis
-            or visualization.
+        HumblObject
+            The HumblObject containing the transformed data and metadata.
         """
         logger.debug("Running .transform_query()")
         self.transform_query()
@@ -416,15 +415,27 @@ class MandelbrotChannelFetcher:
         logger.debug("Running .transform_data()")
         self.transform_data()
 
+        # Initialize warnings list if it doesn't exist
         if not hasattr(self.context_params, "warnings"):
             self.context_params.warnings = []
+
+        # Initialize fetcher warnings if they don't exist
+        if not hasattr(self, "warnings"):
+            self.warnings = []
+
+        # Initialize extra dict if it doesn't exist
+        if not hasattr(self, "extra"):
+            self.extra = {}
+
+        # Combine warnings from both sources
+        all_warnings = self.context_params.warnings + self.warnings
 
         return HumblObject(
             results=self.transformed_data,
             provider=self.context_params.provider,
-            equity_data=self.equity_historical_data.serialize(),
-            warnings=self.context_params.warnings,
+            warnings=all_warnings,  # Use combined warnings
             chart=self.chart,
             context_params=self.context_params,
             command_params=self.command_params,
+            extra=self.extra,  # pipe in extra from transform_data()
         )
