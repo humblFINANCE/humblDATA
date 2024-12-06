@@ -73,7 +73,7 @@ class Technical:
             msg = f"Failed to calculate Momentum: {e!s}"
             raise HumblDataError(msg) from e
 
-    def mandelbrot_channel(self, command_params: MandelbrotChannelQueryParams):
+    def mandelbrot_channel(self, **kwargs: MandelbrotChannelQueryParams):
         """
         Calculate the Mandelbrot Channel.
 
@@ -118,7 +118,7 @@ class Technical:
         try:
             logger.debug(
                 "Initializing Mandelbrot Channel calculation with params: %s",
-                command_params,
+                kwargs,
             )
 
             from humbldata.core.standard_models.toolbox.technical.mandelbrot_channel import (
@@ -128,7 +128,7 @@ class Technical:
             # Instantiate the Fetcher with the query parameters
             fetcher = MandelbrotChannelFetcher(
                 context_params=self.context_params,
-                command_params=command_params,
+                command_params=kwargs,
             )
 
             logger.debug("Fetching Mandelbrot Channel data")
