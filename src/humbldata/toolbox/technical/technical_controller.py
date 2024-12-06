@@ -5,12 +5,14 @@ available. This will be passed as a `@property` to the `Toolbox()` class, giving
 access to the technical module and its functions.
 """
 
-from humbldata.core.standard_models.toolbox.technical.momentum import MomentumQueryParams
+from humbldata.core.standard_models.abstract.errors import HumblDataError
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
 from humbldata.core.standard_models.toolbox.technical.mandelbrot_channel import (
     MandelbrotChannelQueryParams,
 )
-from humbldata.core.standard_models.abstract.errors import HumblDataError
+from humbldata.core.standard_models.toolbox.technical.momentum import (
+    MomentumQueryParams,
+)
 from humbldata.core.utils.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -35,7 +37,6 @@ class Technical:
     def __init__(self, context_params: ToolboxQueryParams):
         self.context_params = context_params
 
-
     def momentum(self, command_params: MomentumQueryParams | None = None):
         """
         Execute the Momentum command.
@@ -51,7 +52,9 @@ class Technical:
                 command_params,
             )
 
-            from humbldata.core.standard_models.toolbox.technical.momentum import MomentumFetcher
+            from humbldata.core.standard_models.toolbox.technical.momentum import (
+                MomentumFetcher,
+            )
 
             if command_params is None:
                 command_params = MomentumQueryParams()
@@ -59,7 +62,7 @@ class Technical:
             # Instantiate the Fetcher with the query parameters
             fetcher = MomentumFetcher(
                 context_params=self.context_params,
-                command_params=command_params
+                command_params=command_params,
             )
 
             logger.debug("Fetching Momentum data")
@@ -69,7 +72,8 @@ class Technical:
             logger.exception("Error calculating Momentum")
             msg = f"Failed to calculate Momentum: {e!s}"
             raise HumblDataError(msg) from e
-    def mandelbrot_channel(self, **kwargs: MandelbrotChannelQueryParams):
+
+    def mandelbrot_channel(self, command_params: MandelbrotChannelQueryParams):
         """
         Calculate the Mandelbrot Channel.
 
@@ -114,7 +118,7 @@ class Technical:
         try:
             logger.debug(
                 "Initializing Mandelbrot Channel calculation with params: %s",
-                kwargs,
+                command_params,
             )
 
             from humbldata.core.standard_models.toolbox.technical.mandelbrot_channel import (
@@ -124,7 +128,7 @@ class Technical:
             # Instantiate the Fetcher with the query parameters
             fetcher = MandelbrotChannelFetcher(
                 context_params=self.context_params,
-                command_params=kwargs,
+                command_params=command_params,
             )
 
             logger.debug("Fetching Mandelbrot Channel data")
