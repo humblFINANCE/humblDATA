@@ -5,6 +5,7 @@ available. This will be passed as a `@property` to the `Toolbox()` class, giving
 access to the technical module and its functions.
 """
 
+from humbldata.core.standard_models.toolbox.technical.momentum import MomentumQueryParams
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
 from humbldata.core.standard_models.toolbox.technical.mandelbrot_channel import (
     MandelbrotChannelQueryParams,
@@ -34,6 +35,40 @@ class Technical:
     def __init__(self, context_params: ToolboxQueryParams):
         self.context_params = context_params
 
+
+    def momentum(self, command_params: MomentumQueryParams | None = None):
+        """
+        Execute the Momentum command.
+
+        Parameters
+        ----------
+        command_params : MomentumQueryParams | None
+            The command-specific parameters.
+        """
+        try:
+            logger.debug(
+                "Initializing Momentum calculation with params: %s",
+                command_params,
+            )
+
+            from humbldata.core.standard_models.toolbox.technical.momentum import MomentumFetcher
+
+            if command_params is None:
+                command_params = MomentumQueryParams()
+
+            # Instantiate the Fetcher with the query parameters
+            fetcher = MomentumFetcher(
+                context_params=self.context_params,
+                command_params=command_params
+            )
+
+            logger.debug("Fetching Momentum data")
+            return fetcher.fetch_data()
+
+        except Exception as e:
+            logger.exception("Error calculating Momentum")
+            msg = f"Failed to calculate Momentum: {e!s}"
+            raise HumblDataError(msg) from e
     def mandelbrot_channel(self, **kwargs: MandelbrotChannelQueryParams):
         """
         Calculate the Mandelbrot Channel.
