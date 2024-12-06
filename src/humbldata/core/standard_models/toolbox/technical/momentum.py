@@ -1,4 +1,3 @@
-
 """
 Momentum Standard Model.
 
@@ -12,6 +11,7 @@ from typing import Literal, TypeVar
 
 import pandera.polars as pa
 import polars as pl
+from openbb import obb
 from pydantic import Field, field_validator
 
 from humbldata.core.standard_models.abstract.data import Data
@@ -26,38 +26,41 @@ Q = TypeVar("Q", bound=ToolboxQueryParams)
 logger = setup_logger("MomentumFetcher", level=env.LOGGER_LEVEL)
 
 MOMENTUM_QUERY_DESCRIPTIONS = {
-    "example_field1": "Description for example field 1",
-    "example_field2": "Description for example field 2",
+    "method": "Method to calculate momentum (log, simple, or shift)",
+    "period": "Number of periods to look back for momentum calculation",
 }
 
 
 class MomentumQueryParams(QueryParams):
     """
-    QueryParams model for the Momentum command, a Pydantic v2 model.
+    QueryParams model for the Momentum command.
 
     Parameters
     ----------
-    example_field1 : str
-        An example field.
-    example_field2 : bool
-        Another example field.
+    method : Literal["log", "simple", "shift"]
+        Method to calculate momentum
+    period : int
+        Number of periods to look back
     """
 
-    example_field1: str = Field(
-        default="default_value",
-        title="Example Field 1",
-        description=MOMENTUM_QUERY_DESCRIPTIONS.get("example_field1", ""),
+    method: Literal["log", "simple", "shift"] = Field(
+        default="log",
+        title="Calculation Method",
+        description=MOMENTUM_QUERY_DESCRIPTIONS["method"],
     )
-    example_field2: bool = Field(
-        default=True,
-        title="Example Field 2",
-        description=MOMENTUM_QUERY_DESCRIPTIONS.get("example_field2", ""),
+    period: int = Field(
+        default=1,
+        title="Look-back Period",
+        description=MOMENTUM_QUERY_DESCRIPTIONS["period"],
+        ge=1,  # Must be greater than or equal to 1
     )
 
-    @field_validator("example_field1")
+    @field_validator("method")
     @classmethod
-    def validate_example_field1(cls, v: str) -> str:
-        return v.upper()
+    def validate_method(
+        cls, v: Literal["log", "simple", "shift"]
+    ) -> Literal["log", "simple", "shift"]:
+        return v
 
 
 class MomentumData(Data):
@@ -172,7 +175,23 @@ class MomentumFetcher:
             The extracted data as a Polars DataFrame.
         """
         # Implement data extraction logic here
-        self.data = pl.DataFrame()
+        self.equity_historical_data: pl.LazyFrame = (
+            obb.equity.price.historical(
+                symbol=self.context_params.symbols,
+                start_date=self.context_params.start_date,
+                end_date=self.context_params.end_date,
+                provider=self.context_params.provider,
+                # add kwargs
+            )
+            .to_polars()
+            .lazy()
+        )
+        if len(self.context_params.symbols) == 1:
+            self.equity_historical_data = (
+                self.equity_historical_data.with_columns(
+                    symbol=pl.lit(self.context_params.symbols[0])
+                )
+            )
         return self
 
     def transform_data(self):
@@ -184,10 +203,38 @@ class MomentumFetcher:
         pl.DataFrame
             The transformed data as a Polars DataFrame
         """
-        # Implement data transformation logic here
-        self.transformed_data = MomentumData(self.data)
-        self.transformed_data = self.transformed_data.serialize()
-        return self
+        try:
+            logger.debug("Transforming data with momentum calculation")
+
+            # Add momentum calculation parameters to extra dict for metadata
+            self.extra.update(
+                {
+                    "calculation_method": "log",  # Default method
+                    "period": 1,  # Default period
+                }
+            )
+
+            # Import momentum calculation
+            from humbldata.toolbox.technical.momentum.model import momentum
+
+            # Calculate momentum using the extracted data
+            self.transformed_data = momentum(
+                data=self.equity_historical_data,
+                method=self.command_params.method,
+                period=self.command_params.period,
+            ).collect()
+
+            # Validate the transformed data
+
+            # self.transformed_data = schema(self.transformed_data) #TODO: add
+
+            return self
+
+        except Exception as e:
+            logger.error(f"Failed to transform momentum data: {str(e)}")
+            raise HumblDataError(
+                f"Momentum transformation failed: {str(e)}"
+            ) from e
 
     @log_start_end(logger=logger)
     def fetch_data(self):
