@@ -43,8 +43,47 @@ class Technical:
 
         Parameters
         ----------
-        command_params : MomentumQueryParams | None
-            The command-specific parameters.
+        method : Literal['log', 'simple', 'shift'], optional
+            Method to calculate momentum:
+            - 'log': Logarithmic rate of change
+            - 'simple': Simple rate of change (percentage change)
+            - 'shift': Simple time series shift with binary signal
+            Default is 'log'.
+
+        window : str, optional
+            Window to calculate momentum over. Default is "1d".
+
+        chart : bool, optional
+            Whether to generate and return a visualization chart.
+            Default is False.
+
+        Returns
+        -------
+        HumblObject
+            results : MomentumData
+                DataFrame containing:
+                - date: Date of observation
+                - symbol: Stock symbol
+                - momentum: Momentum value (for log/simple methods)
+                - shifted: Shifted price (for shift method)
+                - momentum_signal: Binary signal (for shift method)
+            provider : str
+                Data provider name
+            warnings : list
+                Any warnings generated during calculation
+            chart : Optional[Chart]
+                Visualization if chart=True
+            context_params : ToolboxQueryParams
+                Original context parameters
+            command_params : MomentumQueryParams
+                Command parameters used
+            extra : dict
+                Additional metadata
+
+        Raises
+        ------
+        HumblDataError
+            If calculation fails or required data is missing
         """
         try:
             logger.debug(

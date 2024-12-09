@@ -7,7 +7,7 @@ This module is used to define the QueryParams and Data model for the
 Momentum command.
 """
 
-from typing import Literal, TypeVar
+from typing import Literal, TypeVar, Union
 
 import pandera.polars as pa
 import polars as pl
@@ -28,7 +28,7 @@ logger = setup_logger("MomentumFetcher", level=env.LOGGER_LEVEL)
 
 MOMENTUM_QUERY_DESCRIPTIONS = {
     "method": "Method to calculate momentum (log, simple, or shift)",
-    "period": "Number of periods to look back for momentum calculation",
+    "window": "Window to calculate momentum over",
     "chart": "Whether to generate a chart",
 }
 
@@ -41,8 +41,8 @@ class MomentumQueryParams(QueryParams):
     ----------
     method : Literal["log", "simple", "shift"]
         Method to calculate momentum
-    period : int
-        Number of periods to look back
+    window : str
+        Window to calculate momentum over
     """
 
     method: Literal["log", "simple", "shift"] = Field(
@@ -50,11 +50,10 @@ class MomentumQueryParams(QueryParams):
         title="Calculation Method",
         description=MOMENTUM_QUERY_DESCRIPTIONS["method"],
     )
-    period: int = Field(
-        default=1,
-        title="Look-back Period",
-        description=MOMENTUM_QUERY_DESCRIPTIONS["period"],
-        ge=1,  # Must be greater than or equal to 1
+    window: str = Field(
+        default="1d",
+        title="Window",
+        description=MOMENTUM_QUERY_DESCRIPTIONS["window"],
     )
     chart: bool = Field(
         default=False,
@@ -87,8 +86,9 @@ class MomentumData(Data):
         title="Symbol",
         description="The stock symbol.",
     )
-    momentum: float = pa.Field(
+    momentum: float | None = pa.Field(
         default=None,
+        nullable=True,
         title="Momentum",
         description="The momentum value.",
     )
@@ -97,6 +97,12 @@ class MomentumData(Data):
         nullable=True,
         title="Shifted",
         description="The shifted value.",
+    )
+    momentum_signal: pl.Int8 | None = pa.Field(
+        default=None,
+        nullable=True,
+        title="Momentum Signal",
+        description="The momentum signal value.",
     )
 
 
@@ -236,7 +242,7 @@ class MomentumFetcher:
             self.transformed_data = momentum(
                 data=self.equity_historical_data,
                 method=self.command_params.method,
-                period=self.command_params.period,
+                window=self.command_params.window,
             )
 
             # Validate the transformed data
