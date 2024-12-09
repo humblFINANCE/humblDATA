@@ -21,6 +21,7 @@ from humbldata.core.standard_models.abstract.query_params import QueryParams
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
 from humbldata.core.utils.env import Env
 from humbldata.core.utils.logger import log_start_end, setup_logger
+from humbldata.toolbox.technical.momentum.view import generate_plots
 
 env = Env()
 Q = TypeVar("Q", bound=ToolboxQueryParams)
@@ -30,6 +31,7 @@ MOMENTUM_QUERY_DESCRIPTIONS = {
     "method": "Method to calculate momentum (log, simple, or shift)",
     "window": "Window to calculate momentum over",
     "chart": "Whether to generate a chart",
+    "template": "Plotly template to use for the chart",
 }
 
 
@@ -59,6 +61,25 @@ class MomentumQueryParams(QueryParams):
         default=False,
         title="Results Chart",
         description=MOMENTUM_QUERY_DESCRIPTIONS["chart"],
+    )
+    template: Literal[
+        "humbl_dark",
+        "humbl_light",
+        "ggplot2",
+        "seaborn",
+        "simple_white",
+        "plotly",
+        "plotly_white",
+        "plotly_dark",
+        "presentation",
+        "xgridoff",
+        "ygridoff",
+        "gridon",
+        "none",
+    ] = Field(
+        default="humbl_dark",
+        title="Plotly Template",
+        description=MOMENTUM_QUERY_DESCRIPTIONS.get("template", ""),
     )
 
     @field_validator("method")
