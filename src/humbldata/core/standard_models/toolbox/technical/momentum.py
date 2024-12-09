@@ -15,6 +15,7 @@ from openbb import obb
 from pydantic import Field, field_validator
 
 from humbldata.core.standard_models.abstract.data import Data
+from humbldata.core.standard_models.abstract.errors import HumblDataError
 from humbldata.core.standard_models.abstract.humblobject import HumblObject
 from humbldata.core.standard_models.abstract.query_params import QueryParams
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
@@ -28,6 +29,7 @@ logger = setup_logger("MomentumFetcher", level=env.LOGGER_LEVEL)
 MOMENTUM_QUERY_DESCRIPTIONS = {
     "method": "Method to calculate momentum (log, simple, or shift)",
     "period": "Number of periods to look back for momentum calculation",
+    "chart": "Whether to generate a chart",
 }
 
 
@@ -54,6 +56,11 @@ class MomentumQueryParams(QueryParams):
         description=MOMENTUM_QUERY_DESCRIPTIONS["period"],
         ge=1,  # Must be greater than or equal to 1
     )
+    chart: bool = Field(
+        default=False,
+        title="Results Chart",
+        description=MOMENTUM_QUERY_DESCRIPTIONS["chart"],
+    )
 
     @field_validator("method")
     @classmethod
@@ -70,10 +77,26 @@ class MomentumData(Data):
     This Data model is used to validate data in the `.transform_data()` method of the `MomentumFetcher` class.
     """
 
-    example_column: pl.Date = Field(
+    date: pl.Date = pa.Field(
         default=None,
-        title="Example Column",
-        description="Description for example column",
+        title="Date",
+        description="The date of the data point.",
+    )
+    symbol: str = pa.Field(
+        default=None,
+        title="Symbol",
+        description="The stock symbol.",
+    )
+    momentum: float = pa.Field(
+        default=None,
+        title="Momentum",
+        description="The momentum value.",
+    )
+    shifted: float | None = pa.Field(
+        default=None,
+        nullable=True,
+        title="Shifted",
+        description="The shifted value.",
     )
 
 
@@ -206,14 +229,6 @@ class MomentumFetcher:
         try:
             logger.debug("Transforming data with momentum calculation")
 
-            # Add momentum calculation parameters to extra dict for metadata
-            self.extra.update(
-                {
-                    "calculation_method": "log",  # Default method
-                    "period": 1,  # Default period
-                }
-            )
-
             # Import momentum calculation
             from humbldata.toolbox.technical.momentum.model import momentum
 
@@ -222,19 +237,29 @@ class MomentumFetcher:
                 data=self.equity_historical_data,
                 method=self.command_params.method,
                 period=self.command_params.period,
-            ).collect()
+            )
 
             # Validate the transformed data
+            self.transformed_data = MomentumData(
+                self.transformed_data.collect().drop_nulls()
+            ).lazy()
 
-            # self.transformed_data = schema(self.transformed_data) #TODO: add
-
-            return self
+            if self.command_params.chart:
+                self.chart = generate_plots(
+                    self.transformed_data,
+                    self.equity_historical_data,
+                    template=self.command_params.template,
+                )
+            else:
+                self.chart = None
 
         except Exception as e:
-            logger.error(f"Failed to transform momentum data: {str(e)}")
-            raise HumblDataError(
-                f"Momentum transformation failed: {str(e)}"
-            ) from e
+            msg = f"Momentum transformation failed: {e!s}"
+            logger.exception(msg)
+            raise HumblDataError(msg) from e
+
+        self.transformed_data = self.transformed_data.serialize(format="binary")
+        return self
 
     @log_start_end(logger=logger)
     def fetch_data(self):
