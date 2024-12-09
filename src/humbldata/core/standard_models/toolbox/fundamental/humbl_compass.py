@@ -941,8 +941,11 @@ class HumblCompassFetcher:
         HumblObject
             The HumblObject containing the transformed data and metadata.
         """
+        logger.debug("Running .transform_query()")
         self.transform_query()
+        logger.debug("Running .extract_data()")
         self.extract_data()
+        logger.debug("Running .transform_data()")
         self.transform_data()
 
         # Initialize warnings list if it doesn't exist
