@@ -1,3 +1,33 @@
+## v1.13.0 (2024-12-09)
+
+### ✨ Features
+
+- **momentum**: add simple plot functionality and enhance plot generation
+- **momentum**: enhance momentum plotting functionality and add template support
+
+### 🐛🚑️ Fixes
+
+- **test_model**: add comments for clarity on testing structure
+- **momentum**: refactor momentum parameters and enhance calculation logic
+- **momentum**: refactor momentum calculation to use kwargs and enhance data handling
+- **momentum**: enhance momentum calculation and add charting option
+- **mandelbrot_channel**: serialize equity historical data and include in HumblObject
+- **mandelbrot_channel**: update window_format method to raise TypeError
+- **add_command**: refactor method parameters to use **kwargs for improved flexibility
+- **mandelbrot_channel**: removed kwargs, using command_params
+- **mandelbrot_channel**: update warning logic in Fetcher
+- **humbl_compass**: added debug logging
+
+### ♻️ Refactorings
+
+- **notebooks**: organized notebooks
+
+### ✅🤡🧪 Tests
+
+- **momentum**: add integration tests for momentum calculations
+- **momentum**: add unit tests for momentum calculations
+- **momentum**: add momentum command parameters fixture and integration test
+
 ## v1.12.6 (2024-12-03)
 
 ### 🐛🚑️ Fixes

@@ -13,3 +13,7 @@ def test_calc_mandelbrot_channel_invalid_data():
     """Testing Input Validation"""
     with pytest.raises(HumblDataError):
         result = calc_mandelbrot_channel(data=pl.DataFrame().to_pandas())
+
+
+## The internal functions used in the model are tested in the helpers.py file
+## The model is tested with all the function in the integration tests folder.
