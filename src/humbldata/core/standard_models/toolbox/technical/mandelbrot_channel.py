@@ -158,7 +158,7 @@ class MandelbrotChannelQueryParams(QueryParams):
 
     @field_validator("window", mode="after", check_fields=False)
     @classmethod
-    def window_format(cls, v: str) -> str:
+    def window_format(cls, v) -> str:
         """
         Format the window string into a standardized format.
 
@@ -179,9 +179,9 @@ class MandelbrotChannelQueryParams(QueryParams):
         """
         if isinstance(v, str):
             return _window_format(v, _return_timedelta=False)
-        else:
-            msg = "Window must be a string."
-            raise ValueError(msg)
+
+        msg = "Window must be a string."
+        raise TypeError(msg)
 
 
 class MandelbrotChannelData(Data):
