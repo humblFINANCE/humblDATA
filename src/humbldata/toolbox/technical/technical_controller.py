@@ -37,7 +37,7 @@ class Technical:
     def __init__(self, context_params: ToolboxQueryParams):
         self.context_params = context_params
 
-    def momentum(self, command_params: MomentumQueryParams | None = None):
+    def momentum(self, **kwargs: MomentumQueryParams):
         """
         Execute the Momentum command.
 
@@ -49,20 +49,17 @@ class Technical:
         try:
             logger.debug(
                 "Initializing Momentum calculation with params: %s",
-                command_params,
+                kwargs,
             )
 
             from humbldata.core.standard_models.toolbox.technical.momentum import (
                 MomentumFetcher,
             )
 
-            if command_params is None:
-                command_params = MomentumQueryParams()
-
             # Instantiate the Fetcher with the query parameters
             fetcher = MomentumFetcher(
                 context_params=self.context_params,
-                command_params=command_params,
+                command_params=kwargs,
             )
 
             logger.debug("Fetching Momentum data")

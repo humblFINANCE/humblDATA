@@ -51,7 +51,7 @@ def _calc_shift(data: pl.LazyFrame, period: int = 1) -> pl.LazyFrame:
                 pl.col("close").shift(period).alias("shifted"),
                 (pl.col("close") > pl.col("close").shift(period))
                 .cast(pl.Int8)
-                .alias("signal"),
+                .alias("momentum"),
             ]
         )
     except Exception as e:
@@ -86,7 +86,7 @@ def momentum(
     pl.LazyFrame
         DataFrame with added columns based on method:
         - log/simple: adds 'momentum' column
-        - shift: adds 'shifted' and 'signal' columns (1 when price > shifted price, 0 otherwise)
+        - shift: adds 'shifted' and 'momentum' columns (1 when price > shifted price, 0 otherwise)
 
     Raises
     ------
