@@ -5,11 +5,14 @@ available. This will be passed as a `@property` to the `Toolbox()` class, giving
 access to the technical module and its functions.
 """
 
+from humbldata.core.standard_models.abstract.errors import HumblDataError
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
 from humbldata.core.standard_models.toolbox.technical.mandelbrot_channel import (
     MandelbrotChannelQueryParams,
 )
-from humbldata.core.standard_models.abstract.errors import HumblDataError
+from humbldata.core.standard_models.toolbox.technical.momentum import (
+    MomentumQueryParams,
+)
 from humbldata.core.utils.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -33,6 +36,78 @@ class Technical:
 
     def __init__(self, context_params: ToolboxQueryParams):
         self.context_params = context_params
+
+    def momentum(self, **kwargs: MomentumQueryParams):
+        """
+        Execute the Momentum command.
+
+        Parameters
+        ----------
+        method : Literal['log', 'simple', 'shift'], optional
+            Method to calculate momentum:
+            - 'log': Logarithmic rate of change
+            - 'simple': Simple rate of change (percentage change)
+            - 'shift': Simple time series shift with binary signal
+            Default is 'log'.
+
+        window : str, optional
+            Window to calculate momentum over. Default is "1d".
+
+        chart : bool, optional
+            Whether to generate and return a visualization chart.
+            Default is False.
+
+        Returns
+        -------
+        HumblObject
+            results : MomentumData
+                DataFrame containing:
+                - date: Date of observation
+                - symbol: Stock symbol
+                - momentum: Momentum value (for log/simple methods)
+                - shifted: Shifted price (for shift method)
+                - momentum_signal: Binary signal (for shift method)
+            provider : str
+                Data provider name
+            warnings : list
+                Any warnings generated during calculation
+            chart : Optional[Chart]
+                Visualization if chart=True
+            context_params : ToolboxQueryParams
+                Original context parameters
+            command_params : MomentumQueryParams
+                Command parameters used
+            extra : dict
+                Additional metadata
+
+        Raises
+        ------
+        HumblDataError
+            If calculation fails or required data is missing
+        """
+        try:
+            logger.debug(
+                "Initializing Momentum calculation with params: %s",
+                kwargs,
+            )
+
+            from humbldata.core.standard_models.toolbox.technical.momentum import (
+                MomentumFetcher,
+            )
+
+            # Instantiate the Fetcher with the query parameters
+            fetcher = MomentumFetcher(
+                context_params=self.context_params,
+                command_params=kwargs,
+            )
+
+            logger.debug("Fetching Momentum data")
+            return fetcher.fetch_data()
+
+        except Exception as e:
+            logger.exception("Error calculating Momentum")
+            msg = f"Failed to calculate Momentum: {e!s}"
+            raise HumblDataError(msg) from e
 
     def mandelbrot_channel(self, **kwargs: MandelbrotChannelQueryParams):
         """

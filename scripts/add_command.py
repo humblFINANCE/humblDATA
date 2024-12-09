@@ -336,18 +336,7 @@ def generate_category_controller(
     project_root: Path, context: str, category: str, command: str
 ) -> None:
     """
-    Generate the category controller file.
-
-    Parameters
-    ----------
-    project_root : Path
-        The root path of the project.
-    context : str
-        The context name.
-    category : str
-        The category name.
-    command : str
-        The command name.
+    Generate or update the category controller file.
     """
     file_path = (
         project_root
@@ -357,7 +346,113 @@ def generate_category_controller(
         / category
         / f"{category}_controller.py"
     )
-    content = f'''
+
+    # If file exists, update it
+    if file_path.exists():
+        with file_path.open("r") as f:
+            content = f.read()
+
+        # Check if imports section exists
+        docstring_end = content.find('"""', content.find('"""') + 3) + 3
+        first_import = content.find("from", docstring_end)
+        import_section_end = content.find("\n\nclass", first_import)
+
+        # Add new import if not present
+        import_line = f"from humbldata.core.standard_models.{context}.{category}.{command} import {clean_name(command, case='PascalCase')}QueryParams"
+        if import_line not in content:
+            # Insert after first import
+            content = (
+                content[:first_import]
+                + import_line
+                + "\n"
+                + content[first_import:]
+            )
+
+        # Add new method if not present
+        method_def = f"    def {clean_name(command, case='snake_case')}(self, **kwargs: {clean_name(command, case='PascalCase')}QueryParams):"
+        if method_def not in content:
+            # Find last method in class
+            last_method_end = content.rfind("\n\n    def")
+            if last_method_end == -1:  # No methods found
+                last_method_end = content.find(
+                    "self.context_params = context_params"
+                ) + len("self.context_params = context_params")
+
+            # Find the end of the last method
+            next_method_start = content.find("\n    def", last_method_end + 1)
+            if next_method_start == -1:
+                method_insert_point = len(content)
+            else:
+                method_insert_point = next_method_start
+
+            # Add new method
+            new_method = f'''
+
+    def {clean_name(command, case="snake_case")}(self, **kwargs: {clean_name(command, case="PascalCase")}QueryParams):
+        """
+        Execute the {clean_name(command, case="PascalCase")} command.
+
+        Parameters
+        ----------
+        **kwargs : {clean_name(command, case="PascalCase")}QueryParams
+            The command-specific parameters.
+        """
+        try:
+            logger.debug(
+                "Initializing {clean_name(command, case="PascalCase")} calculation with params: %s",
+                kwargs,
+            )
+
+            from humbldata.core.standard_models.{context}.{category}.{command} import {clean_name(command, case="PascalCase")}Fetcher
+
+            # Instantiate the Fetcher with the query parameters
+            fetcher = {clean_name(command, case="PascalCase")}Fetcher(
+                context_params=self.context_params,
+                command_params=kwargs,
+            )
+
+            logger.debug("Fetching {clean_name(command, case="PascalCase")} data")
+            return fetcher.fetch_data()
+
+        except Exception as e:
+            logger.exception("Error calculating {clean_name(command, case="PascalCase")}")
+            msg = f"Failed to calculate {clean_name(command, case="PascalCase")}: {{e!s}}"
+            raise HumblDataError(msg) from e'''
+
+            content = (
+                content[:method_insert_point]
+                + new_method
+                + content[method_insert_point:]
+            )
+
+        # Update docstring to include new method if not present
+        class_doc_start = content.find('"""', content.find("class"))
+        class_doc_end = content.find('"""', class_doc_start + 3) + 3
+
+        methods_section = content.find(
+            "    Methods", class_doc_start, class_doc_end
+        )
+        if methods_section != -1:
+            methods_end = content.find("\n\n", methods_section)
+            if methods_end == -1:
+                methods_end = class_doc_end - 4  # Account for closing quotes
+
+            new_method_doc = f"""
+    {clean_name(command, case="snake_case")}(**kwargs: {clean_name(command, case="PascalCase")}QueryParams)
+        Execute the {clean_name(command, case="PascalCase")} command."""
+
+            if new_method_doc not in content:
+                content = (
+                    content[:methods_end]
+                    + new_method_doc
+                    + content[methods_end:]
+                )
+
+        # Write updated content back to file
+        write_file(file_path, content)
+    else:
+        # Create new file with initial content
+        content = f'''
 """Context: {clean_name(context, case="PascalCase")} || **Category: {clean_name(category, case="PascalCase")}**.
 
 A controller to manage and compile all of the {clean_name(category, case="PascalCase")} models
@@ -365,10 +460,12 @@ available in the `{clean_name(context)}` context. This will be passed as a
 `@property` to the `{clean_name(context)}()` class, giving access to the
 {clean_name(category, case="PascalCase")} module and its functions.
 """
-from humbldata.core.standard_models.{context.lower()} import {clean_name(context, case="PascalCase")}QueryParams
-from humbldata.core.standard_models.{context.lower()}.{category.lower()}.{clean_name(command, case="snake_case")} import (
-    {clean_name(command, case="PascalCase")}QueryParams,
-)
+from humbldata.core.standard_models.{context} import {clean_name(context, case="PascalCase")}QueryParams
+from humbldata.core.standard_models.{context}.{category}.{command} import {clean_name(command, case="PascalCase")}QueryParams
+from humbldata.core.standard_models.abstract.errors import HumblDataError
+from humbldata.core.utils.logger import setup_logger
+
+logger = setup_logger(__name__)
 
 
 class {clean_name(category, case="PascalCase")}:
@@ -382,9 +479,8 @@ class {clean_name(category, case="PascalCase")}:
 
     Methods
     -------
-    {clean_name(command, case="snake_case")}(command_params: {clean_name(command, case="PascalCase")}QueryParams)
+    {clean_name(command, case="snake_case")}(**kwargs: {clean_name(command, case="PascalCase")}QueryParams)
         Execute the {clean_name(command, case="PascalCase")} command.
-
     """
 
     def __init__(self, context_params: {clean_name(context, case="PascalCase")}QueryParams):
@@ -394,21 +490,34 @@ class {clean_name(category, case="PascalCase")}:
         """
         Execute the {clean_name(command, case="PascalCase")} command.
 
-        Explain the functionality...
+        Parameters
+        ----------
+        **kwargs : {clean_name(command, case="PascalCase")}QueryParams
+            The command-specific parameters.
         """
-        from humbldata.core.standard_models.{context.lower()}.{category.lower()}.{clean_name(command, case="snake_case")} import (
-            {clean_name(command, case="PascalCase")}Fetcher,
-        )
+        try:
+            logger.debug(
+                "Initializing {clean_name(command, case="PascalCase")} calculation with params: %s",
+                kwargs,
+            )
 
-        # Instantiate the Fetcher with the query parameters
-        fetcher = {clean_name(command, case="PascalCase")}Fetcher(
-            context_params=self.context_params, command_params=kwargs
-        )
+            from humbldata.core.standard_models.{context}.{category}.{command} import {clean_name(command, case="PascalCase")}Fetcher
 
-        # Use the fetcher to get the data
-        return fetcher.fetch_data()
+            # Instantiate the Fetcher with the query parameters
+            fetcher = {clean_name(command, case="PascalCase")}Fetcher(
+                context_params=self.context_params,
+                command_params=kwargs,
+            )
+
+            logger.debug("Fetching {clean_name(command, case="PascalCase")} data")
+            return fetcher.fetch_data()
+
+        except Exception as e:
+            logger.exception("Error calculating {clean_name(command, case="PascalCase")}")
+            msg = f"Failed to calculate {clean_name(command, case="PascalCase")}: {{e!s}}"
+            raise HumblDataError(msg) from e
 '''
-    write_file(file_path, content)
+        write_file(file_path, content)
 
     # Create __init__.py in the category directory if it doesn't exist
     init_file_path = file_path.parent / "__init__.py"
@@ -584,6 +693,7 @@ class {clean_name(command, case="PascalCase")}Data(Data):
         description="Description for example column",
     )
 
+
 class {clean_name(command, case="PascalCase")}Fetcher:
     """
     Fetcher for the {clean_name(command, case="PascalCase")} command.
@@ -603,6 +713,12 @@ class {clean_name(command, case="PascalCase")}Fetcher:
         Stores the command-specific parameters passed during initialization.
     data : pl.DataFrame
         The raw data extracted from the data provider, before transformation.
+    warnings : List[Warning_]
+        List of warnings generated during data processing.
+    extra : dict
+        Additional metadata or results from data processing.
+    chart : Optional[Chart]
+        Optional chart object for visualization.
 
     Methods
     -------
@@ -622,14 +738,16 @@ class {clean_name(command, case="PascalCase")}Fetcher:
             Serializable results.
         provider : Literal['fmp', 'intrinio', 'polygon', 'tiingo', 'yfinance']
             Provider name.
-        warnings : Optional[List[Warning_]]
-            List of warnings.
+        warnings : List[Warning_]
+            List of warnings from both context and command.
         chart : Optional[Chart]
             Chart object.
         context_params : {clean_name(context, case="PascalCase")}QueryParams
             Context-specific parameters.
         command_params : {clean_name(command, case="PascalCase")}QueryParams
             Command-specific parameters.
+        extra : dict
+            Additional metadata or results.
     """
 
     def __init__(
@@ -649,6 +767,9 @@ class {clean_name(command, case="PascalCase")}Fetcher:
         """
         self.context_params = context_params
         self.command_params = command_params
+        self.warnings = []
+        self.extra = {{}}
+        self.chart = None
 
     def transform_query(self):
         """
@@ -703,22 +824,37 @@ class {clean_name(command, case="PascalCase")}Fetcher:
         HumblObject
             The HumblObject containing the transformed data and metadata.
         """
+        logger.debug("Running .transform_query()")
         self.transform_query()
+        logger.debug("Running .extract_data()")
         self.extract_data()
+        logger.debug("Running .transform_data()")
         self.transform_data()
 
+        # Initialize warnings list if it doesn't exist
         if not hasattr(self.context_params, "warnings"):
             self.context_params.warnings = []
+
+        # Initialize fetcher warnings if they don't exist
+        if not hasattr(self, "warnings"):
+            self.warnings = []
+
+        # Initialize extra dict if it doesn't exist
+        if not hasattr(self, "extra"):
+            self.extra = {{}}
+
+        # Combine warnings from both sources
+        all_warnings = self.context_params.warnings + self.warnings
 
         return HumblObject(
             results=self.transformed_data,
             provider=self.context_params.provider,
-            warnings=self.context_params.warnings,
-            chart=None,
+            warnings=all_warnings,  # Use combined warnings
+            chart=self.chart,
             context_params=self.context_params,
             command_params=self.command_params,
+            extra=self.extra,  # pipe in extra from transform_data()
         )
-
 '''
     write_file(command_file_path, command_content)
 
@@ -948,6 +1084,14 @@ def main() -> None:
         generate_helpers(project_root, context, category, command)
 
     print("Files generated successfully!")
+
+
+if __name__ == "__main__":
+    main()
+
+
+if __name__ == "__main__":
+    main()
 
 
 if __name__ == "__main__":

@@ -158,7 +158,7 @@ class MandelbrotChannelQueryParams(QueryParams):
 
     @field_validator("window", mode="after", check_fields=False)
     @classmethod
-    def window_format(cls, v: str) -> str:
+    def window_format(cls, v) -> str:
         """
         Format the window string into a standardized format.
 
@@ -179,9 +179,9 @@ class MandelbrotChannelQueryParams(QueryParams):
         """
         if isinstance(v, str):
             return _window_format(v, _return_timedelta=False)
-        else:
-            msg = "Window must be a string."
-            raise ValueError(msg)
+
+        msg = "Window must be a string."
+        raise TypeError(msg)
 
 
 class MandelbrotChannelData(Data):
@@ -391,6 +391,9 @@ class MandelbrotChannelFetcher:
             self.chart = None
 
         self.transformed_data = self.transformed_data.serialize(format="binary")
+        self.equity_historical_data = self.equity_historical_data.serialize(
+            format="binary"
+        )
         return self
 
     @log_start_end(logger=logger)
@@ -405,9 +408,8 @@ class MandelbrotChannelFetcher:
 
         Returns
         -------
-        pl.DataFrame
-            The transformed data as a Polars DataFrame, ready for further analysis
-            or visualization.
+        HumblObject
+            The HumblObject containing the transformed data and metadata.
         """
         logger.debug("Running .transform_query()")
         self.transform_query()
@@ -416,15 +418,28 @@ class MandelbrotChannelFetcher:
         logger.debug("Running .transform_data()")
         self.transform_data()
 
+        # Initialize warnings list if it doesn't exist
         if not hasattr(self.context_params, "warnings"):
             self.context_params.warnings = []
 
+        # Initialize fetcher warnings if they don't exist
+        if not hasattr(self, "warnings"):
+            self.warnings = []
+
+        # Initialize extra dict if it doesn't exist
+        if not hasattr(self, "extra"):
+            self.extra = {}
+
+        # Combine warnings from both sources
+        all_warnings = self.context_params.warnings + self.warnings
+
         return HumblObject(
             results=self.transformed_data,
+            equity_data=self.equity_historical_data,
             provider=self.context_params.provider,
-            equity_data=self.equity_historical_data.serialize(),
-            warnings=self.context_params.warnings,
+            warnings=all_warnings,  # Use combined warnings
             chart=self.chart,
             context_params=self.context_params,
             command_params=self.command_params,
+            extra=self.extra,  # pipe in extra from transform_data()
         )
