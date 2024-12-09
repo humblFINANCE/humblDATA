@@ -275,6 +275,7 @@ class MomentumFetcher:
                 self.chart = generate_plots(
                     self.transformed_data,
                     self.equity_historical_data,
+                    method=self.command_params.method,
                     template=self.command_params.template,
                 )
             else:
