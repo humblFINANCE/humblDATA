@@ -391,6 +391,9 @@ class MandelbrotChannelFetcher:
             self.chart = None
 
         self.transformed_data = self.transformed_data.serialize(format="binary")
+        self.equity_historical_data = self.equity_historical_data.serialize(
+            format="binary"
+        )
         return self
 
     @log_start_end(logger=logger)
@@ -432,6 +435,7 @@ class MandelbrotChannelFetcher:
 
         return HumblObject(
             results=self.transformed_data,
+            equity_data=self.equity_historical_data,
             provider=self.context_params.provider,
             warnings=all_warnings,  # Use combined warnings
             chart=self.chart,
