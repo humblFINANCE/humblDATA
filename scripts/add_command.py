@@ -369,7 +369,7 @@ def generate_category_controller(
             )
 
         # Add new method if not present
-        method_def = f"    def {clean_name(command, case='snake_case')}(self, command_params: {clean_name(command, case='PascalCase')}QueryParams | None = None):"
+        method_def = f"    def {clean_name(command, case='snake_case')}(self, **kwargs: {clean_name(command, case='PascalCase')}QueryParams):"
         if method_def not in content:
             # Find last method in class
             last_method_end = content.rfind("\n\n    def")
@@ -388,30 +388,27 @@ def generate_category_controller(
             # Add new method
             new_method = f'''
 
-    def {clean_name(command, case="snake_case")}(self, command_params: {clean_name(command, case="PascalCase")}QueryParams | None = None):
+    def {clean_name(command, case="snake_case")}(self, **kwargs: {clean_name(command, case="PascalCase")}QueryParams):
         """
         Execute the {clean_name(command, case="PascalCase")} command.
 
         Parameters
         ----------
-        command_params : {clean_name(command, case="PascalCase")}QueryParams | None
+        **kwargs : {clean_name(command, case="PascalCase")}QueryParams
             The command-specific parameters.
         """
         try:
             logger.debug(
                 "Initializing {clean_name(command, case="PascalCase")} calculation with params: %s",
-                command_params,
+                kwargs,
             )
 
             from humbldata.core.standard_models.{context}.{category}.{command} import {clean_name(command, case="PascalCase")}Fetcher
 
-            if command_params is None:
-                command_params = {clean_name(command, case="PascalCase")}QueryParams()
-
             # Instantiate the Fetcher with the query parameters
             fetcher = {clean_name(command, case="PascalCase")}Fetcher(
                 context_params=self.context_params,
-                command_params=command_params
+                command_params=kwargs,
             )
 
             logger.debug("Fetching {clean_name(command, case="PascalCase")} data")
@@ -441,7 +438,7 @@ def generate_category_controller(
                 methods_end = class_doc_end - 4  # Account for closing quotes
 
             new_method_doc = f"""
-    {clean_name(command, case="snake_case")}(command_params: {clean_name(command, case="PascalCase")}QueryParams)
+    {clean_name(command, case="snake_case")}(**kwargs: {clean_name(command, case="PascalCase")}QueryParams)
         Execute the {clean_name(command, case="PascalCase")} command."""
 
             if new_method_doc not in content:
@@ -482,37 +479,34 @@ class {clean_name(category, case="PascalCase")}:
 
     Methods
     -------
-    {clean_name(command, case="snake_case")}(command_params: {clean_name(command, case="PascalCase")}QueryParams)
+    {clean_name(command, case="snake_case")}(**kwargs: {clean_name(command, case="PascalCase")}QueryParams)
         Execute the {clean_name(command, case="PascalCase")} command.
     """
 
     def __init__(self, context_params: {clean_name(context, case="PascalCase")}QueryParams):
         self.context_params = context_params
 
-    def {clean_name(command, case="snake_case")}(self, command_params: {clean_name(command, case="PascalCase")}QueryParams | None = None):
+    def {clean_name(command, case="snake_case")}(self, **kwargs: {clean_name(command, case="PascalCase")}QueryParams):
         """
         Execute the {clean_name(command, case="PascalCase")} command.
 
         Parameters
         ----------
-        command_params : {clean_name(command, case="PascalCase")}QueryParams | None
+        **kwargs : {clean_name(command, case="PascalCase")}QueryParams
             The command-specific parameters.
         """
         try:
             logger.debug(
                 "Initializing {clean_name(command, case="PascalCase")} calculation with params: %s",
-                command_params,
+                kwargs,
             )
 
             from humbldata.core.standard_models.{context}.{category}.{command} import {clean_name(command, case="PascalCase")}Fetcher
 
-            if command_params is None:
-                command_params = {clean_name(command, case="PascalCase")}QueryParams()
-
             # Instantiate the Fetcher with the query parameters
             fetcher = {clean_name(command, case="PascalCase")}Fetcher(
                 context_params=self.context_params,
-                command_params=command_params
+                command_params=kwargs,
             )
 
             logger.debug("Fetching {clean_name(command, case="PascalCase")} data")
