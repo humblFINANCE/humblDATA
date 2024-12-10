@@ -18,17 +18,17 @@ class HumblChannelSingleLong(Strategy):
     parameters: ClassVar[dict[str, Any]] = {
         "symbol": "SPY",
         "quantity": 1,
-        "buy_threshold_pct": 0.02,  # 2% threshold
-        "sell_threshold_pct": 0.02,  # 2% threshold
+        "buy_threshold_pct": 0.005,  # 2% threshold
+        "sell_threshold_pct": 0.001,  # 2% threshold
     }
 
     def initialize(self):
-        self.sleeptime = "1H"
+        self.sleeptime = "1D"
 
     def before_market_opens(self):
         current_date = self.get_round_day()
         # current_date = self.get_datetime().strftime("%Y-%m-%d")
-        self.log_message(f"Current Trading Day: {current_date}", color="blue")
+        # self.log_message(f"Current Trading Day: {current_date}", color="blue")
 
         # Calculates the humblCHANNEL from 2000-01-01 to current date, returns only one observation
         self.vars.daily_humbl_channel = (
@@ -49,51 +49,53 @@ class HumblChannelSingleLong(Strategy):
             .to_polars()
         )
 
-        self.log_message(
-            f"HumblChannel Bottom Price: {self.vars.daily_humbl_channel.select('bottom_price')}",
-            color="blue",
-        )
-        self.log_message(
-            f"HumblChannel Top Price: {self.vars.daily_humbl_channel.select('top_price')}",
-            color="blue",
-        )
+        # self.log_message(
+        #     f"HumblChannel Bottom Price: {self.vars.daily_humbl_channel.select('bottom_price')}",
+        #     color="blue",
+        # )
+        # self.log_message(
+        #     f"HumblChannel Top Price: {self.vars.daily_humbl_channel.select('top_price')}",
+        #     color="blue",
+        # )
 
     def on_trading_iteration(self):
         symbol = self.parameters["symbol"]
-        quantity = self.parameters["quantity"]
+        cash = self.get_cash()
 
         # Get current price and position
         current_price = self.get_last_price(symbol)
         position = self.get_position(symbol)
 
         # Get bottom and top prices from HumblChannel
-        bottom_price = self.vars.daily_humbl_channel.select("bottom_price")
-        top_price = self.vars.daily_humbl_channel.select("top_price")
+        bottom_price = self.vars.daily_humbl_channel.select("bottom_price").row(
+            0
+        )[0]
+        top_price = self.vars.daily_humbl_channel.select("top_price").row(0)[0]
 
         # Calculate price differences as percentages
         bottom_diff_pct = abs(current_price - bottom_price) / bottom_price
         top_diff_pct = abs(current_price - top_price) / top_price
 
-        # Buy logic - price near bottom and no position
-        if bottom_diff_pct <= self.parameters["buy_threshold_pct"]:
-            order = self.create_order(symbol, quantity, "buy")
-            self.submit_order(order)
-            self.log_message(
-                f"Buy {symbol} at {current_price} (Bottom: {bottom_price})",
-                color="green",
-            )
-
-        # Sell logic - price near top and has position
-        elif (
+        # First check sell condition - if we have a position and price is near top
+        if (
             position is not None
-            and top_diff_pct <= self.parameters["sell_threshold_pct"]
+            and abs(top_diff_pct) <= self.parameters["sell_threshold_pct"]
         ):
-            order = self.create_order(symbol, quantity, "sell")
+            # Sell all shares
+            order = self.create_order(symbol, position.quantity, "sell")
             self.submit_order(order)
-            self.log_message(
-                f"Sell {symbol} at {current_price} (Top: {top_price})",
-                color="red",
-            )
+            return  # Exit to prevent buy on same day
+
+        # Then check buy condition - if we have no position and price is near bottom
+        if (
+            position is None
+            and abs(bottom_diff_pct) <= self.parameters["buy_threshold_pct"]
+        ):
+            # Calculate maximum shares we can buy with available cash
+            max_shares = int(cash / current_price)
+            if max_shares > 0:
+                order = self.create_order(symbol, max_shares, "buy")
+                self.submit_order(order)
 
 
 if __name__ == "__main__":
@@ -123,8 +125,8 @@ if __name__ == "__main__":
 
     else:
         # Run backtest
-        backtesting_start = datetime(2023, 1, 1)
-        backtesting_end = datetime(2024, 1, 1)
+        backtesting_start = datetime(2010, 1, 1)
+        backtesting_end = datetime(2024, 12, 10)
 
         results = HumblChannelSingleLong.backtest(
             YahooDataBacktesting,
@@ -132,7 +134,6 @@ if __name__ == "__main__":
             backtesting_end,
             parameters={
                 "symbol": "SPY",
-                "quantity": 1,
             },
             benchmark_asset="SPY",
         )
