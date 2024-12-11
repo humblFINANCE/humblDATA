@@ -6,10 +6,19 @@ available in the `toolbox` context. This will be passed as a
 Fundamental module and its functions.
 """
 
+from humbldata.core.standard_models.abstract.errors import HumblDataError
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
 from humbldata.core.standard_models.toolbox.fundamental.humbl_compass import (
     HumblCompassQueryParams,
 )
+from humbldata.core.standard_models.toolbox.fundamental.humbl_compass_backtest import (
+    HumblCompassBacktestQueryParams,
+)
+from humbldata.core.utils.env import Env
+from humbldata.core.utils.logger import setup_logger
+
+env = Env()
+logger = setup_logger("FundamentalController", env.LOGGER_LEVEL)
 
 
 class Fundamental:
@@ -30,6 +39,39 @@ class Fundamental:
 
     def __init__(self, context_params: ToolboxQueryParams):
         self.context_params = context_params
+
+    def humbl_compass_backtest(self, **kwargs: HumblCompassBacktestQueryParams):
+        """
+        Execute the HumblCompassBacktest command.
+
+        Parameters
+        ----------
+        **kwargs : HumblCompassBacktestQueryParams
+            The command-specific parameters.
+        """
+        try:
+            logger.debug(
+                "Initializing HumblCompassBacktest calculation with params: %s",
+                kwargs,
+            )
+
+            from humbldata.core.standard_models.toolbox.fundamental.humbl_compass_backtest import (
+                HumblCompassBacktestFetcher,
+            )
+
+            # Instantiate the Fetcher with the query parameters
+            fetcher = HumblCompassBacktestFetcher(
+                context_params=self.context_params,
+                command_params=kwargs,
+            )
+
+            logger.debug("Fetching HumblCompassBacktest data")
+            return fetcher.fetch_data()
+
+        except Exception as e:
+            logger.exception("Error calculating HumblCompassBacktest")
+            msg = f"Failed to calculate HumblCompassBacktest: {e!s}"
+            raise HumblDataError(msg) from e
 
     def humbl_compass(self, **kwargs):
         """
