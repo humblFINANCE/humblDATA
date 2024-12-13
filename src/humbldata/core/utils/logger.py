@@ -55,6 +55,7 @@ def setup_logger(name: str, level: int = logging.INFO) -> logging.Logger:
             level=level,
             logger=logger,
             fmt="%(levelname)s: %(name)s || %(message)s",
+            isatty=True,
             level_styles={
                 "debug": {"color": "green"},
                 "info": {"color": "blue"},
