@@ -1,3 +1,17 @@
+## v1.14.0 (2025-02-10)
+
+### ✨ Features
+
+- **humbl_compass**: added .backtest() method
+- **logger**: enable isatty option in logger setup for improved output formatting
+- **logger**: enable isatty option in logger setup for improved output formatting
+- **strategy**: add HumblChannelSingleLong trading strategy
+
+### 🐛🚑️ Fixes
+
+- removed uneeded imports
+- **lumibot**: installing lumibot from git branch that still uses pip
+
 ## v1.13.0 (2024-12-09)
 
 ### ✨ Features
