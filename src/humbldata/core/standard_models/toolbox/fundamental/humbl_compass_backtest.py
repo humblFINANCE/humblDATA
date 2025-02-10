@@ -23,7 +23,6 @@ from humbldata.core.standard_models.abstract.query_params import QueryParams
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
 from humbldata.core.utils.env import Env
 from humbldata.core.utils.logger import log_start_end, setup_logger
-from humbldata.toolbox.toolbox_controller import Toolbox
 from humbldata.toolbox.toolbox_helpers import _window_format
 
 env = Env()
@@ -240,6 +239,7 @@ class HumblCompassBacktestFetcher:
         self,
         context_params: ToolboxQueryParams,
         command_params: HumblCompassBacktestQueryParams,
+        compass_data: pl.DataFrame | pl.LazyFrame | None = None,
     ):
         """
         Initialize the HumblCompassBacktestFetcher with context and command parameters.
@@ -250,9 +250,12 @@ class HumblCompassBacktestFetcher:
             The context parameters for the Toolbox query.
         command_params : HumblCompassBacktestQueryParams
             The command-specific parameters for the HumblCompassBacktest query.
+        compass_data : pl.DataFrame | None
+            Optional pre-computed compass data to use instead of fetching it.
         """
         self.context_params = context_params
         self.command_params = command_params
+        self.compass_data = compass_data
         self.warnings = []
         self.extra = {}
         self.chart = None
@@ -264,12 +267,13 @@ class HumblCompassBacktestFetcher:
         If command_params is not provided, it initializes a default
         HumblCompassBacktestQueryParams object.
         """
-        if not self.command_params:
-            self.command_params = HumblCompassBacktestQueryParams()
-        else:
-            self.command_params = HumblCompassBacktestQueryParams(
-                **self.command_params
-            )
+        if not isinstance(self.command_params, HumblCompassBacktestQueryParams):
+            if self.command_params:
+                self.command_params = HumblCompassBacktestQueryParams(
+                    **self.command_params
+                )
+            else:
+                self.command_params = HumblCompassBacktestQueryParams()
 
     def extract_data(self):
         """
@@ -280,16 +284,25 @@ class HumblCompassBacktestFetcher:
         self
             Returns self for method chaining.
         """
-        # Get COMPASS data
-        toolbox = Toolbox(
-            start_date=self.command_params.start_date,
-            end_date=self.command_params.end_date,
-            membership="admin",
-        )
-        self.humbl_compass_data = toolbox.fundamental.humbl_compass(
-            country=self.command_params.country,
-            z_score=None,
-        ).to_polars(collect=False)
+        # Use existing compass data if provided
+        if self.compass_data is None:
+            # Import here to avoid circular import
+            from humbldata.core.standard_models.toolbox.fundamental.humbl_compass import (
+                HumblCompassFetcher,
+                HumblCompassQueryParams,
+            )
+
+            # Get compass data through the proper fetcher
+            compass_params = HumblCompassQueryParams(
+                country=self.command_params.country,
+            )
+            compass_fetcher = HumblCompassFetcher(
+                self.context_params, compass_params
+            )
+            compass_results = compass_fetcher.fetch_data()
+            self.humbl_compass_data = compass_results.to_polars(collect=True)
+        else:
+            self.humbl_compass_data = self.compass_data
 
         # Get equity data
         self.equity_data = (
@@ -313,8 +326,8 @@ class HumblCompassBacktestFetcher:
         self
             Returns self for method chaining.
         """
-        equity = self.equity_data
-        compass = self.humbl_compass_data
+        equity = self.equity_data.lazy()
+        compass = self.humbl_compass_data.lazy()
 
         window_days = _window_format(
             self.command_params.vol_window,
@@ -494,7 +507,12 @@ class HumblCompassBacktestFetcher:
         )
 
         # Store transformed data
-        self.transformed_data = HumblCompassBacktestData(final_summary)
+        self.transformed_data = (
+            HumblCompassBacktestData(final_summary)
+            .lazy()
+            .serialize(format="binary")
+        )
+        self.equity_data = self.equity_data.serialize(format="binary")
         return self
 
     @log_start_end(logger=logger)
@@ -537,6 +555,7 @@ class HumblCompassBacktestFetcher:
         return HumblObject(
             results=self.transformed_data,
             provider=self.context_params.provider,
+            equity_data=self.equity_data,
             warnings=all_warnings,  # Use combined warnings
             chart=self.chart,
             context_params=self.context_params,

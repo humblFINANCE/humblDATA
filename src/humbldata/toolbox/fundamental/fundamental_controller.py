@@ -100,13 +100,34 @@ class Fundamental:
             HumblCompassQueryParams,
         )
 
-        # Convert kwargs to HumblCompassQueryParams
+        # Convert kwargs to query params and instantiate fetcher.
         command_params = HumblCompassQueryParams(**kwargs)
-
-        # Instantiate the Fetcher with the query parameters
         fetcher = HumblCompassFetcher(
             context_params=self.context_params, command_params=command_params
         )
+        # Get the result which is a HumblObject (with its serialized data),
+        # and which also has stored raw transformed data in fetcher._raw_transformed_df.
+        result = fetcher.fetch_data()
 
-        # Use the fetcher to get the data
-        return fetcher.fetch_data()
+        # Capture the raw transformed data needed for backtest.
+        raw_transformed = fetcher._raw_transformed_df
+
+        # Attach a backtest method to the result.
+        def backtest(**backtest_kwargs):
+            from humbldata.core.standard_models.toolbox.fundamental.humbl_compass_backtest import (
+                HumblCompassBacktestFetcher,
+                HumblCompassBacktestQueryParams,
+            )
+
+            # Use backtest_kwargs to create backtest command parameters.
+            bt_params = HumblCompassBacktestQueryParams(**backtest_kwargs)
+            bt_fetcher = HumblCompassBacktestFetcher(
+                context_params=self.context_params,
+                command_params=bt_params,
+                compass_data=raw_transformed,
+            )
+            return bt_fetcher.fetch_data()
+
+        # Now you can chain: result.backtest(symbols=["SPY"])
+        result.backtest = backtest
+        return result
