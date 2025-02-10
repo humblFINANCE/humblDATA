@@ -48,6 +48,8 @@ class Toolbox(ToolboxQueryParams):
         The end date for the data query.
     provider : str, optional
         The provider to use for the data query. Defaults to 'yfinance'.
+    membership : str, optional
+        The membership level of the user. Defaults to 'anonymous'.
 
     Parameter Notes
     -----
