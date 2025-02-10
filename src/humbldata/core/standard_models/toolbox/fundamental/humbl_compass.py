@@ -567,6 +567,8 @@ class HumblCompassFetcher:
         Transforms the command-specific data according to the HumblCompass logic.
     fetch_data()
         Execute TET Pattern.
+    backtest(**kwargs)
+        Execute backtest calculations on the compass data using additional parameters.
 
     Returns
     -------
@@ -872,12 +874,15 @@ class HumblCompassFetcher:
                 ]
             )
 
-        self.transformed_data = transformed_data.select(columns_to_select)
+        transformed_data = transformed_data.select(columns_to_select)
 
-        # Validate the data using HumblCompassData
-        self.transformed_data = HumblCompassData(
-            self.transformed_data.collect().drop_nulls()  # removes preceding 3 months used for delta calculations
-        ).lazy()
+        # Validate the data using HumblCompassData and collect result BEFORE serialization.
+        raw_data = (
+            transformed_data.collect().drop_nulls()
+        )  # <-- keep raw data for backtest
+        self._raw_transformed_df = raw_data  # store raw transformed data
+
+        self.transformed_data = HumblCompassData(raw_data).lazy()
 
         # Generate chart if requested
         self.chart = None
@@ -923,6 +928,7 @@ class HumblCompassFetcher:
                     recommendations.model_dump()
                 )
 
+        # Finally, serialize final transformed data.
         self.transformed_data = self.transformed_data.serialize(format="binary")
         return self
 

@@ -9,9 +9,7 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
-    PrivateAttr,
     SerializeAsAny,
-    field_validator,
 )
 
 from humbldata.core.standard_models.abstract.chart import Chart
@@ -56,7 +54,7 @@ class HumblObject(Tagged, Generic[T]):
     _user_settings: ClassVar[BaseModel | None] = None
     _system_settings: ClassVar[BaseModel | None] = None
 
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    model_config = ConfigDict(arbitrary_types_allowed=True, extra="allow")
 
     results: T | None = Field(
         default=None,
