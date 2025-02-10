@@ -310,7 +310,7 @@ class HumblCompassBacktestFetcher:
                 symbol=self.command_params.symbols,
                 start_date=self.command_params.start_date,
                 end_date=self.command_params.end_date,
-                provider="fmp",
+                provider="yfinance",
             )
             .to_polars()
             .lazy()
