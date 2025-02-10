@@ -54,6 +54,16 @@ class Env(metaclass=SingletonMeta):
     def OBB_LOGGED_IN(self) -> bool:
         return self.str2bool(self._environ.get("OBB_LOGGED_IN", False))
 
+    @property
+    def ALPACA_API_KEY(self) -> str | None:  # noqa: N802
+        """Alpaca API Key."""
+        return self._environ.get("ALPACA_API_KEY", None)
+
+    @property
+    def ALPACA_API_SECRET(self) -> str | None:  # noqa: N802
+        """Alpaca API Secret."""
+        return self._environ.get("ALPACA_API_SECRET", None)
+
     @staticmethod
     def str2bool(value: str | bool) -> bool:
         """Match a value to its boolean correspondent.

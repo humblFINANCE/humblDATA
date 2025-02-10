@@ -6,10 +6,19 @@ available in the `toolbox` context. This will be passed as a
 Fundamental module and its functions.
 """
 
+from humbldata.core.standard_models.abstract.errors import HumblDataError
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
 from humbldata.core.standard_models.toolbox.fundamental.humbl_compass import (
     HumblCompassQueryParams,
 )
+from humbldata.core.standard_models.toolbox.fundamental.humbl_compass_backtest import (
+    HumblCompassBacktestQueryParams,
+)
+from humbldata.core.utils.env import Env
+from humbldata.core.utils.logger import setup_logger
+
+env = Env()
+logger = setup_logger("FundamentalController", env.LOGGER_LEVEL)
 
 
 class Fundamental:
@@ -30,6 +39,39 @@ class Fundamental:
 
     def __init__(self, context_params: ToolboxQueryParams):
         self.context_params = context_params
+
+    def humbl_compass_backtest(self, **kwargs: HumblCompassBacktestQueryParams):
+        """
+        Execute the HumblCompassBacktest command.
+
+        Parameters
+        ----------
+        **kwargs : HumblCompassBacktestQueryParams
+            The command-specific parameters.
+        """
+        try:
+            logger.debug(
+                "Initializing HumblCompassBacktest calculation with params: %s",
+                kwargs,
+            )
+
+            from humbldata.core.standard_models.toolbox.fundamental.humbl_compass_backtest import (
+                HumblCompassBacktestFetcher,
+            )
+
+            # Instantiate the Fetcher with the query parameters
+            fetcher = HumblCompassBacktestFetcher(
+                context_params=self.context_params,
+                command_params=kwargs,
+            )
+
+            logger.debug("Fetching HumblCompassBacktest data")
+            return fetcher.fetch_data()
+
+        except Exception as e:
+            logger.exception("Error calculating HumblCompassBacktest")
+            msg = f"Failed to calculate HumblCompassBacktest: {e!s}"
+            raise HumblDataError(msg) from e
 
     def humbl_compass(self, **kwargs):
         """
@@ -58,13 +100,34 @@ class Fundamental:
             HumblCompassQueryParams,
         )
 
-        # Convert kwargs to HumblCompassQueryParams
+        # Convert kwargs to query params and instantiate fetcher.
         command_params = HumblCompassQueryParams(**kwargs)
-
-        # Instantiate the Fetcher with the query parameters
         fetcher = HumblCompassFetcher(
             context_params=self.context_params, command_params=command_params
         )
+        # Get the result which is a HumblObject (with its serialized data),
+        # and which also has stored raw transformed data in fetcher._raw_transformed_df.
+        result = fetcher.fetch_data()
 
-        # Use the fetcher to get the data
-        return fetcher.fetch_data()
+        # Capture the raw transformed data needed for backtest.
+        raw_transformed = fetcher._raw_transformed_df
+
+        # Attach a backtest method to the result.
+        def backtest(**backtest_kwargs):
+            from humbldata.core.standard_models.toolbox.fundamental.humbl_compass_backtest import (
+                HumblCompassBacktestFetcher,
+                HumblCompassBacktestQueryParams,
+            )
+
+            # Use backtest_kwargs to create backtest command parameters.
+            bt_params = HumblCompassBacktestQueryParams(**backtest_kwargs)
+            bt_fetcher = HumblCompassBacktestFetcher(
+                context_params=self.context_params,
+                command_params=bt_params,
+                compass_data=raw_transformed,
+            )
+            return bt_fetcher.fetch_data()
+
+        # Now you can chain: result.backtest(symbols=["SPY"])
+        result.backtest = backtest
+        return result
