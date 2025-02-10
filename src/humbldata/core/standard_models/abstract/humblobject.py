@@ -9,9 +9,7 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
-    PrivateAttr,
     SerializeAsAny,
-    field_validator,
 )
 
 from humbldata.core.standard_models.abstract.chart import Chart
