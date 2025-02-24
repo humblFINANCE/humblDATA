@@ -37,7 +37,10 @@ from pydantic import Field, field_validator, model_validator
 
 from humbldata.core.standard_models.abstract.data import Data
 from humbldata.core.standard_models.abstract.query_params import QueryParams
-from humbldata.core.standard_models.abstract.warnings import HumblDataWarning
+from humbldata.core.standard_models.abstract.warnings import (
+    HumblDataWarning,
+    create_warning,
+)
 from humbldata.core.utils.constants import OBB_EQUITY_PRICE_HISTORICAL_PROVIDERS
 from humbldata.core.utils.descriptions import (
     DATA_DESCRIPTIONS,
@@ -287,7 +290,7 @@ class ToolboxQueryParams(QueryParams):
             if not hasattr(self, "warnings"):
                 self.warnings = []
             self.warnings.append(
-                HumblDataWarning(
+                create_warning(
                     category="ToolboxQueryParams",
                     message=warning_msg,
                 )

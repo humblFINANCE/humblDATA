@@ -37,10 +37,12 @@ from humbldata.toolbox.toolbox_helpers import (
     range_,
     std,
 )
+from humbldata.core.standard_models.abstract.warnings import collect_warnings
 
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 
+@collect_warnings
 def calc_mandelbrot_channel(  # noqa: PLR0913
     data: pl.DataFrame | pl.LazyFrame,
     window: str = "1m",
@@ -61,7 +63,7 @@ def calc_mandelbrot_channel(  # noqa: PLR0913
     rs_method: Literal["RS", "RS_mean", "RS_max", "RS_min"] = "RS",
     *,
     rv_adjustment: bool = True,
-    rv_grouped_mean: bool = True,
+    rv_grouped_mean: bool = False,
     live_price: bool = True,
     **kwargs,
 ) -> pl.LazyFrame:
@@ -82,9 +84,9 @@ def calc_mandelbrot_channel(  # noqa: PLR0913
         Adjusts the calculation for realized volatility. If True, filters the
         data to include only observations within the current volatility bucket
         of the stock.
-    rv_grouped_mean: bool, default True
+    rv_grouped_mean: bool, default False
         Determines whether to use the grouped mean in the realized volatility
-        calculation.
+        calculation. If False, no grouped mean is used.
     rv_method: str, default "std"
         Specifies the method for calculating realized volatility, applicable
         only if `rv_adjustment` is True.
@@ -165,7 +167,7 @@ def calc_mandelbrot_channel(  # noqa: PLR0913
             data=data7,
             window=window,
             method=rv_method,
-            grouped_mean=rv_grouped_mean,
+            grouped_mean=None if not rv_grouped_mean else [1, 5, 10],
         )
         # rename col for easy selection
         for col in data7.collect_schema().names():
