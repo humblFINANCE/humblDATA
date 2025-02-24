@@ -8,7 +8,7 @@ Mandelbrot Channel command.
 """
 
 import datetime as dt
-from typing import Literal, TypeVar
+from typing import Literal, TypeVar, List
 
 import pandera.polars as pa
 import polars as pl
@@ -27,6 +27,10 @@ from humbldata.toolbox.technical.mandelbrot_channel.model import (
 )
 from humbldata.toolbox.technical.mandelbrot_channel.view import generate_plots
 from humbldata.toolbox.toolbox_helpers import _window_format
+from humbldata.core.standard_models.abstract.warnings import (
+    collect_warnings,
+    Warning_,
+)
 
 env = Env()
 Q = TypeVar("Q", bound=ToolboxQueryParams)
@@ -297,6 +301,8 @@ class MandelbrotChannelFetcher:
         """
         self.context_params = context_params
         self.command_params = command_params
+        self.warnings: list[Warning_] = []  # Initialize warnings list
+        self.extra = {}  # Initialize extra dict
 
     def transform_query(self):
         """
@@ -305,14 +311,12 @@ class MandelbrotChannelFetcher:
         If command_params is not provided, it initializes a default MandelbrotChannelQueryParams object.
         """
         if not self.command_params:
-            self.command_params = None
             # Set Default Arguments
-            self.command_params: MandelbrotChannelQueryParams = (
-                MandelbrotChannelQueryParams()
-            )
-        else:
-            self.command_params: MandelbrotChannelQueryParams = (
-                MandelbrotChannelQueryParams(**self.command_params)
+            self.command_params = MandelbrotChannelQueryParams()
+        elif not isinstance(self.command_params, MandelbrotChannelQueryParams):
+            # If it's a dict, convert it to MandelbrotChannelQueryParams
+            self.command_params = MandelbrotChannelQueryParams(
+                **(self.command_params or {})
             )
 
     def extract_data(self):
@@ -346,6 +350,7 @@ class MandelbrotChannelFetcher:
             )
         return self
 
+    @collect_warnings
     def transform_data(self):
         """
         Transform the command-specific data according to the Mandelbrot Channel logic.
@@ -421,14 +426,6 @@ class MandelbrotChannelFetcher:
         # Initialize warnings list if it doesn't exist
         if not hasattr(self.context_params, "warnings"):
             self.context_params.warnings = []
-
-        # Initialize fetcher warnings if they don't exist
-        if not hasattr(self, "warnings"):
-            self.warnings = []
-
-        # Initialize extra dict if it doesn't exist
-        if not hasattr(self, "extra"):
-            self.extra = {}
 
         # Combine warnings from both sources
         all_warnings = self.context_params.warnings + self.warnings

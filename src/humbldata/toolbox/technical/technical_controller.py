@@ -164,7 +164,7 @@ class Technical:
             # Instantiate the Fetcher with the query parameters
             fetcher = MandelbrotChannelFetcher(
                 context_params=self.context_params,
-                command_params=kwargs,
+                command_params=kwargs,  # Pass kwargs directly, the Fetcher will handle conversion
             )
 
             logger.debug("Fetching Mandelbrot Channel data")
