@@ -1,3 +1,9 @@
+## v1.15.0 (2025-02-24)
+
+### ✨ Features
+
+- **warnings**: enhance warning collection and handling mechanism
+
 ## v1.14.0 (2025-02-10)
 
 ### ✨ Features
