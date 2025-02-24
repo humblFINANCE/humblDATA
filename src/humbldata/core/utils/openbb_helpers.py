@@ -136,9 +136,27 @@ def get_latest_price(
             .rename({"last_price": "recent_price"})
             .lazy()
         )
-    except pl.exceptions.ColumnNotFoundError as e:
+    except pl.exceptions.ColumnNotFoundError:
         logger.warning(
-            f"Failed to get latest price for {symbols}. Using latest close instead."
+            f"Failed to get latest price for {symbols} using {provider}, trying fmp..."
+        )
+        try:
+            obb.account.login(pat=Env().OBB_PAT, remember_me=True)
+            return (
+                obb.equity.price.quote(symbols, provider="fmp")
+                .to_polars()
+                .select(["symbol", "last_price"])
+                .rename({"last_price": "recent_price"})
+                .lazy()
+            )
+        except Exception as e:
+            logger.exception(
+                f"Failed to get latest price using fmp. Error: {e!s}"
+            )
+            return None
+    except Exception as e:
+        logger.exception(
+            f"Failed to get latest price using {provider}. Error: {e!s}"
         )
         return None
 
