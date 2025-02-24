@@ -1,3 +1,9 @@
+## v1.15.1 (2025-02-24)
+
+### 🐛🚑️ Fixes
+
+- **warnings**: prevent duplicate warnings and improve warning messages
+
 ## v1.15.0 (2025-02-24)
 
 ### ✨ Features
