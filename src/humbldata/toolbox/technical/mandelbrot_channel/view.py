@@ -1,5 +1,3 @@
-from typing import List
-
 import plotly
 import plotly.graph_objs as go
 import polars as pl

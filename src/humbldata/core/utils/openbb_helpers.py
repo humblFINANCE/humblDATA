@@ -22,6 +22,10 @@ from humbldata.core.utils.constants import (
 )
 from humbldata.core.utils.env import Env
 from humbldata.core.utils.logger import setup_logger
+from humbldata.core.standard_models.abstract.warnings import (
+    collect_warnings,
+    HumblDataWarning,
+)
 
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
@@ -85,6 +89,7 @@ def obb_login(pat: str | None = None) -> bool:
         return False
 
 
+@collect_warnings
 def get_latest_price(
     symbol: str | list[str] | pl.Series,
     provider: OBB_EQUITY_PRICE_QUOTE_PROVIDERS | None = "yfinance",
@@ -136,9 +141,43 @@ def get_latest_price(
             .rename({"last_price": "recent_price"})
             .lazy()
         )
-    except pl.exceptions.ColumnNotFoundError as e:
-        logger.warning(
-            f"Failed to get latest price for {symbols}. Using latest close instead."
+    except pl.exceptions.ColumnNotFoundError:
+        warning_message = f"Failed to get latest price for {symbols} using {provider}, trying fmp..."
+        logger.warning(warning_message)
+        warnings.warn(
+            warning_message,
+            category=HumblDataWarning,
+            stacklevel=1,
+        )
+        try:
+            obb.account.login(pat=Env().OBB_PAT, remember_me=True)
+            return (
+                obb.equity.price.quote(symbols, provider="fmp")
+                .to_polars()
+                .select(["symbol", "last_price"])
+                .rename({"last_price": "recent_price"})
+                .lazy()
+            )
+        except Exception as e:
+            error_message = (
+                f"Failed to get latest price using fmp. Error: {e!s}"
+            )
+            logger.exception(error_message)
+            warnings.warn(
+                error_message,
+                category=HumblDataWarning,
+                stacklevel=1,
+            )
+            return None
+    except Exception as e:
+        error_message = (
+            f"Failed to get latest price using {provider}. Error: {e!s}"
+        )
+        logger.exception(error_message)
+        warnings.warn(
+            error_message,
+            category=HumblDataWarning,
+            stacklevel=1,
         )
         return None
 

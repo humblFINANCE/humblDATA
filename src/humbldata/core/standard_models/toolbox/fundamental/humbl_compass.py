@@ -20,7 +20,10 @@ from humbldata.core.standard_models.abstract.chart import ChartTemplate
 from humbldata.core.standard_models.abstract.data import Data
 from humbldata.core.standard_models.abstract.humblobject import HumblObject
 from humbldata.core.standard_models.abstract.query_params import QueryParams
-from humbldata.core.standard_models.abstract.warnings import HumblDataWarning
+from humbldata.core.standard_models.abstract.warnings import (
+    HumblDataWarning,
+    create_warning,
+)
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
 from humbldata.core.utils.env import Env
 from humbldata.core.utils.logger import log_start_end, setup_logger
@@ -897,7 +900,7 @@ class HumblCompassFetcher:
             if not hasattr(self, "warnings"):
                 self.warnings = []
             self.warnings.append(
-                HumblDataWarning(
+                create_warning(
                     category="HumblCompassFetcher",
                     message="Z-score defaulted to None. No z-score data will be calculated.",
                 )
@@ -915,7 +918,7 @@ class HumblCompassFetcher:
                 if not hasattr(self, "warnings"):
                     self.warnings = []
                 self.warnings.append(
-                    HumblDataWarning(
+                    create_warning(
                         category="HumblCompassFetcher",
                         message=f"No recommendations available for regime: {latest_regime}",
                     )
