@@ -103,7 +103,13 @@ def collect_warnings(func: Callable) -> Callable:
         if args and hasattr(args[0], "warnings"):
             if not isinstance(args[0].warnings, list):
                 args[0].warnings = []
-            args[0].warnings.extend(warning_collector.warnings)
+
+            # Only add warnings that don't already exist in the list
+            for warning in warning_collector.warnings:
+                if not any(
+                    w.message == warning.message for w in args[0].warnings
+                ):
+                    args[0].warnings.append(warning)
 
         return result
 

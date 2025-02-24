@@ -182,7 +182,11 @@ class MandelbrotChannelQueryParams(QueryParams):
             If the input is not a string.
         """
         if isinstance(v, str):
-            return _window_format(v, _return_timedelta=False)
+            result = _window_format(v, _return_timedelta=False)
+            # Ensure we return a string
+            if not isinstance(result, str):
+                return str(result)
+            return result
 
         msg = "Window must be a string."
         raise TypeError(msg)
@@ -423,18 +427,12 @@ class MandelbrotChannelFetcher:
         logger.debug("Running .transform_data()")
         self.transform_data()
 
-        # Initialize warnings list if it doesn't exist
-        if not hasattr(self.context_params, "warnings"):
-            self.context_params.warnings = []
-
-        # Combine warnings from both sources
-        all_warnings = self.context_params.warnings + self.warnings
-
+        # Use the warnings collected during the process
         return HumblObject(
             results=self.transformed_data,
             equity_data=self.equity_historical_data,
             provider=self.context_params.provider,
-            warnings=all_warnings,  # Use combined warnings
+            warnings=self.warnings,  # Use the warnings collected in this class
             chart=self.chart,
             context_params=self.context_params,
             command_params=self.command_params,

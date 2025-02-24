@@ -144,20 +144,25 @@ def get_latest_price(
     except pl.exceptions.ColumnNotFoundError:
         warning_message = f"Failed to get latest price for {symbols} using {provider}, trying fmp..."
         logger.warning(warning_message)
-        warnings.warn(
-            warning_message,
-            category=HumblDataWarning,
-            stacklevel=1,
-        )
+
         try:
             obb.account.login(pat=Env().OBB_PAT, remember_me=True)
-            return (
+            result = (
                 obb.equity.price.quote(symbols, provider="fmp")
                 .to_polars()
                 .select(["symbol", "last_price"])
                 .rename({"last_price": "recent_price"})
                 .lazy()
             )
+
+            # Only emit a warning if we successfully got data from fmp
+            warnings.warn(
+                warning_message + " Successfully retrieved data from fmp.",
+                category=HumblDataWarning,
+                stacklevel=1,
+            )
+            return result
+
         except Exception as e:
             error_message = (
                 f"Failed to get latest price using fmp. Error: {e!s}"
