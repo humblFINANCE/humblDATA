@@ -27,6 +27,7 @@ end_date : str
 import datetime as dt
 import logging
 import re
+import warnings
 from datetime import datetime, timedelta
 from typing import Literal
 
@@ -39,6 +40,7 @@ from humbldata.core.standard_models.abstract.data import Data
 from humbldata.core.standard_models.abstract.query_params import QueryParams
 from humbldata.core.standard_models.abstract.warnings import (
     HumblDataWarning,
+    collect_warnings,
     create_warning,
 )
 from humbldata.core.utils.constants import OBB_EQUITY_PRICE_HISTORICAL_PROVIDERS
@@ -262,7 +264,20 @@ class ToolboxQueryParams(QueryParams):
         return date.date()
 
     @model_validator(mode="after")
+    @collect_warnings
     def validate_start_date(self) -> "ToolboxQueryParams":
+        """
+        Validate and adjust the start date based on membership level.
+
+        This method checks if the start date is earlier than allowed for the user's
+        membership level. If it is, the start date is adjusted to the earliest allowed
+        date for that membership level, and a warning is issued.
+
+        Returns
+        -------
+        ToolboxQueryParams
+            The validated ToolboxQueryParams instance with potentially adjusted start date.
+        """
         end_date: dt.date = self.end_date  # type: ignore  # noqa: PGH003 the date has already been converted to date
 
         start_date_mapping = {
@@ -287,13 +302,12 @@ class ToolboxQueryParams(QueryParams):
             warning_msg = f"Start date adjusted to {allowed_start_date} based on {self.membership} membership ({data_length} of data)."
             logger.warning(warning_msg)
             self.start_date = allowed_start_date
-            if not hasattr(self, "warnings"):
-                self.warnings = []
-            self.warnings.append(
-                create_warning(
-                    category="ToolboxQueryParams",
-                    message=warning_msg,
-                )
+
+            # Use warnings.warn instead of manually creating and appending warnings
+            warnings.warn(
+                warning_msg,
+                category=HumblDataWarning,
+                stacklevel=1,
             )
 
         return self

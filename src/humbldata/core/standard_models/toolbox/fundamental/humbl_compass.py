@@ -10,6 +10,7 @@ HumblCompass command.
 from datetime import datetime
 from enum import Enum
 from typing import Literal, TypeVar
+import warnings
 
 import pandera.polars as pa
 import polars as pl
@@ -22,7 +23,7 @@ from humbldata.core.standard_models.abstract.humblobject import HumblObject
 from humbldata.core.standard_models.abstract.query_params import QueryParams
 from humbldata.core.standard_models.abstract.warnings import (
     HumblDataWarning,
-    create_warning,
+    collect_warnings,
 )
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
 from humbldata.core.utils.env import Env
@@ -607,6 +608,7 @@ class HumblCompassFetcher:
         """
         self.context_params = context_params
         self.command_params = command_params
+        self.warnings = []  # Initialize warnings list
 
     def transform_query(self):
         """
@@ -714,6 +716,7 @@ class HumblCompassFetcher:
         )
         return self
 
+    @collect_warnings
     def transform_data(self):
         """
         Transform the command-specific data according to the humbl_compass logic.
@@ -897,13 +900,10 @@ class HumblCompassFetcher:
 
         # Add warning if z_score is None
         if self.command_params.z_score is None:
-            if not hasattr(self, "warnings"):
-                self.warnings = []
-            self.warnings.append(
-                create_warning(
-                    category="HumblCompassFetcher",
-                    message="Z-score defaulted to None. No z-score data will be calculated.",
-                )
+            warnings.warn(
+                "Z-score defaulted to None. No z-score data will be calculated.",
+                category=HumblDataWarning,
+                stacklevel=1,
             )
 
         # Add recommendations if requested
@@ -915,13 +915,10 @@ class HumblCompassFetcher:
             )
 
             if latest_regime not in REGIME_RECOMMENDATIONS:
-                if not hasattr(self, "warnings"):
-                    self.warnings = []
-                self.warnings.append(
-                    create_warning(
-                        category="HumblCompassFetcher",
-                        message=f"No recommendations available for regime: {latest_regime}",
-                    )
+                warnings.warn(
+                    f"No recommendations available for regime: {latest_regime}",
+                    category=HumblDataWarning,
+                    stacklevel=1,
                 )
             else:
                 recommendations = REGIME_RECOMMENDATIONS[latest_regime]
@@ -961,14 +958,6 @@ class HumblCompassFetcher:
         if not hasattr(self.context_params, "warnings"):
             self.context_params.warnings = []
 
-        # Initialize fetcher warnings if they don't exist
-        if not hasattr(self, "warnings"):
-            self.warnings = []
-
-        # Initialize extra dict if it doesn't exist
-        if not hasattr(self, "extra"):
-            self.extra = {}
-
         # Combine warnings from both sources
         all_warnings = self.context_params.warnings + self.warnings
 
@@ -979,5 +968,7 @@ class HumblCompassFetcher:
             chart=self.chart,
             context_params=self.context_params,
             command_params=self.command_params,
-            extra=self.extra,  # pipe in extra from transform_data()
+            extra=self.extra
+            if hasattr(self, "extra")
+            else {},  # pipe in extra from transform_data()
         )
