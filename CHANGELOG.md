@@ -1,3 +1,14 @@
+## v1.17.0 (2025-02-25)
+
+### ✨ Features
+
+- **openbb_helpers**: enhance ETF category retrieval with robust symbol validation
+- **constants**: add comprehensive US ETF symbol collections
+
+### ♻️ Refactorings
+
+- **constants**: optimize US ETF symbol list formatting
+
 ## v1.16.0 (2025-02-25)
 
 ### ✨ Features
