@@ -81,7 +81,6 @@ jupyterlab = ">=3.6.3"
 mkdocs = "^1.5.3"
 mkdocs-material = "^9.5.13"
 mkdocstrings = {extras = ["python"], version = "^0.24.1"}
-griffe = "^0.38.1"
 line-profiler = "^4.1.2"
 mike = "^2.0.0"
 coloredlogs = "^15.0.1"
