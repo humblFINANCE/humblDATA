@@ -19,6 +19,7 @@ from humbldata.core.utils.constants import (
     OBB_EQUITY_PRICE_QUOTE_PROVIDERS,
     OBB_EQUITY_PROFILE_PROVIDERS,
     OBB_ETF_INFO_PROVIDERS,
+    US_ETF_SYMBOLS,
 )
 from humbldata.core.utils.env import Env
 from humbldata.core.utils.logger import setup_logger
@@ -416,17 +417,41 @@ async def aget_etf_category(
         A Polars LazyFrame with columns for the ETF symbols ('symbol') and
         their corresponding categories ('category').
     """
+    # Convert symbols to list format for consistent handling
+    if isinstance(symbols, str):
+        symbols_list = [symbols]
+    elif isinstance(symbols, pl.Series):
+        symbols_list = symbols.to_list()
+    else:
+        symbols_list = symbols
+
+    # Create a set of US_ETF_SYMBOLS for O(1) lookups
+    etf_symbols_set = set(US_ETF_SYMBOLS)
+
+    # Filter symbols to only include those in US_ETF_SYMBOLS
+    valid_symbols = [
+        symbol for symbol in symbols_list if symbol in etf_symbols_set
+    ]
+
+    # If no valid symbols, return early with null categories
+    if not valid_symbols:
+        return pl.LazyFrame(
+            {"symbol": symbols_list, "category": [None] * len(symbols_list)}
+        ).cast(pl.Utf8)
+
+    # Create a mapping of original symbols to their validity status
+    all_symbols_df = pl.LazyFrame({"symbol": symbols_list})
+
     loop = asyncio.get_event_loop()
     try:
+        # Only query OpenBB for valid ETF symbols
         result = await loop.run_in_executor(
-            None, lambda: obb.etf.info(symbols, provider=provider)
+            None, lambda: obb.etf.info(valid_symbols, provider=provider)
         )
         out = result.to_polars().lazy().select(["symbol", "category"])
-        # Create a LazyFrame with all input symbols
-        all_symbols = pl.LazyFrame({"symbol": symbols})
 
-        # Left join to include all input symbols, filling missing sectors with null
-        out = all_symbols.join(out, on="symbol", how="left").with_columns(
+        # Left join to include all input symbols, filling missing categories with null
+        out = all_symbols_df.join(out, on="symbol", how="left").with_columns(
             [
                 pl.when(pl.col("category").is_null())
                 .then(None)
@@ -435,11 +460,8 @@ async def aget_etf_category(
             ]
         )
     except OpenBBError:
-        if isinstance(symbols, str):
-            symbols = [symbols]
-        elif isinstance(symbols, pl.Series):
-            symbols = symbols.to_list()
         return pl.LazyFrame(
-            {"symbol": symbols, "category": [None] * len(symbols)}
+            {"symbol": symbols_list, "category": [None] * len(symbols_list)}
         ).cast(pl.Utf8)
+
     return out
