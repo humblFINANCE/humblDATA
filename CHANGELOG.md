@@ -1,3 +1,9 @@
+## v1.18.0 (2025-02-25)
+
+### ✨ Features
+
+- **dependencies**: add griffe for enhanced documentation generation
+
 ## v1.17.0 (2025-02-25)
 
 ### ✨ Features
