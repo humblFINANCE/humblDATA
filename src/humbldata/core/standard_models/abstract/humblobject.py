@@ -1,4 +1,7 @@
+import base64
 import io
+import json
+import re
 from typing import Any, ClassVar, Generic, TypeVar
 
 import numpy as np
@@ -297,8 +300,8 @@ class HumblObject(Tagged, Generic[T]):
 
         Returns
         -------
-        str
-            The results or charts as a JSON string.
+        str | list[str]
+            The results or charts as a JSON string or list of JSON strings.
 
         Raises
         ------
@@ -319,6 +322,70 @@ class HumblObject(Tagged, Generic[T]):
             msg = f"Type {type(obj)} not serializable"
             raise TypeError(msg)
 
+        def decode_base64_numpy_arrays(chart_json: str) -> str:
+            """
+            Decode base64-encoded numpy arrays in Plotly chart JSON.
+
+            Parameters
+            ----------
+            chart_json : str
+                The JSON string containing the chart data
+
+            Returns
+            -------
+            str
+                The JSON string with decoded numpy arrays
+            """
+            # Parse the JSON to a Python dict
+            if not chart_json:
+                return chart_json
+
+            chart_data = json.loads(chart_json)
+
+            # Function to recursively process the chart data
+            def process_dict(
+                d: dict | list | Any,
+            ) -> dict | list | Any:
+                if isinstance(d, dict):
+                    for key, value in d.items():
+                        if (
+                            isinstance(value, dict)
+                            and "dtype" in value
+                            and "bdata" in value
+                        ):
+                            # This looks like a base64-encoded numpy array
+                            try:
+                                dtype = value.get("dtype")
+                                b64_data = value.get("bdata")
+
+                                if isinstance(b64_data, str):
+                                    # Decode the base64 data
+                                    binary_data = base64.b64decode(b64_data)
+
+                                    # Convert to numpy array
+                                    array = np.frombuffer(
+                                        binary_data, dtype=dtype
+                                    )
+
+                                    # Replace the encoded data with the actual array values
+                                    d[key] = array.tolist()
+                            except Exception:
+                                # If decoding fails, leave as is
+                                pass
+                        elif isinstance(value, (dict, list)):
+                            process_dict(value)
+                elif isinstance(d, list):
+                    for i, item in enumerate(d):
+                        if isinstance(item, (dict, list)):
+                            process_dict(item)
+                return d
+
+            # Process the chart data
+            processed_data = process_dict(chart_data)
+
+            # Convert back to JSON string with compact formatting (no spaces)
+            return json.dumps(processed_data, separators=(",", ":"))
+
         if chart:
             if self.chart is None:
                 msg = f"You set `.to_json(chart=True)` but there were no charts. Make sure `chart=True` in {self.command_params.__class__.__name__}"
@@ -326,17 +393,23 @@ class HumblObject(Tagged, Generic[T]):
 
             if isinstance(self.chart, list):
                 return [
-                    chart.content
-                    for chart in self.chart
+                    decode_base64_numpy_arrays(chart.content)
                     if chart and chart.content
+                    else ""
+                    for chart in self.chart
+                    if chart
                 ]
             else:
-                return self.chart.content
+                return (
+                    decode_base64_numpy_arrays(self.chart.content)
+                    if self.chart.content
+                    else ""
+                )
         else:
             data = self.to_polars(
                 collect=True, equity_data=equity_data
             ).to_dict(as_series=False)
-            return json.dumps(data, default=json_serial)
+            return json.dumps(data, default=json_serial, separators=(",", ":"))
 
     def is_empty(self, equity_data: bool = False) -> bool:
         """
