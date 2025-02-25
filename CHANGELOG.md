@@ -1,3 +1,9 @@
+## v1.16.0 (2025-02-25)
+
+### ✨ Features
+
+- **json**: enhance JSON serialization and decoding for HumblObject
+
 ## v1.15.1 (2025-02-24)
 
 ### 🐛🚑️ Fixes
