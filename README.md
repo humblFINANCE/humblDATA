@@ -29,25 +29,47 @@
 `humbldata` connects the humblfinance web app to its data sources and in-house analysis. A thin wrapper around the most popular open-source financial data providers, with some extra flair to use the same tools and math as the big guys. how do i know? because i used to pay a pretty penny for it! no longer... OSS is here to save the day!
 
 # 🌟 Main Features 🌟
-- **Mandelbrot Channel**
-  - price channel of <span style="color:green"><b>BUY</b></span> / <span style="color:red"><b>SELL</b></span> levels used by the largest quant firms
-  - this is a popular indicator used to provide robust price boundaries for any asset, but no one has **open-sourced** it until now...
+
+- **humblCHANNEL**
+  - Quantitative trading signal tool that provides objective, mathematics-based buy and sell signals
+  - Works with any tradable asset with available time series data
+  - Customizable for different trading styles (day trading, swing trading, long-term investing)
+  - Eliminates emotional decision-making with precise price channels
+
+- **humblCOMPASS**
+  - Economic regime identification and asset allocation guidance
+  - Helps navigate different market conditions with data-driven insights
+  - Provides strategic investment direction aligned with current market regimes
+
+- **humblMOMENTUM**
+  - Momentum-based signal indicators for timing market entries and exits
+  - Track asset performance relative to market trends
+  - Identify emerging opportunities before they become mainstream
+
+- **humblPORTFOLIO**
+  - Interactive portfolio management dashboard
+  - Integrates data from humblCHANNEL and humblCOMPASS
+  - Provides real-time asset overview with buy/sell recommendations
+  - Risk management tools to prevent significant drawdowns
+
 - **Realized Volatility Estimators**
-  - all volatility calculations in Euan Sinclar's book, plus 2 extra.
-  - ⚡ lightning fast estimators use Rust under the hood
+  - All volatility calculations from Euan Sinclair's book, plus additional models
+  - ⚡ Lightning fast estimators powered by Rust under the hood
+  - Essential for accurate risk assessment and position sizing
 
 # Getting Started
 
-Insall with `pip:`
+Install with `pip`:
 ```bash
 pip install humbldata
 ```
-Install with `poetry`
+Install with `poetry`:
 ```bash
 poetry add humbldata
 ```
 
 ## Documentation
 
-To understand the structure of this **codebase**, the **commands** available and how to **contribute**, please refer to the [documentation](https://humblfinance.github.io/humbldata/)
+For complete documentation on the library's features, architecture, and how to contribute, please visit:
+[https://humblfinance.github.io/humblDATA/](https://humblfinance.github.io/humblDATA/)
 
