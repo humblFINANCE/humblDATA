@@ -23,6 +23,9 @@ from humbldata.core.standard_models.abstract.query_params import QueryParams
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
 from humbldata.core.utils.env import Env
 from humbldata.core.utils.logger import log_start_end, setup_logger
+from humbldata.toolbox.fundamental.humbl_compass_backtest.view import (
+    generate_plots,
+)
 from humbldata.toolbox.toolbox_helpers import _window_format
 
 env = Env()
@@ -100,6 +103,11 @@ class HumblCompassBacktestQueryParams(QueryParams):
         default=21,
         title="Minimum Regime Days",
         description=HUMBLCOMPASSBACKTEST_QUERY_DESCRIPTIONS["min_regime_days"],
+    )
+    chart: bool = Field(
+        default=False,
+        title="Chart",
+        description="Whether to generate a chart",
     )
 
     @field_validator("symbols")
@@ -315,6 +323,10 @@ class HumblCompassBacktestFetcher:
             .to_polars()
             .lazy()
         )
+        if len(self.command_params.symbols) == 1:
+            self.equity_data = self.equity_data.with_columns(
+                symbol=pl.lit(self.command_params.symbols[0])
+            )
         return self
 
     def transform_data(self):
@@ -381,7 +393,7 @@ class HumblCompassBacktestFetcher:
                     .alias("log_returns"),
                 ]
             )
-            .drop_nulls()
+            .drop_nulls()  # could make nulls a 0 regime_instance_id
         )
 
         # Step 5: Add regime instance metrics
@@ -399,6 +411,15 @@ class HumblCompassBacktestFetcher:
                 .last()
                 .over(["humbl_regime", "regime_instance_id"])
                 .alias("regime_end_price"),
+                # Add start_date and end_date for each regime instance
+                pl.col("date")
+                .first()
+                .over(["humbl_regime", "regime_instance_id"])
+                .alias("start_date"),
+                pl.col("date")
+                .last()
+                .over(["humbl_regime", "regime_instance_id"])
+                .alias("end_date"),
             ]
         )
 
@@ -506,6 +527,20 @@ class HumblCompassBacktestFetcher:
             .drop("regime_order")
         )
 
+        # Step 10: Extract regime date summary
+        # Aggregate to get one row per regime instance
+        regime_date_summary = regime_metrics.group_by(
+            ["humbl_regime", "regime_instance_id", "symbol"]
+        ).agg(
+            [
+                pl.col("start_date").first(),
+                pl.col("end_date").first(),
+                pl.col("days_in_regime").first(),  # Include days for context
+            ]
+        )
+
+        if self.command_params.chart:
+            self.chart = generate_plots(self.equity_data, regime_date_summary)
         # Store transformed data
         self.transformed_data = (
             HumblCompassBacktestData(final_summary)
@@ -513,6 +548,8 @@ class HumblCompassBacktestFetcher:
             .serialize(format="binary")
         )
         self.equity_data = self.equity_data.serialize(format="binary")
+        self.extra["daily_regime_data"] = daily_regime_data.lazy()
+
         return self
 
     @log_start_end(logger=logger)
