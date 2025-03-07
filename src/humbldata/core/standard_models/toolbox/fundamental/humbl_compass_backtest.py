@@ -677,105 +677,80 @@ class HumblCompassBacktestFetcher:
             regime_instances.with_row_count("row_id")
             .join(first_regime_instances, on="humbl_regime")
             .with_columns(
-                # Determine if this is the first instance of this regime
-                (pl.col("row_id") == pl.col("first_appearance_id")).alias(
-                    "is_first_instance"
-                ),
-                # Initialize investment value for each regime
-                pl.lit(initial_investment).alias("initial_regime_investment"),
+                [
+                    # Determine if this is the first instance of this regime
+                    (pl.col("row_id") == pl.col("first_appearance_id")).alias(
+                        "is_first_instance"
+                    ),
+                    # Initialize investment value for each regime
+                    pl.lit(initial_investment).alias(
+                        "initial_regime_investment"
+                    ),
+                    # Calculate growth factor directly from instance_return_pct
+                    (1 + pl.col("instance_return_pct") / 100).alias(
+                        "growth_factor"
+                    ),
+                    # Sort chronologically
+                    pl.col("start_date")
+                    .rank("dense")
+                    .over("humbl_regime")
+                    .alias("instance_sequence"),
+                ]
             )
+            .sort(["humbl_regime", "instance_sequence"])
         )
 
-        # Calculate investment growth simulation
-        # We'll do this by processing regimes in chronological order
-        investment_simulation = ordered_regime_instances.sort(
-            "start_date"
-        ).with_columns(
+        # Calculate investment growth for all regimes in a single operation
+        # This uses window functions to handle the cumulative calculations within each regime
+        investment_simulation = ordered_regime_instances.with_columns(
             [
-                # Calculate growth factor directly from instance_return_pct
-                (1 + pl.col("instance_return_pct") / 100).alias(
-                    "growth_factor"
-                ),
-                # Assign regime order for tracking growth across instances
-                pl.col("row_id")
-                .rank("dense")
-                .alias("regime_chronological_order"),
+                # Calculate cumulative product of growth factors within each regime
+                pl.col("growth_factor")
+                .cum_prod()
+                .over("humbl_regime")
+                .alias("cumulative_growth_factor"),
+                # Calculate dollar value growth
+                (
+                    pl.lit(initial_investment)
+                    * pl.col("growth_factor").cum_prod().over("humbl_regime")
+                ).alias("regime_investment_value"),
             ]
         )
 
-        # Calculate cumulative investment values for each regime independently
-        regimes = ["humblBOOM", "humblBOUNCE", "humblBLOAT", "humblBUST"]
-
-        # Process each regime's investment growth independently
-        regime_growth_frames = []
-
-        for regime in regimes:
-            # Filter for just this regime
-            regime_data = investment_simulation.filter(
-                pl.col("humbl_regime") == regime
-            )
-
-            if (
-                regime_data.collect().height > 0
-            ):  # Check if this regime exists in data
-                # Calculate cumulative growth for this regime
-                regime_growth = regime_data.with_columns(
-                    # Current investment = previous investment * growth factor
-                    pl.col("growth_factor")
-                    .cum_prod()
-                    .over("humbl_regime")
-                    .alias("cumulative_growth_factor"),
-                    # Calculate dollar value growth
-                    (
-                        pl.lit(initial_investment)
-                        * pl.col("growth_factor")
-                        .cum_prod()
-                        .over("humbl_regime")
-                    ).alias("regime_investment_value"),
-                )
-
-                # Get final growth values for this regime
-                regime_final_growth = (
-                    regime_growth.group_by("humbl_regime")
-                    .agg(
-                        [
-                            pl.col("regime_investment_value")
-                            .last()
-                            .alias("final_investment_value"),
-                            pl.col("cumulative_growth_factor")
-                            .last()
-                            .alias("final_growth_factor"),
-                        ]
-                    )
-                    .with_columns(
-                        [
-                            (
-                                pl.col("final_investment_value")
-                                - initial_investment
-                            ).alias("cumulative_investment_growth"),
-                            (
-                                (
-                                    pl.col("final_investment_value")
-                                    / initial_investment
-                                    - 1
-                                )
-                                * 100
-                            ).alias("investment_growth_pct"),
-                            # Add the total ending investment value
-                            pl.col("final_investment_value").alias(
-                                "total_ending_investment_value"
-                            ),
-                        ]
-                    )
-                )
-
-                regime_growth_frames.append(regime_final_growth)
-
-        # Combine all regime growth data
+        # Get final regime growth values using group_by aggregation
         combined_regime_growth = (
-            pl.concat(regime_growth_frames).lazy()
-            if regime_growth_frames
-            else None
+            investment_simulation.group_by("humbl_regime")
+            .agg(
+                [
+                    pl.col("regime_investment_value")
+                    .last()
+                    .alias("final_investment_value"),
+                    pl.col("cumulative_growth_factor")
+                    .last()
+                    .alias("final_growth_factor"),
+                ]
+            )
+            .with_columns(
+                [
+                    # Calculate total growth
+                    (
+                        pl.col("final_investment_value") - initial_investment
+                    ).alias("cumulative_investment_growth"),
+                    # Calculate percentage growth
+                    (
+                        (
+                            pl.col("final_investment_value")
+                            / initial_investment
+                            - 1
+                        )
+                        * 100
+                    ).alias("investment_growth_pct"),
+                    # Add the total ending investment value
+                    pl.col("final_investment_value").alias(
+                        "total_ending_investment_value"
+                    ),
+                ]
+            )
         )
 
         # Step 9: Calculate final summary statistics
@@ -966,25 +941,6 @@ class HumblCompassBacktestFetcher:
                 ]
             )
         )
-
-        # Ensure all regimes are included, even if they don't have drawdowns
-        missing_regimes = set(regimes) - set(
-            regime_drawdowns.collect()["humbl_regime"]
-        )
-        if missing_regimes:
-            # Create placeholder dataframe for missing regimes
-            missing_df = pl.DataFrame(
-                {
-                    "humbl_regime": list(missing_regimes),
-                    "max_drawdown_pct": [0.0] * len(missing_regimes),
-                    "avg_drawdown_pct": [0.0] * len(missing_regimes),
-                    "avg_recovery_days": [0.0] * len(missing_regimes),
-                    "max_recovery_days": [0] * len(missing_regimes),
-                }
-            )
-
-            # Combine with existing drawdown results
-            regime_drawdowns = pl.concat([regime_drawdowns, missing_df]).lazy()
 
         # Get min/max win/loss days per regime
         win_loss_stats = win_loss_per_instance.group_by("humbl_regime").agg(
