@@ -213,6 +213,14 @@ class HumblCompassBacktestData(Data):
         Maximum number of loss days in any instance of the regime
     min_loss_days : pl.UInt32
         Minimum number of loss days in any instance of the regime
+    max_drawdown_pct : pl.Float64
+        Maximum drawdown percentage across all instances of the regime
+    avg_drawdown_pct : pl.Float64
+        Average drawdown percentage across all instances of the regime
+    avg_recovery_days : pl.Float64
+        Average number of days to recover from drawdowns
+    max_recovery_days : pl.UInt32
+        Maximum number of days to recover from drawdowns
     """
 
     humbl_regime: pl.Utf8 = pa.Field(
@@ -298,6 +306,22 @@ class HumblCompassBacktestData(Data):
     min_loss_days: pl.UInt32 = pa.Field(
         title="Min Loss Days",
         description="Minimum number of loss days in any instance of the regime",
+    )
+    max_drawdown_pct: pl.Float64 = pa.Field(
+        title="Max Drawdown %",
+        description="Maximum drawdown percentage across all instances of the regime",
+    )
+    avg_drawdown_pct: pl.Float64 = pa.Field(
+        title="Avg Drawdown %",
+        description="Average drawdown percentage across all instances of the regime",
+    )
+    avg_recovery_days: pl.Float64 = pa.Field(
+        title="Avg Recovery Days",
+        description="Average number of days to recover from drawdowns",
+    )
+    max_recovery_days: pl.Int64 = pa.Field(
+        title="Max Recovery Days",
+        description="Maximum number of days to recover from drawdowns",
     )
 
 
@@ -803,6 +827,165 @@ class HumblCompassBacktestFetcher:
             )
         )
 
+        # Calculate drawdown metrics using vectorized operations
+        # First, calculate running maximum and drawdowns for all data points
+        metrics_with_drawdowns = base_metrics.with_columns(
+            [
+                # Calculate running maximum price per regime instance
+                pl.col("close")
+                .cum_max()
+                .over(["humbl_regime", "regime_instance_id"])
+                .alias("running_max_price"),
+            ]
+        ).with_columns(
+            [
+                # Calculate drawdown percentage (negative values represent drawdowns)
+                (
+                    (pl.col("close") / pl.col("running_max_price") - 1) * 100
+                ).alias("drawdown_pct"),
+                # Identify if at peak (price equals running max)
+                (pl.col("close") == pl.col("running_max_price")).alias(
+                    "is_peak"
+                ),
+                # Sequential day counter within each regime instance for recovery calculations
+                pl.arange(1, pl.count() + 1)
+                .over(["humbl_regime", "regime_instance_id"])
+                .alias("day_index"),
+            ]
+        )
+
+        # Create a recovery marker - Identify start of drawdown periods and recoveries
+        # A new drawdown starts when we fall from a peak
+        metrics_with_recovery = metrics_with_drawdowns.with_columns(
+            [
+                # In drawdown when drawdown_pct < 0
+                (pl.col("drawdown_pct") < 0).alias("in_drawdown"),
+                # Transition from peak to drawdown (peak at t-1, not peak at t)
+                (
+                    pl.col("is_peak")
+                    .shift(1)
+                    .over(["humbl_regime", "regime_instance_id"])
+                    & ~pl.col("is_peak")
+                ).alias("drawdown_start"),
+                # Recovery happens when we return to a peak after being in drawdown
+                (
+                    ~pl.col("is_peak")
+                    .shift(1)
+                    .over(["humbl_regime", "regime_instance_id"])
+                    & pl.col("is_peak")
+                ).alias("recovery_point"),
+            ]
+        ).with_columns(
+            [
+                # Mark each drawdown period with unique ID
+                pl.col("drawdown_start")
+                .cum_sum()
+                .over(["humbl_regime", "regime_instance_id"])
+                .alias("drawdown_id"),
+            ]
+        )
+
+        # Calculate drawdown statistics by regime instance
+        instance_drawdown_stats = (
+            metrics_with_recovery.filter(
+                pl.col("in_drawdown")
+            )  # Only consider drawdown periods
+            .group_by(["humbl_regime", "regime_instance_id", "drawdown_id"])
+            .agg(
+                [
+                    # Calculate max drawdown for each drawdown period
+                    pl.col("drawdown_pct").min().alias("period_max_drawdown"),
+                    # Average drawdown for each period
+                    pl.col("drawdown_pct").mean().alias("period_avg_drawdown"),
+                    # Start day of this drawdown
+                    pl.col("day_index").min().alias("drawdown_start_day"),
+                    # Count days in drawdown
+                    pl.count().alias("drawdown_length"),
+                ]
+            )
+        )
+
+        # Mark recovery days by finding the day when each drawdown period ends
+        recovery_points = (
+            metrics_with_recovery.filter(pl.col("recovery_point"))
+            .select(
+                [
+                    "humbl_regime",
+                    "regime_instance_id",
+                    "drawdown_id",
+                    "day_index",
+                ]
+            )
+            .rename({"day_index": "recovery_day"})
+        )
+
+        # Join recovery information with drawdown stats
+        drawdown_with_recovery = instance_drawdown_stats.join(
+            recovery_points,
+            on=["humbl_regime", "regime_instance_id", "drawdown_id"],
+            how="left",
+        ).with_columns(
+            [
+                # Calculate recovery time (days from drawdown start to recovery)
+                (pl.col("recovery_day") - pl.col("drawdown_start_day")).alias(
+                    "recovery_days"
+                ),
+            ]
+        )
+
+        # Aggregate statistics by regime
+        regime_drawdowns = (
+            drawdown_with_recovery.group_by("humbl_regime")
+            .agg(
+                [
+                    # Worst drawdown across all instances (most negative value)
+                    pl.col("period_max_drawdown")
+                    .min()
+                    .alias("max_drawdown_pct"),
+                    # Average drawdown depth
+                    pl.col("period_avg_drawdown")
+                    .mean()
+                    .alias("avg_drawdown_pct"),
+                    # Average recovery time
+                    pl.col("recovery_days")
+                    .filter(pl.col("recovery_days").is_not_null())
+                    .mean()
+                    .alias("avg_recovery_days"),
+                    # Maximum recovery time
+                    pl.col("recovery_days")
+                    .filter(pl.col("recovery_days").is_not_null())
+                    .max()
+                    .alias("max_recovery_days"),
+                ]
+            )
+            .with_columns(
+                [
+                    # Handle null values for cases with no recovery points
+                    pl.col("avg_recovery_days").fill_null(0),
+                    pl.col("max_recovery_days").fill_null(0),
+                ]
+            )
+        )
+
+        # Ensure all regimes are included, even if they don't have drawdowns
+        missing_regimes = set(regimes) - set(
+            regime_drawdowns.collect()["humbl_regime"]
+        )
+        if missing_regimes:
+            # Create placeholder dataframe for missing regimes
+            missing_df = pl.DataFrame(
+                {
+                    "humbl_regime": list(missing_regimes),
+                    "max_drawdown_pct": [0.0] * len(missing_regimes),
+                    "avg_drawdown_pct": [0.0] * len(missing_regimes),
+                    "avg_recovery_days": [0.0] * len(missing_regimes),
+                    "max_recovery_days": [0] * len(missing_regimes),
+                }
+            )
+
+            # Combine with existing drawdown results
+            regime_drawdowns = pl.concat([regime_drawdowns, missing_df]).lazy()
+
         # Get min/max win/loss days per regime
         win_loss_stats = win_loss_per_instance.group_by("humbl_regime").agg(
             [
@@ -816,6 +999,19 @@ class HumblCompassBacktestFetcher:
         # Join with summary stats
         summary_stats = summary_stats.join(
             win_loss_stats, on="humbl_regime", how="left"
+        )
+
+        # Join drawdown statistics
+        summary_stats = summary_stats.join(
+            regime_drawdowns, on="humbl_regime", how="left"
+        ).with_columns(
+            [
+                # Fill null values with 0
+                pl.col("max_drawdown_pct").fill_null(0),
+                pl.col("avg_drawdown_pct").fill_null(0),
+                pl.col("avg_recovery_days").fill_null(0),
+                pl.col("max_recovery_days").fill_null(0),
+            ]
         )
 
         # Join investment growth data to summary stats
