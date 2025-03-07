@@ -140,10 +140,19 @@ def add_regime_instance_metrics(base_metrics: pl.LazyFrame) -> pl.LazyFrame:
     """
     Add regime instance metrics to the dataframe.
 
+    Calculates the following metrics:
+    - days_in_regime: Number of days in each regime instance
+    - regime_start_price: First closing price of regime instance
+    - regime_end_price: Last closing price of regime instance
+    - start_date: First date of regime instance
+    - end_date: Last date of regime instance
+    - next_day: Date following the regime instance
+    - next_day_price: Closing price on the day following regime instance
+
     Parameters
     ----------
     base_metrics : pl.LazyFrame
-        Base metrics data
+        Base metrics data with date, close price and regime columns
 
     Returns
     -------
@@ -187,6 +196,14 @@ def calculate_performance_metrics(
 ) -> pl.LazyFrame:
     """
     Calculate performance metrics for each regime instance.
+
+    Calculates the following metrics:
+    - instance_return_pct: Total return percentage for the regime instance
+    - instance_ann_return_pct: Annualized return percentage (252 trading days)
+    - volatility_pct: Annualized volatility based on rolling standard deviation
+    - win_rate: Percentage of days with positive returns
+    - risk_free_rate: Risk-free rate used for Sharpe ratio
+    - sharpe_ratio: Risk-adjusted return measure (excess return / volatility)
 
     Parameters
     ----------
@@ -252,7 +269,14 @@ def process_regime_instances(
     results: pl.LazyFrame, initial_investment: float
 ) -> pl.LazyFrame:
     """
-    Process regime instances for investment simulation.
+    Process regime instances for investment simulation by calculating growth metrics.
+
+    Calculates:
+    - First appearance ID for each regime
+    - Growth factor from instance returns
+    - Cumulative growth factor within regimes
+    - Investment value growth in dollars
+    - Instance sequence for chronological ordering
 
     Parameters
     ----------
@@ -264,7 +288,15 @@ def process_regime_instances(
     Returns
     -------
     pl.LazyFrame
-        Regime instances with investment growth calculated
+        Regime instances with investment growth calculated, including:
+        - start_date, end_date
+        - instance_return_pct
+        - days_in_regime
+        - next_day, next_day_price
+        - regime_start_price, regime_end_price
+        - growth_factor
+        - cumulative_growth_factor
+        - regime_investment_value
     """
     # Extract unique regime instances sorted by start date
     regime_instances = (
@@ -338,19 +370,32 @@ def calculate_regime_growth(
     investment_simulation: pl.LazyFrame, initial_investment: float
 ) -> pl.LazyFrame:
     """
-    Calculate final regime growth values.
+    Calculate final regime growth values and performance metrics.
+
+    For each regime, calculates:
+    - Final investment value at end of regime
+    - Final cumulative growth factor
+    - Total dollar growth from initial investment
+    - Percentage growth from initial investment
+    - Total ending investment value
 
     Parameters
     ----------
     investment_simulation : pl.LazyFrame
-        Investment simulation results
+        Investment simulation results containing regime_investment_value and
+        cumulative_growth_factor columns
     initial_investment : float
-        Initial investment amount
+        Initial investment amount used as baseline for growth calculations
 
     Returns
     -------
     pl.LazyFrame
-        Combined regime growth data
+        Combined regime growth data with columns:
+        - final_investment_value: Investment value at regime end
+        - final_growth_factor: Cumulative growth factor at regime end
+        - cumulative_investment_growth: Total $ growth from initial investment
+        - investment_growth_pct: Total % growth from initial investment
+        - total_ending_investment_value: Final investment value
     """
     return (
         investment_simulation.group_by("humbl_regime")
@@ -390,6 +435,21 @@ def calculate_summary_statistics(
     """
     Calculate summary statistics for each regime.
 
+    Calculates the following metrics:
+    - avg_total_return_pct: Mean return across all instances of each regime
+    - min_return_pct: Minimum return across all instances
+    - max_return_pct: Maximum return across all instances
+    - avg_ann_return_pct: Mean annualized return across instances
+    - avg_win_rate_pct: Mean win rate across instances
+    - avg_volatility: Mean volatility across instances
+    - avg_sharpe_ratio: Mean Sharpe ratio across instances
+    - avg_days_in_regime: Mean number of days per instance
+    - instance_count: Total number of regime instances
+    - total_win_count: Total number of winning days
+    - total_loss_count: Total number of losing days
+    - avg_win_count_per_instance: Mean number of winning days per instance
+    - avg_loss_count_per_instance: Mean number of losing days per instance
+
     Parameters
     ----------
     results : pl.LazyFrame
@@ -400,7 +460,8 @@ def calculate_summary_statistics(
     Returns
     -------
     pl.LazyFrame
-        Summary statistics for each regime
+        Summary statistics for each regime, filtered to only include regimes
+        meeting the minimum days threshold
     """
     return (
         results.group_by("humbl_regime")
@@ -450,6 +511,27 @@ def calculate_drawdown_metrics(base_metrics: pl.LazyFrame) -> pl.LazyFrame:
     """
     Calculate drawdown metrics for each regime.
 
+    Calculates the following metrics:
+    - running_max_price: Running maximum price within each regime instance
+    - drawdown_pct: Percentage decline from running maximum price
+    - is_peak: Boolean indicating if price equals running maximum
+    - in_drawdown: Boolean indicating if currently in drawdown
+    - drawdown_start: Boolean indicating start of new drawdown period
+    - recovery_point: Boolean indicating return to peak after drawdown
+    - drawdown_id: Unique identifier for each drawdown period
+
+    For each drawdown period:
+    - period_max_drawdown: Maximum percentage decline
+    - period_avg_drawdown: Average percentage decline
+    - drawdown_length: Number of days in drawdown
+    - recovery_days: Days from drawdown start to recovery
+
+    Final regime-level metrics:
+    - max_drawdown_pct: Worst drawdown across all instances
+    - avg_drawdown_pct: Average drawdown depth
+    - avg_recovery_days: Average time to recover from drawdowns
+    - max_recovery_days: Maximum time to recover from drawdowns
+
     Parameters
     ----------
     base_metrics : pl.LazyFrame
@@ -458,7 +540,7 @@ def calculate_drawdown_metrics(base_metrics: pl.LazyFrame) -> pl.LazyFrame:
     Returns
     -------
     pl.LazyFrame
-        Drawdown metrics for each regime
+        Drawdown metrics aggregated by regime
     """
     # First, calculate running maximum and drawdowns for all data points
     metrics_with_drawdowns = base_metrics.with_columns(
@@ -599,6 +681,12 @@ def calculate_win_loss_stats(
     """
     Calculate win/loss statistics for each regime.
 
+    Calculates the following metrics:
+    - max_win_days: Maximum number of winning days in any instance of the regime
+    - min_win_days: Minimum number of winning days in any instance of the regime
+    - max_loss_days: Maximum number of losing days in any instance of the regime
+    - min_loss_days: Minimum number of losing days in any instance of the regime
+
     Parameters
     ----------
     win_loss_per_instance : pl.LazyFrame
@@ -625,6 +713,12 @@ def join_summary_with_win_loss(
     """
     Join summary statistics with win/loss statistics.
 
+    Combines regime summary statistics with win/loss metrics including:
+    - max_win_days: Maximum winning days in any regime instance
+    - min_win_days: Minimum winning days in any regime instance
+    - max_loss_days: Maximum losing days in any regime instance
+    - min_loss_days: Minimum losing days in any regime instance
+
     Parameters
     ----------
     summary_stats : pl.LazyFrame
@@ -635,7 +729,7 @@ def join_summary_with_win_loss(
     Returns
     -------
     pl.LazyFrame
-        Joined summary and win/loss statistics
+        Joined summary and win/loss statistics with all metrics combined
     """
     return summary_stats.join(win_loss_stats, on="humbl_regime", how="left")
 
@@ -645,6 +739,15 @@ def join_summary_with_drawdowns(
 ) -> pl.LazyFrame:
     """
     Join summary statistics with drawdown metrics.
+
+    Combines regime summary statistics with drawdown metrics including:
+    - max_drawdown_pct: Maximum percentage decline from peak for each regime
+    - avg_drawdown_pct: Average drawdown depth across all drawdowns
+    - avg_recovery_days: Average number of days to recover from drawdowns
+    - max_recovery_days: Maximum number of days to recover from any drawdown
+
+    Null values in drawdown metrics are filled with 0 since no drawdown implies
+    no decline from peak.
 
     Parameters
     ----------
@@ -656,7 +759,7 @@ def join_summary_with_drawdowns(
     Returns
     -------
     pl.LazyFrame
-        Joined summary and drawdown statistics
+        Joined summary and drawdown statistics with filled null values
     """
     return summary_stats.join(
         regime_drawdowns, on="humbl_regime", how="left"
@@ -679,6 +782,16 @@ def join_summary_with_growth(
     """
     Join summary statistics with investment growth data.
 
+    Combines regime summary statistics with growth metrics including:
+    - cumulative_investment_growth: Total dollar growth from initial investment
+    - investment_growth_pct: Total percentage growth from initial investment
+    - total_ending_investment_value: Final investment value at regime end
+
+    If no growth data is provided, adds placeholder columns with:
+    - cumulative_investment_growth: 0
+    - investment_growth_pct: 0
+    - total_ending_investment_value: initial_investment
+
     Parameters
     ----------
     summary_stats : pl.LazyFrame
@@ -691,7 +804,7 @@ def join_summary_with_growth(
     Returns
     -------
     pl.LazyFrame
-        Joined summary and growth statistics
+        Joined summary and growth statistics with filled null values
     """
     if combined_regime_growth is not None:
         return summary_stats.join(
