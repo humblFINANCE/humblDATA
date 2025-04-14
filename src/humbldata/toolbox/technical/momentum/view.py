@@ -2,9 +2,9 @@
 **Context: Toolbox || Category: Technical || Command: momentum**.
 
 The Momentum View Module.
-"""
 
-from typing import List
+# TODO: Add plotting logic to just use momentum_signal column.
+"""
 
 import plotly.graph_objs as go
 import polars as pl
@@ -49,7 +49,8 @@ def create_shifted_plot(
 
     # Create color array based on price comparison
     colors = [
-        "green" if p > s else "red" for p, s in zip(prices, shifted_prices)
+        "green" if p > s else "red"
+        for p, s in zip(prices, shifted_prices, strict=False)
     ]
 
     # Add current price trace with color segments
@@ -59,9 +60,9 @@ def create_shifted_plot(
                 x=dates[i - 1 : i + 1],
                 y=prices[i - 1 : i + 1],
                 mode="lines",
-                line=dict(color=colors[i - 1], width=2),
+                line={"color": colors[i - 1], "width": 2},
                 name="Current Price",
-                showlegend=True if i == 1 else False,
+                showlegend=i == 1,
             )
         )
 
@@ -71,7 +72,7 @@ def create_shifted_plot(
             x=dates,
             y=shifted_prices,
             name="Shifted Price",
-            line=dict(color="purple", width=2),
+            line={"color": "purple", "width": 2},
         )
     )
 
@@ -132,7 +133,7 @@ def create_simple_plot(
                 x=dates,
                 y=prices,
                 name="Price",
-                line=dict(color="blue", width=2),
+                line={"color": "blue", "width": 2},
                 yaxis="y1",
             )
         )
@@ -143,7 +144,7 @@ def create_simple_plot(
                 x=dates,
                 y=momentum,
                 name="Momentum",
-                line=dict(color="purple", width=2),
+                line={"color": "purple", "width": 2},
                 yaxis="y2",
             )
         )
@@ -151,30 +152,30 @@ def create_simple_plot(
         # Update layout with separate y-axes
         fig.update_layout(
             title=f"Price and Momentum Analysis for {symbol}",
-            xaxis=dict(title="Date"),
+            xaxis={"title": "Date"},
             # Primary y-axis (Price) on the left
-            yaxis=dict(
-                title="Price",
-                titlefont=dict(color="blue"),
-                tickfont=dict(color="blue"),
-                side="left",
-            ),
+            yaxis={
+                "title": "Price",
+                "titlefont": {"color": "blue"},
+                "tickfont": {"color": "blue"},
+                "side": "left",
+            },
             # Secondary y-axis (Momentum) on the right
-            yaxis2=dict(
-                title="Momentum",
-                titlefont=dict(color="purple"),
-                tickfont=dict(color="purple"),
-                side="right",
-                overlaying="y",
-            ),
+            yaxis2={
+                "title": "Momentum",
+                "titlefont": {"color": "purple"},
+                "tickfont": {"color": "purple"},
+                "side": "right",
+                "overlaying": "y",
+            },
             template=template,
             showlegend=True,
-            legend=dict(
-                x=0.45,
-                y=1.15,
-                xanchor="center",
-                orientation="h",
-            ),
+            legend={
+                "x": 0.45,
+                "y": 1.15,
+                "xanchor": "center",
+                "orientation": "h",
+            },
         )
     else:
         # Create color array based on momentum values
