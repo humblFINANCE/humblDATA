@@ -26,10 +26,19 @@ logger = setup_logger("MomentumModel", level=env.LOGGER_LEVEL)
 def _calc_log_roc(data: pl.LazyFrame, window_days: int = 1) -> pl.LazyFrame:
     """Calculate logarithmic rate of change."""
     try:
-        return data.with_columns(
+        # First calculate the momentum column
+        data = data.with_columns(
             (pl.col("close").log() - pl.col("close").shift(window_days).log())
             .over("symbol")
             .alias("momentum")
+        )
+
+        # Then calculate the signal using the momentum column
+        return data.with_columns(
+            (pl.col("momentum") > 0)
+            .over("symbol")
+            .cast(pl.Int8)
+            .alias("momentum_signal")
         )
     except Exception as e:
         logger.error(f"Error calculating log ROC: {str(e)}")
@@ -39,13 +48,22 @@ def _calc_log_roc(data: pl.LazyFrame, window_days: int = 1) -> pl.LazyFrame:
 def _calc_simple_roc(data: pl.LazyFrame, window_days: int = 1) -> pl.LazyFrame:
     """Calculate simple rate of change."""
     try:
-        return data.with_columns(
+        # First calculate the momentum column
+        data = data.with_columns(
             (
                 (pl.col("close") - pl.col("close").shift(window_days))
                 / pl.col("close").shift(window_days)
             )
             .over("symbol")
             .alias("momentum")
+        )
+
+        # Then calculate the signal using the momentum column
+        return data.with_columns(
+            (pl.col("momentum") > 0)
+            .over("symbol")
+            .cast(pl.Int8)
+            .alias("momentum_signal")
         )
     except Exception as e:
         logger.error(f"Error calculating simple ROC: {str(e)}")
@@ -55,17 +73,17 @@ def _calc_simple_roc(data: pl.LazyFrame, window_days: int = 1) -> pl.LazyFrame:
 def _calc_shift(data: pl.LazyFrame, window_days: int = 1) -> pl.LazyFrame:
     """Calculate simple time series shift."""
     try:
+        # First add the shifted column
+        data = data.with_columns(
+            pl.col("close").shift(window_days).over("symbol").alias("shifted")
+        )
+
+        # Then calculate the signal using the shifted column
         return data.with_columns(
-            [
-                pl.col("close")
-                .shift(window_days)
-                .over("symbol")
-                .alias("shifted"),
-                (pl.col("close") > pl.col("close").shift(window_days))
-                .over("symbol")
-                .cast(pl.Int8)
-                .alias("momentum_signal"),
-            ]
+            (pl.col("close") > pl.col("shifted"))
+            .over("symbol")
+            .cast(pl.Int8)
+            .alias("momentum_signal")
         )
     except Exception as e:
         logger.error(f"Error calculating shift: {str(e)}")
