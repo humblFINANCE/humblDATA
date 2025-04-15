@@ -1,3 +1,9 @@
+## v1.19.1 (2025-04-15)
+
+### ♻️ Refactorings
+
+- **mandelbrot_channel**: clean up imports and remove unused momentum module
+
 ## v1.19.0 (2025-04-15)
 
 ### ✨ Features
