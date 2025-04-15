@@ -53,7 +53,7 @@ class WarningCollector:
 
     def collect_warnings(self, func: Callable) -> Callable:
         """
-        Decorator to collect warnings from a function.
+        Collect warnings from a function.
 
         Parameters
         ----------
@@ -81,7 +81,7 @@ warning_collector = WarningCollector()
 
 def collect_warnings(func: Callable) -> Callable:
     """
-    Decorator to collect warnings from a function and store them in the global collector.
+    Collect warnings from a function and store them in the global collector.
 
     Parameters
     ----------

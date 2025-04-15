@@ -7,10 +7,10 @@ This module is used to define the QueryParams and Data model for the
 HumblCompass command.
 """
 
+import warnings
 from datetime import datetime
 from enum import Enum
 from typing import Literal, TypeVar
-import warnings
 
 import pandera.polars as pa
 import polars as pl

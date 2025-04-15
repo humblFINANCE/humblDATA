@@ -107,11 +107,11 @@ class MomentumData(Data):
         title="Symbol",
         description="The stock symbol.",
     )
-    momentum: float | None = pa.Field(
+    close: float | None = pa.Field(
         default=None,
         nullable=True,
-        title="Momentum",
-        description="The momentum value.",
+        title="Close",
+        description="The close price of the stock.",
     )
     shifted: float | None = pa.Field(
         default=None,
@@ -119,12 +119,22 @@ class MomentumData(Data):
         title="Shifted",
         description="The shifted value.",
     )
+    momentum: float | None = pa.Field(
+        default=None,
+        nullable=True,
+        title="Momentum",
+        description="The momentum value.",
+    )
     momentum_signal: pl.Int8 | None = pa.Field(
+        in_range={"min_value": 0, "max_value": 1},
         default=None,
         nullable=True,
         title="Momentum Signal",
         description="The momentum signal value.",
     )
+
+    class Config:  # noqa: D106
+        strict = "filter"
 
 
 class MomentumFetcher:

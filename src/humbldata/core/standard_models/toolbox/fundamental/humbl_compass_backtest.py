@@ -8,7 +8,7 @@ HumblCompassBacktest command.
 """
 
 import datetime as dt
-from typing import TypeVar
+from typing import Literal, TypeVar
 
 import numpy as np
 import pandera.polars as pa
@@ -23,6 +23,12 @@ from humbldata.core.standard_models.abstract.query_params import QueryParams
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
 from humbldata.core.utils.env import Env
 from humbldata.core.utils.logger import log_start_end, setup_logger
+from humbldata.toolbox.fundamental.humbl_compass_backtest.model import (
+    humbl_compass_backtest,
+)
+from humbldata.toolbox.fundamental.humbl_compass_backtest.view import (
+    generate_plots,
+)
 from humbldata.toolbox.toolbox_helpers import _window_format
 
 env = Env()
@@ -37,7 +43,34 @@ HUMBLCOMPASSBACKTEST_QUERY_DESCRIPTIONS = {
     "vol_window": "Window size for volatility calculation",
     "risk_free_rate": "Risk-free rate used in Sharpe ratio calculation",
     "min_regime_days": "Minimum number of days required for a regime to be considered valid",
+    "initial_investment": "Initial investment amount for regime growth simulation",
 }
+
+CountryType = Literal[
+    "g20",
+    "g7",
+    "asia5",
+    "north_america",
+    "europe4",
+    "australia",
+    "brazil",
+    "canada",
+    "china",
+    "france",
+    "germany",
+    "india",
+    "indonesia",
+    "italy",
+    "japan",
+    "mexico",
+    "south_africa",
+    "south_korea",
+    "spain",
+    "turkey",
+    "united_kingdom",
+    "united_states",
+    "all",
+]
 
 
 class HumblCompassBacktestQueryParams(QueryParams):
@@ -52,7 +85,7 @@ class HumblCompassBacktestQueryParams(QueryParams):
         Start date for the backtest analysis
     end_date : str
         End date for the backtest analysis
-    country : str, optional
+    country : CountryType, optional
         Country for the COMPASS analysis, by default "united_states"
     vol_window : str, optional
         Window size for volatility calculation, by default "1m"
@@ -60,6 +93,8 @@ class HumblCompassBacktestQueryParams(QueryParams):
         Risk-free rate used in Sharpe ratio calculation, by default 0.03
     min_regime_days : int, optional
         Minimum number of days required for a regime to be considered valid, by default 21
+    initial_investment : float, optional
+        Initial investment amount for regime growth simulation, by default 10000.0
     """
 
     symbols: list[str] = Field(
@@ -81,7 +116,7 @@ class HumblCompassBacktestQueryParams(QueryParams):
         title="End Date",
         description=HUMBLCOMPASSBACKTEST_QUERY_DESCRIPTIONS["end_date"],
     )
-    country: str = Field(
+    country: CountryType = Field(
         default="united_states",
         title="Country",
         description=HUMBLCOMPASSBACKTEST_QUERY_DESCRIPTIONS["country"],
@@ -100,6 +135,18 @@ class HumblCompassBacktestQueryParams(QueryParams):
         default=21,
         title="Minimum Regime Days",
         description=HUMBLCOMPASSBACKTEST_QUERY_DESCRIPTIONS["min_regime_days"],
+    )
+    initial_investment: float = Field(
+        default=100000.0,
+        title="Initial Investment",
+        description=HUMBLCOMPASSBACKTEST_QUERY_DESCRIPTIONS[
+            "initial_investment"
+        ],
+    )
+    chart: bool = Field(
+        default=False,
+        title="Chart",
+        description="Whether to generate a chart",
     )
 
     @field_validator("symbols")
@@ -143,6 +190,40 @@ class HumblCompassBacktestData(Data):
         Average number of days spent in each regime
     instance_count : pl.UInt32
         Number of occurrences of each regime
+    cumulative_investment_growth : pl.Float64
+        Cumulative growth of the initial investment amount across all instances of each regime
+    investment_growth_pct : pl.Float64
+        Percentage growth of investment relative to initial amount
+    total_ending_investment_value : pl.Float64
+        Total ending investment value including the initial investment amount
+    total_win_count : pl.UInt32
+        Total number of days with positive returns across all instances
+    total_loss_count : pl.UInt32
+        Total number of days with negative returns across all instances
+    avg_win_count_per_instance : pl.Float64
+        Average number of days with positive returns per instance
+    avg_loss_count_per_instance : pl.Float64
+        Average number of days with negative returns per instance
+    min_return_pct : pl.Float64
+        Minimum return percentage across all instances of the regime
+    max_return_pct : pl.Float64
+        Maximum return percentage across all instances of the regime
+    max_win_days : pl.UInt32
+        Maximum number of win days in any instance of the regime
+    min_win_days : pl.UInt32
+        Minimum number of win days in any instance of the regime
+    max_loss_days : pl.UInt32
+        Maximum number of loss days in any instance of the regime
+    min_loss_days : pl.UInt32
+        Minimum number of loss days in any instance of the regime
+    max_drawdown_pct : pl.Float64
+        Maximum drawdown percentage across all instances of the regime
+    avg_drawdown_pct : pl.Float64
+        Average drawdown percentage across all instances of the regime
+    avg_recovery_days : pl.Float64
+        Average number of days to recover from drawdowns
+    max_recovery_days : pl.UInt32
+        Maximum number of days to recover from drawdowns
     """
 
     humbl_regime: pl.Utf8 = pa.Field(
@@ -176,6 +257,74 @@ class HumblCompassBacktestData(Data):
     instance_count: pl.UInt32 = pa.Field(
         title="Instance Count",
         description="Number of occurrences of each regime",
+    )
+    cumulative_investment_growth: pl.Float64 = pa.Field(
+        title="Cumulative Investment Growth",
+        description="Cumulative growth of the initial investment amount across all instances of each regime",
+    )
+    investment_growth_pct: pl.Float64 = pa.Field(
+        title="Investment Growth %",
+        description="Percentage growth of investment relative to initial amount",
+    )
+    total_ending_investment_value: pl.Float64 = pa.Field(
+        title="Total Ending Investment Value",
+        description="Total ending investment value including the initial investment amount",
+    )
+    total_win_count: pl.UInt32 = pa.Field(
+        title="Total Win Count",
+        description="Total number of days with positive returns across all instances",
+    )
+    total_loss_count: pl.UInt32 = pa.Field(
+        title="Total Loss Count",
+        description="Total number of days with negative returns across all instances",
+    )
+    avg_win_count_per_instance: pl.Float64 = pa.Field(
+        title="Avg Win Count Per Instance",
+        description="Average number of days with positive returns per instance",
+    )
+    avg_loss_count_per_instance: pl.Float64 = pa.Field(
+        title="Avg Loss Count Per Instance",
+        description="Average number of days with negative returns per instance",
+    )
+    min_return_pct: pl.Float64 = pa.Field(
+        title="Min Return %",
+        description="Minimum return percentage across all instances of the regime",
+    )
+    max_return_pct: pl.Float64 = pa.Field(
+        title="Max Return %",
+        description="Maximum return percentage across all instances of the regime",
+    )
+    max_win_days: pl.UInt32 = pa.Field(
+        title="Max Win Days",
+        description="Maximum number of win days in any instance of the regime",
+    )
+    min_win_days: pl.UInt32 = pa.Field(
+        title="Min Win Days",
+        description="Minimum number of win days in any instance of the regime",
+    )
+    max_loss_days: pl.UInt32 = pa.Field(
+        title="Max Loss Days",
+        description="Maximum number of loss days in any instance of the regime",
+    )
+    min_loss_days: pl.UInt32 = pa.Field(
+        title="Min Loss Days",
+        description="Minimum number of loss days in any instance of the regime",
+    )
+    max_drawdown_pct: pl.Float64 = pa.Field(
+        title="Max Drawdown %",
+        description="Maximum drawdown percentage across all instances of the regime",
+    )
+    avg_drawdown_pct: pl.Float64 = pa.Field(
+        title="Avg Drawdown %",
+        description="Average drawdown percentage across all instances of the regime",
+    )
+    avg_recovery_days: pl.Float64 = pa.Field(
+        title="Avg Recovery Days",
+        description="Average number of days to recover from drawdowns",
+    )
+    max_recovery_days: pl.Int64 = pa.Field(
+        title="Max Recovery Days",
+        description="Maximum number of days to recover from drawdowns",
     )
 
 
@@ -305,16 +454,18 @@ class HumblCompassBacktestFetcher:
             self.humbl_compass_data = self.compass_data
 
         # Get equity data
-        self.equity_data = (
-            obb.equity.price.historical(
-                symbol=self.command_params.symbols,
-                start_date=self.command_params.start_date,
-                end_date=self.command_params.end_date,
-                provider="yfinance",
-            )
-            .to_polars()
-            .lazy()
+        equity_data = obb.equity.price.historical(
+            symbol=self.command_params.symbols,
+            start_date=self.command_params.start_date,
+            end_date=self.command_params.end_date,
+            provider="yfinance",
         )
+        self.equity_data = equity_data.to_polars().lazy()
+
+        if len(self.command_params.symbols) == 1:
+            self.equity_data = self.equity_data.with_columns(
+                symbol=pl.lit(self.command_params.symbols[0])
+            )
         return self
 
     def transform_data(self):
@@ -326,186 +477,28 @@ class HumblCompassBacktestFetcher:
         self
             Returns self for method chaining.
         """
-        equity = self.equity_data.lazy()
-        compass = self.humbl_compass_data.lazy()
+        equity_data = self.equity_data.lazy()
+        compass_data = self.humbl_compass_data.lazy()
 
-        window_days = _window_format(
+        volatility_window_days = _window_format(
             self.command_params.vol_window,
             _return_timedelta=True,
             _avg_trading_days=True,
         ).days
 
-        # Step 1: Create daily date range
-        daily_dates = equity.select(pl.col("date")).unique().sort("date")
-
-        # Forward fill regime data to match daily equity data
-        daily_regime_data = (
-            compass.select(["date_month_start", "humbl_regime"])
-            .sort("date_month_start")
-            # First join to get the next month's date for each regime
-            .with_columns(
-                pl.col("date_month_start").shift(-1).alias("next_month_start")
-            )
-            # Cross join with daily dates and filter to get daily regime assignments
-            .join(daily_dates, how="cross")
-            .filter(
-                (pl.col("date") >= pl.col("date_month_start"))
-                & (
-                    (pl.col("date") < pl.col("next_month_start"))
-                    | pl.col("next_month_start").is_null()
-                )
-            )
-            .select(["date", "humbl_regime"])
-        )
-
-        # Step 4: Calculate basic metrics
-        base_metrics = (
-            equity.join(daily_regime_data, on="date", how="left")
-            # First create regime instance ID
-            .with_columns(
-                (pl.col("humbl_regime") != pl.col("humbl_regime").shift())
-                .cum_sum()
-                .alias("regime_instance_id")
-            )
-            # Then calculate returns within each regime instance
-            .with_columns(
-                [
-                    # Daily returns
-                    (pl.col("close") / pl.col("close").shift(1) - 1)
-                    .over(["humbl_regime", "regime_instance_id"])
-                    .alias("daily_returns"),
-                    # Log returns for volatility calculation
-                    (pl.col("close") / pl.col("close").shift(1))
-                    .log()
-                    .over(["humbl_regime", "regime_instance_id"])
-                    .alias("log_returns"),
-                ]
-            )
-            .drop_nulls()
-        )
-
-        # Step 5: Add regime instance metrics
-        regime_metrics = base_metrics.with_columns(
-            [
-                pl.col("date")
-                .count()
-                .over(["humbl_regime", "regime_instance_id"])
-                .alias("days_in_regime"),
-                pl.col("close")
-                .first()
-                .over(["humbl_regime", "regime_instance_id"])
-                .alias("regime_start_price"),
-                pl.col("close")
-                .last()
-                .over(["humbl_regime", "regime_instance_id"])
-                .alias("regime_end_price"),
-            ]
-        )
-
-        # Step 6: Calculate performance metrics
-        performance_metrics = regime_metrics.with_columns(
-            [
-                # Total return
-                (
-                    (
-                        pl.col("regime_end_price")
-                        / pl.col("regime_start_price")
-                        - 1
-                    )
-                    * 100
-                ).alias("instance_return_pct"),
-                # Annualized return
-                (
-                    (pl.col("regime_end_price") / pl.col("regime_start_price"))
-                    ** (252 / pl.col("days_in_regime"))
-                    - 1
-                )
-                .mul(100)
-                .alias("instance_ann_return_pct"),
-                # Volatility
-                pl.col("log_returns")
-                .rolling_std(window_size=window_days)
-                .mul(np.sqrt(252))
-                .mul(100)
-                .alias("volatility_pct"),
-                # Win rate
-                (pl.col("daily_returns") > 0)
-                .mean()
-                .mul(100)
-                .over(["humbl_regime", "regime_instance_id"])
-                .alias("win_rate"),
-                # Risk-free rate
-                pl.lit(self.command_params.risk_free_rate).alias(
-                    "risk_free_rate"
-                ),
-            ]
-        )
-
-        # Step 7: Add Sharpe ratio
-        results = performance_metrics.with_columns(
-            [
-                (
-                    (
-                        pl.col("instance_ann_return_pct") / 100
-                        - pl.col("risk_free_rate")
-                    )
-                    / (pl.col("volatility_pct") / 100)
-                ).alias("sharpe_ratio"),
-            ]
-        )
-
-        # Step 8: Calculate final summary statistics
-        summary_stats = (
-            results.group_by("humbl_regime")
-            .agg(
-                [
-                    # Average return across all instances of each regime
-                    pl.col("instance_return_pct")
-                    .mean()
-                    .alias("avg_total_return_pct"),
-                    # Average annualized return across instances
-                    pl.col("instance_ann_return_pct")
-                    .mean()
-                    .alias("avg_ann_return_pct"),
-                    # Average win rate across instances
-                    pl.col("win_rate").mean().alias("avg_win_rate_pct"),
-                    # Average volatility
-                    pl.col("volatility_pct").mean().alias("avg_volatility"),
-                    # Average Sharpe ratio across instances
-                    pl.col("sharpe_ratio").mean().alias("avg_sharpe_ratio"),
-                    # Average days per instance
-                    pl.col("days_in_regime").mean().alias("avg_days_in_regime"),
-                    # Count of regime instances
-                    pl.col("regime_instance_id")
-                    .n_unique()
-                    .alias("instance_count"),
-                ]
-            )
-            # Filter out regimes with too few observations
-            .filter(
-                pl.col("avg_days_in_regime")
-                >= self.command_params.min_regime_days
+        final_summary, regime_date_summary, daily_regime_data = (
+            humbl_compass_backtest(
+                equity_data=equity_data,
+                compass_data=compass_data,
+                volatility_window_days=volatility_window_days,
+                risk_free_rate=self.command_params.risk_free_rate,
+                min_regime_days=self.command_params.min_regime_days,
+                initial_investment=self.command_params.initial_investment,
             )
         )
 
-        # Step 9: Sort regimes in correct order
-        final_summary = (
-            summary_stats.with_columns(
-                pl.col("humbl_regime")
-                .replace(
-                    {
-                        "humblBOOM": 0,
-                        "humblBOUNCE": 1,
-                        "humblBLOAT": 2,
-                        "humblBUST": 3,
-                    }
-                )
-                .alias("regime_order")
-            )
-            .sort("regime_order")
-            .drop("regime_order")
-        )
-
+        if self.command_params.chart:
+            self.chart = generate_plots(self.equity_data, regime_date_summary)
         # Store transformed data
         self.transformed_data = (
             HumblCompassBacktestData(final_summary)
@@ -513,6 +506,8 @@ class HumblCompassBacktestFetcher:
             .serialize(format="binary")
         )
         self.equity_data = self.equity_data.serialize(format="binary")
+        self.extra["daily_regime_data"] = daily_regime_data.lazy()
+
         return self
 
     @log_start_end(logger=logger)
@@ -537,28 +532,23 @@ class HumblCompassBacktestFetcher:
         logger.debug("Running .transform_data()")
         self.transform_data()
 
-        # Initialize warnings list if it doesn't exist
-        if not hasattr(self.context_params, "warnings"):
-            self.context_params.warnings = []
-
-        # Initialize fetcher warnings if they don't exist
-        if not hasattr(self, "warnings"):
-            self.warnings = []
-
         # Initialize extra dict if it doesn't exist
         if not hasattr(self, "extra"):
             self.extra = {}
 
-        # Combine warnings from both sources
-        all_warnings = self.context_params.warnings + self.warnings
+        # Use context params warnings if available, otherwise initialize empty list
+        context_warnings = getattr(self.context_params, "warnings", [])
+
+        # Combine warnings
+        all_warnings = context_warnings + self.warnings
 
         return HumblObject(
             results=self.transformed_data,
             provider=self.context_params.provider,
             equity_data=self.equity_data,
-            warnings=all_warnings,  # Use combined warnings
+            warnings=all_warnings,
             chart=self.chart,
             context_params=self.context_params,
             command_params=self.command_params,
-            extra=self.extra,  # pipe in extra from transform_data()
+            extra=self.extra,
         )
