@@ -7,7 +7,7 @@ This module is used to define the QueryParams and Data model for the
 Momentum command.
 """
 
-from typing import Literal, TypeVar, Union
+from typing import Literal, TypeVar
 
 import pandera.polars as pa
 import polars as pl

@@ -5,7 +5,6 @@ The momentum Command Module. This module calculates various types of momentum/Ra
 indicators for time series data.
 """
 
-import logging
 from typing import Literal
 
 import polars as pl

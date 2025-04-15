@@ -2,10 +2,9 @@ import datetime
 
 import polars as pl
 import pytest
-from h11 import Data
 
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
-from humbldata.core.standard_models.toolbox.technical.mandelbrot_channel import (
+from humbldata.core.standard_models.toolbox.technical.humbl_channel import (
     MandelbrotChannelData,
     MandelbrotChannelFetcher,
     MandelbrotChannelQueryParams,

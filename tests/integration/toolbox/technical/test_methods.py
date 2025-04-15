@@ -5,7 +5,7 @@ from src.humbldata.toolbox.technical.technical_controller import Technical
 
 from humbldata.core.standard_models.abstract.humblobject import HumblObject
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
-from humbldata.core.standard_models.toolbox.technical.mandelbrot_channel import (
+from humbldata.core.standard_models.toolbox.technical.humbl_channel import (
     MandelbrotChannelQueryParams,
 )
 from humbldata.core.standard_models.toolbox.technical.humbl_momentum import (
