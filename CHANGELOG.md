@@ -1,3 +1,22 @@
+## v1.19.0 (2025-04-15)
+
+### ✨ Features
+
+- **humbl_compass**: update momentum example notebook and enhance plotting logic
+- **humbl_compass**: update momentum analysis in example notebook and enhance model definitions
+- **humbl_compass**: modularize backtest analysis with enhanced model functions
+- **humbl_compass**: add advanced drawdown and recovery metrics to backtest analysis
+- **humbl_compass**: expand backtest analysis with investment growth metrics
+- **humbl_compass**: enhance backtest with chart generation and regime details
+
+### 🐛🚑️ Fixes
+
+- **humbl_compass**: correct execution counts and output in momentum example notebook
+
+### ♻️ Refactorings
+
+- **humbl_compass**: optimize investment growth calculation and regime processing
+
 ## v1.18.2 (2025-02-25)
 
 ### 🐛🚑️ Fixes
