@@ -8,7 +8,7 @@ from humbldata.core.standard_models.toolbox import ToolboxQueryParams
 from humbldata.core.standard_models.toolbox.technical.mandelbrot_channel import (
     MandelbrotChannelQueryParams,
 )
-from humbldata.core.standard_models.toolbox.technical.momentum import (
+from humbldata.core.standard_models.toolbox.technical.humbl_momentum import (
     MomentumQueryParams,
 )
 
