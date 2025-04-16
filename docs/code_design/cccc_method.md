@@ -56,7 +56,7 @@ classDiagram
         -_live_price: bool
     }
     class MandelbrotChannelData {
-        <<Standard Model (pydantic)>>
+        <<Standard Model (pandera.polars)>>
         +date: date
         +symbol: str
         +bottom_price: f64

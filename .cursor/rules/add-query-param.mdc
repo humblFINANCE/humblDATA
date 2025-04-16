@@ -1,0 +1,69 @@
+
+---
+description: This rule describes how to add a new QueryParam feild to a function.
+globs:
+alwaysApply: false
+---
+
+# Adding Query Parameters
+
+When adding a new query parameter to a function, follow these steps:
+
+1. **Identify the QueryParams Model**
+   - Locate the `<Function>QueryParams` class in the appropriate command directory
+   - This model should be in the same directory as the command implementation
+
+2. **Add the New Parameter**
+   ```python
+   class FunctionQueryParams(BaseModel):
+       # ... existing code ...
+       new_param: type = Field(
+           default=default_value,
+           description="Description of the parameter",
+           examples=["example_value"]
+       )
+   ```
+
+3. **Data Model Impact Assessment**
+   - Does this parameter affect the output data structure?
+   - If yes, update `<Function>Data` model accordingly
+   - If no, proceed to step 4
+
+4. **Update Fetcher Logic**
+   - Modify the fetcher class to handle the new parameter
+   - Update `transform_query()` if needed
+   - Update `transform_data()` if the parameter affects data processing
+
+5. **Documentation**
+   - Update function docstring with new parameter
+   - Add parameter to examples in docstring
+   - Update any relevant API documentation
+
+6. **Testing**
+   - Add test cases for the new parameter
+   - Test both default and custom values
+   - Verify data transformation with new parameter
+
+Example:
+```python
+# Before
+class MandelbrotChannelQueryParams(BaseModel):
+    window: str
+    rv_adjustment: bool
+
+# After
+class MandelbrotChannelQueryParams(BaseModel):
+    window: str
+    rv_adjustment: bool
+    new_param: bool = Field(
+        default=False,
+        description="New parameter description",
+        examples=[True, False]
+    )
+```
+
+Remember:
+- Always use Pydantic's `Field` for parameter definitions
+- Provide clear descriptions and examples
+- Consider backward compatibility
+- Update tests and documentation
