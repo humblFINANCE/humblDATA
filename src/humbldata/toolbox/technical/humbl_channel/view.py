@@ -54,44 +54,62 @@ def create_historical_plot(
         prices = filtered_data.select("recent_price").to_series()
         signals = filtered_data.select("momentum_signal").to_series()
 
-        # Create pairs of consecutive points and their signals
-        point_pairs = zip(
-            dates[:-1],
-            dates[1:],  # x values
-            prices[:-1],
-            prices[1:],  # y values
-            signals[:-1],  # signals for coloring
-        )
+        # Split data into positive and negative momentum
+        pos_dates = []
+        pos_prices = []
+        neg_dates = []
+        neg_prices = []
 
-        # Track if we've added legend entries
-        added_pos = added_neg = False
+        # Add first point to appropriate list
+        if signals[0] == 1:
+            pos_dates.append(dates[0])
+            pos_prices.append(prices[0])
+        else:
+            neg_dates.append(dates[0])
+            neg_prices.append(prices[0])
 
-        # Create line segments
-        for x1, x2, y1, y2, signal in point_pairs:
-            color = (
-                MOMENTUM_COLORS["positive"]
-                if signal == 1
-                else MOMENTUM_COLORS["negative"]
-            )
-            show_legend = (
-                color == MOMENTUM_COLORS["positive"] and not added_pos
-            ) or (color == MOMENTUM_COLORS["negative"] and not added_neg)
-
-            if color == MOMENTUM_COLORS["positive"]:
-                added_pos = True
+        # Process each point
+        for i in range(len(signals)):
+            if signals[i] == 1:
+                pos_dates.append(dates[i])
+                pos_prices.append(prices[i])
+                # If next point exists and has different momentum, add None for gap
+                if i < len(signals) - 1 and signals[i + 1] != 1:
+                    pos_dates.append(dates[i + 1])
+                    pos_prices.append(prices[i + 1])
+                    pos_dates.append(None)
+                    pos_prices.append(None)
             else:
-                added_neg = True
+                neg_dates.append(dates[i])
+                neg_prices.append(prices[i])
+                # If next point exists and has different momentum, add None for gap
+                if i < len(signals) - 1 and signals[i + 1] != 0:
+                    neg_dates.append(dates[i + 1])
+                    neg_prices.append(prices[i + 1])
+                    neg_dates.append(None)
+                    neg_prices.append(None)
 
+        # Add positive momentum trace
+        if pos_dates:
             fig.add_trace(
                 go.Scatter(
-                    x=[x1, x2],
-                    y=[y1, y2],
+                    x=pos_dates,
+                    y=pos_prices,
                     mode="lines",
-                    line=dict(color=color, width=2),
-                    showlegend=show_legend,
-                    name="Price (Positive Momentum)"
-                    if color == MOMENTUM_COLORS["positive"]
-                    else "Price (Negative Momentum)",
+                    line=dict(color=MOMENTUM_COLORS["positive"], width=2),
+                    name="Price (Positive Momentum)",
+                )
+            )
+
+        # Add negative momentum trace
+        if neg_dates:
+            fig.add_trace(
+                go.Scatter(
+                    x=neg_dates,
+                    y=neg_prices,
+                    mode="lines",
+                    line=dict(color=MOMENTUM_COLORS["negative"], width=2),
+                    name="Price (Negative Momentum)",
                 )
             )
     else:
@@ -169,44 +187,62 @@ def create_current_plot(
         prices = equity_data.select("close").to_series()
         signals = equity_data.select("momentum_signal").to_series()
 
-        # Create pairs of consecutive points and their signals
-        point_pairs = zip(
-            dates[:-1],
-            dates[1:],  # x values
-            prices[:-1],
-            prices[1:],  # y values
-            signals[:-1],  # signals for coloring
-        )
+        # Split data into positive and negative momentum
+        pos_dates = []
+        pos_prices = []
+        neg_dates = []
+        neg_prices = []
 
-        # Track if we've added legend entries
-        added_pos = added_neg = False
+        # Add first point to appropriate list
+        if signals[0] == 1:
+            pos_dates.append(dates[0])
+            pos_prices.append(prices[0])
+        else:
+            neg_dates.append(dates[0])
+            neg_prices.append(prices[0])
 
-        # Create line segments
-        for x1, x2, y1, y2, signal in point_pairs:
-            color = (
-                MOMENTUM_COLORS["positive"]
-                if signal == 1
-                else MOMENTUM_COLORS["negative"]
-            )
-            show_legend = (
-                color == MOMENTUM_COLORS["positive"] and not added_pos
-            ) or (color == MOMENTUM_COLORS["negative"] and not added_neg)
-
-            if color == MOMENTUM_COLORS["positive"]:
-                added_pos = True
+        # Process each point
+        for i in range(len(signals)):
+            if signals[i] == 1:
+                pos_dates.append(dates[i])
+                pos_prices.append(prices[i])
+                # If next point exists and has different momentum, add None for gap
+                if i < len(signals) - 1 and signals[i + 1] != 1:
+                    pos_dates.append(dates[i + 1])
+                    pos_prices.append(prices[i + 1])
+                    pos_dates.append(None)
+                    pos_prices.append(None)
             else:
-                added_neg = True
+                neg_dates.append(dates[i])
+                neg_prices.append(prices[i])
+                # If next point exists and has different momentum, add None for gap
+                if i < len(signals) - 1 and signals[i + 1] != 0:
+                    neg_dates.append(dates[i + 1])
+                    neg_prices.append(prices[i + 1])
+                    neg_dates.append(None)
+                    neg_prices.append(None)
 
+        # Add positive momentum trace
+        if pos_dates:
             fig.add_trace(
                 go.Scatter(
-                    x=[x1, x2],
-                    y=[y1, y2],
+                    x=pos_dates,
+                    y=pos_prices,
                     mode="lines",
-                    line=dict(color=color, width=2),
-                    showlegend=show_legend,
-                    name="Price (Positive Momentum)"
-                    if color == MOMENTUM_COLORS["positive"]
-                    else "Price (Negative Momentum)",
+                    line=dict(color=MOMENTUM_COLORS["positive"], width=2),
+                    name="Price (Positive Momentum)",
+                )
+            )
+
+        # Add negative momentum trace
+        if neg_dates:
+            fig.add_trace(
+                go.Scatter(
+                    x=neg_dates,
+                    y=neg_prices,
+                    mode="lines",
+                    line=dict(color=MOMENTUM_COLORS["negative"], width=2),
+                    name="Price (Negative Momentum)",
                 )
             )
     else:

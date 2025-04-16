@@ -215,6 +215,8 @@ class HumblChannelData(Data):
         The most recent price within the Mandelbrot Channel. Defaults to None.
     top_price : float, optional
         The top price in the Mandelbrot Channel. Defaults to None.
+    momentum_signal : float, optional
+        The momentum signal value calculated based on the specified method.
     """
 
     date: pl.Date = pa.Field(
@@ -243,6 +245,12 @@ class HumblChannelData(Data):
         default=None,
         title="Top Price",
         description="The top price in the Mandelbrot Channel.",
+    )
+    momentum_signal: pl.Int8 = pa.Field(
+        default=None,
+        title="Momentum Signal",
+        description="The momentum signal value calculated based on the specified method.",
+        nullable=True,
     )
 
 
