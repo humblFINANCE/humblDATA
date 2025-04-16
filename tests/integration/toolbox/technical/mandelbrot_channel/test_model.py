@@ -2,9 +2,9 @@ import polars as pl
 import pytest
 from _pytest.fixtures import FixtureRequest
 
-from humbldata.toolbox.technical.mandelbrot_channel.model import (
-    calc_mandelbrot_channel,
-    calc_mandelbrot_channel_historical,
+from humbldata.toolbox.technical.humbl_channel.model import (
+    calc_humbl_channel,
+    calc_humbl_channel_historical,
 )
 
 
@@ -36,13 +36,11 @@ def equity_historical(request: FixtureRequest):
 
 
 @pytest.mark.integration()
-def test_mandelbrot_channel_integration(
-    equity_historical, request: FixtureRequest
-):
-    """Testing the composed function of `calc_mandelbrot_channel()`."""
+def test_humbl_channel_integration(equity_historical, request: FixtureRequest):
+    """Testing the composed function of `calc_humbl_channel()`."""
     current_param = request.node.callspec.params.get("equity_historical")
 
-    mandelbrot = calc_mandelbrot_channel(
+    mandelbrot = calc_humbl_channel(
         equity_historical,
         window="1m",
         rv_adjustment=True,
@@ -94,13 +92,13 @@ def test_mandelbrot_channel_integration(
 
 
 @pytest.mark.integration()
-def test_mandelbrot_channel_historical_integration(
+def test_humbl_channel_historical_integration(
     equity_historical, request: FixtureRequest
 ):
-    """Testing the composed function of `calc_mandelbrot_channel()`."""
+    """Testing the composed function of `calc_humbl_channel()`."""
     current_param = request.node.callspec.params.get("equity_historical")
 
-    mandelbrot_historical = calc_mandelbrot_channel_historical(
+    mandelbrot_historical = calc_humbl_channel_historical(
         equity_historical,
         window="1m",
         rv_adjustment=True,

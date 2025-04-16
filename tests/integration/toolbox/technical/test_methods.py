@@ -1,4 +1,4 @@
-"""Testing Integration of passing parameters from Toolbox() to Technical() to MandelbrotChannelFetcher()."""
+"""Testing Integration of passing parameters from Toolbox() to Technical() to HumblChannelFetcher()."""
 
 import pytest
 from src.humbldata.toolbox.technical.technical_controller import Technical
@@ -6,7 +6,7 @@ from src.humbldata.toolbox.technical.technical_controller import Technical
 from humbldata.core.standard_models.abstract.humblobject import HumblObject
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
 from humbldata.core.standard_models.toolbox.technical.humbl_channel import (
-    MandelbrotChannelQueryParams,
+    HumblChannelQueryParams,
 )
 from humbldata.core.standard_models.toolbox.technical.humbl_momentum import (
     MomentumQueryParams,
@@ -47,10 +47,10 @@ def command_params(request):
 
     Returns
     -------
-    MandelbrotChannelQueryParams:
+    HumblChannelQueryParams:
         The command parameters for the Mandelbrot Channel.
     """
-    return MandelbrotChannelQueryParams(
+    return HumblChannelQueryParams(
         historical=request.param["historical"],
         window=request.param["window"],
         _boundary_group_down=request.param["_boundary_group_down"],
@@ -127,14 +127,12 @@ def momentum_command_params(request):
     ],
     indirect=True,
 )
-def test_mandelbrot_channel_integration(
-    technical, context_params, command_params
-):
+def test_humbl_channel_integration(technical, context_params, command_params):
     """
     Test the integration of passing parameters.
 
-    ToolboxQueryParams (context) and MandelbrotChannelQueryParams (command)
-    parameters to the MandelbrotChannelFetcher,
+    ToolboxQueryParams (context) and HumblChannelQueryParams (command)
+    parameters to the HumblChannelFetcher,
     and comparing the parameters returned to the ones input.
 
     Args:
@@ -143,7 +141,7 @@ def test_mandelbrot_channel_integration(
         command_params: The command parameters for the Mandelbrot Channel.
     """
     # Act
-    result = technical.mandelbrot_channel(**command_params.model_dump())
+    result = technical.humbl_channel(**command_params.model_dump())
 
     # Assert
     assert isinstance(result, HumblObject)

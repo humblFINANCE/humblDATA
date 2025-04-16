@@ -25,16 +25,16 @@ from humbldata.core.standard_models.abstract.warnings import (
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
 from humbldata.core.utils.env import Env
 from humbldata.core.utils.logger import log_start_end, setup_logger
-from humbldata.toolbox.technical.mandelbrot_channel.model import (
-    calc_mandelbrot_channel,
-    calc_mandelbrot_channel_historical_concurrent,
+from humbldata.toolbox.technical.humbl_channel.model import (
+    calc_humbl_channel,
+    calc_humbl_channel_historical_concurrent,
 )
-from humbldata.toolbox.technical.mandelbrot_channel.view import generate_plots
+from humbldata.toolbox.technical.humbl_channel.view import generate_plots
 from humbldata.toolbox.toolbox_helpers import _window_format
 
 env = Env()
 Q = TypeVar("Q", bound=ToolboxQueryParams)
-logger = setup_logger("MandelbrotChannelFetcher", level=env.LOGGER_LEVEL)
+logger = setup_logger("HumblChannelFetcher", level=env.LOGGER_LEVEL)
 
 MANDELBROT_QUERY_DESCRIPTIONS = {
     "window": "The width of the window used for splitting the data into sections for detrending.",
@@ -49,9 +49,9 @@ MANDELBROT_QUERY_DESCRIPTIONS = {
 }
 
 
-class MandelbrotChannelQueryParams(QueryParams):
+class HumblChannelQueryParams(QueryParams):
     """
-    QueryParams model for the Mandelbrot Channel command, a Pydantic v2 model.
+    QueryParams model for the Humbl Channel command, a Pydantic v2 model.
 
     Parameters
     ----------
@@ -192,9 +192,9 @@ class MandelbrotChannelQueryParams(QueryParams):
         raise TypeError(msg)
 
 
-class MandelbrotChannelData(Data):
+class HumblChannelData(Data):
     """
-    Data model for the Mandelbrot Channel command, a Pandera.Polars Model.
+    Data model for the Humbl Channel command, a Pandera.Polars Model.
 
     Parameters
     ----------
@@ -239,7 +239,7 @@ class MandelbrotChannelData(Data):
     )
 
 
-class MandelbrotChannelFetcher:
+class HumblChannelFetcher:
     """
     Fetcher for the Mandelbrot Channel command.
 
@@ -247,14 +247,14 @@ class MandelbrotChannelFetcher:
     ----------
     context_params : ToolboxQueryParams
         The context parameters for the toolbox query.
-    command_params : MandelbrotChannelQueryParams
+    command_params : HumblChannelQueryParams
         The command-specific parameters for the Mandelbrot Channel query.
 
     Attributes
     ----------
     context_params : ToolboxQueryParams
         Stores the context parameters passed during initialization.
-    command_params : MandelbrotChannelQueryParams
+    command_params : HumblChannelQueryParams
         Stores the command-specific parameters passed during initialization.
     equity_historical_data : pl.DataFrame
         The raw data extracted from the data provider, before transformation.
@@ -273,7 +273,7 @@ class MandelbrotChannelFetcher:
     Returns
     -------
     HumblObject
-        results : MandelbrotChannelData
+        results : HumblChannelData
             Serializable results.
         provider : Literal['fmp', 'intrinio', 'polygon', 'tiingo', 'yfinance']
             Provider name.
@@ -283,7 +283,7 @@ class MandelbrotChannelFetcher:
             Chart object.
         context_params : ToolboxQueryParams
             Context-specific parameters.
-        command_params : MandelbrotChannelQueryParams
+        command_params : HumblChannelQueryParams
             Command-specific parameters.
 
     """
@@ -291,16 +291,16 @@ class MandelbrotChannelFetcher:
     def __init__(
         self,
         context_params: ToolboxQueryParams,
-        command_params: MandelbrotChannelQueryParams,
+        command_params: HumblChannelQueryParams,
     ):
         """
-        Initialize the MandelbrotChannelFetcher with context and command parameters.
+        Initialize the HumblChannelFetcher with context and command parameters.
 
         Parameters
         ----------
         context_params : ToolboxQueryParams
             The context parameters for the toolbox query.
-        command_params : MandelbrotChannelQueryParams
+        command_params : HumblChannelQueryParams
             The command-specific parameters for the Mandelbrot Channel query.
         """
         self.context_params = context_params
@@ -312,14 +312,14 @@ class MandelbrotChannelFetcher:
         """
         Transform the command-specific parameters into a query.
 
-        If command_params is not provided, it initializes a default MandelbrotChannelQueryParams object.
+        If command_params is not provided, it initializes a default HumblChannelQueryParams object.
         """
         if not self.command_params:
             # Set Default Arguments
-            self.command_params = MandelbrotChannelQueryParams()
-        elif not isinstance(self.command_params, MandelbrotChannelQueryParams):
-            # If it's a dict, convert it to MandelbrotChannelQueryParams
-            self.command_params = MandelbrotChannelQueryParams(
+            self.command_params = HumblChannelQueryParams()
+        elif not isinstance(self.command_params, HumblChannelQueryParams):
+            # If it's a dict, convert it to HumblChannelQueryParams
+            self.command_params = HumblChannelQueryParams(
                 **(self.command_params or {})
             )
 
@@ -365,7 +365,7 @@ class MandelbrotChannelFetcher:
             The transformed data as a Polars DataFrame
         """
         if self.command_params.historical is False:
-            transformed_data = calc_mandelbrot_channel(
+            transformed_data = calc_humbl_channel(
                 data=self.equity_historical_data,
                 window=self.command_params.window,
                 rv_adjustment=self.command_params.rv_adjustment,
@@ -375,7 +375,7 @@ class MandelbrotChannelFetcher:
                 live_price=self.command_params.live_price,
             )
         else:
-            transformed_data = calc_mandelbrot_channel_historical_concurrent(
+            transformed_data = calc_humbl_channel_historical_concurrent(
                 data=self.equity_historical_data,
                 window=self.command_params.window,
                 rv_adjustment=self.command_params.rv_adjustment,
@@ -386,7 +386,7 @@ class MandelbrotChannelFetcher:
                 use_processes=False,
             )
 
-        self.transformed_data = MandelbrotChannelData(
+        self.transformed_data = HumblChannelData(
             transformed_data.collect().drop_nulls()  ## HOTFIX - need to trace where coming from w/ unequal data
         ).lazy()
 

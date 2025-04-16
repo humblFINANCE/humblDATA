@@ -5,9 +5,9 @@ import pytest
 
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
 from humbldata.core.standard_models.toolbox.technical.humbl_channel import (
-    MandelbrotChannelData,
-    MandelbrotChannelFetcher,
-    MandelbrotChannelQueryParams,
+    HumblChannelData,
+    HumblChannelFetcher,
+    HumblChannelQueryParams,
 )
 
 
@@ -26,14 +26,14 @@ from humbldata.core.standard_models.toolbox.technical.humbl_channel import (
         ("2 quarters", "2q"),
     ],
 )
-def test_mandelbrot_channel_queryparams(input_window, expected_window):
+def test_humbl_channel_queryparams(input_window, expected_window):
     """Test Custom `@field_validator()` on `window` field."""
-    params = MandelbrotChannelQueryParams(window=input_window)
+    params = HumblChannelQueryParams(window=input_window)
     assert params.window == expected_window
 
 
 @pytest.fixture()
-def mandelbrot_channel_data():
+def humbl_channel_data():
     return pl.LazyFrame(
         {
             "date": pl.date_range(
@@ -49,13 +49,13 @@ def mandelbrot_channel_data():
     )
 
 
-def test_mandelbrot_channel_data_validation(mandelbrot_channel_data):
-    MandelbrotChannelData(mandelbrot_channel_data.collect())
+def test_humbl_channel_data_validation(humbl_channel_data):
+    HumblChannelData(humbl_channel_data.collect())
 
 
-def test_mandelbrot_channel_fetcher():
-    """Test the integration of MandelbrotChannelFetcher with actual data fetching."""
-    fetcher = MandelbrotChannelFetcher(
+def test_humbl_channel_fetcher():
+    """Test the integration of HumblChannelFetcher with actual data fetching."""
+    fetcher = HumblChannelFetcher(
         context_params=ToolboxQueryParams(symbols="AMD"),
         command_params=None,
     )
@@ -68,13 +68,13 @@ def test_mandelbrot_channel_fetcher():
     assert "top_price" in data.columns
 
 
-def test_mandelbrot_channel_fetcher_integration():
-    """Test the MandelbrotChannelFetcher and validate the data with MandelbrotChannelData."""
-    fetcher = MandelbrotChannelFetcher(
+def test_humbl_channel_fetcher_integration():
+    """Test the HumblChannelFetcher and validate the data with HumblChannelData."""
+    fetcher = HumblChannelFetcher(
         context_params=ToolboxQueryParams(symbols="AMD"),
         command_params=None,
     )
     data = fetcher.fetch_data().to_polars()
     assert not data.is_empty()
 
-    MandelbrotChannelData(data)
+    HumblChannelData(data)

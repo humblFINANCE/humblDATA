@@ -278,7 +278,7 @@ class UserTableFetcher:
             membership=self.context_params.membership,
             interval="1d",
         )
-        self.mandelbrot = self.toolbox.technical.mandelbrot_channel().to_polars(
+        self.mandelbrot = self.toolbox.technical.humbl_channel().to_polars(
             collect=False
         )
         return self

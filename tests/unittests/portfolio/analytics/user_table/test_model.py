@@ -217,7 +217,7 @@ async def test_user_table_engine(
     mock_toolbox = mocker.Mock(spec=Toolbox)
     mock_mandelbrot = mocker.Mock()
     mock_mandelbrot.to_polars.return_value = mandelbrot_input
-    mock_toolbox.technical.mandelbrot_channel.return_value = mock_mandelbrot
+    mock_toolbox.technical.humbl_channel.return_value = mock_mandelbrot
 
     # Mock the async functions
     mock_latest_price = mocker.patch(
@@ -315,7 +315,7 @@ async def test_user_table_engine_without_etf_data(
     mock_toolbox = mocker.Mock(spec=Toolbox)
     mock_mandelbrot = mocker.Mock()
     mock_mandelbrot.to_polars.return_value = mandelbrot_data[0].lazy()
-    mock_toolbox.technical.mandelbrot_channel.return_value = mock_mandelbrot
+    mock_toolbox.technical.humbl_channel.return_value = mock_mandelbrot
 
     # Mock the async functions
     mock_latest_price.return_value = pl.DataFrame(
@@ -373,7 +373,7 @@ async def test_user_table_engine_without_toolbox(
     mock_toolbox = mocker.Mock(spec=Toolbox)
     mock_mandelbrot = mocker.Mock()
     mock_mandelbrot.to_polars.return_value = mandelbrot_data[0].lazy()
-    mock_toolbox.technical.mandelbrot_channel.return_value = mock_mandelbrot
+    mock_toolbox.technical.humbl_channel.return_value = mock_mandelbrot
 
     # Run the function
     result = await user_table_engine(

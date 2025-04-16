@@ -3,7 +3,7 @@ import pytest
 from _pytest.fixtures import FixtureRequest
 
 from humbldata.core.standard_models.abstract.errors import HumblDataError
-from humbldata.toolbox.technical.mandelbrot_channel.helpers import (
+from humbldata.toolbox.technical.humbl_channel.helpers import (
     add_window_index,
     price_range,
     vol_buckets,
@@ -45,7 +45,7 @@ def equity_historical(request: FixtureRequest):
     ]
 )
 def equity_historical_mandelbrot_pre_price_range(request: FixtureRequest):
-    """Data from `calc_mandelbrot_channel()` right before last `price_range()`"""
+    """Data from `calc_humbl_channel()` right before last `price_range()`"""
     data = pl.read_parquet("tests/test_data/test_data_pre_price_range.parquet")
     if request.param == "dataframe_single_symbol":
         data = data.filter(pl.col("symbol") == "AAPL")

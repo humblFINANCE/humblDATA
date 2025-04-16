@@ -39,7 +39,7 @@ class HumblChannelSingleLong(Strategy):
                 end_date=current_date,
                 membership="admin",
             )
-            .technical.mandelbrot_channel(
+            .technical.humbl_channel(
                 historical=False,
                 window="1mo",
                 _boundary_group_down=False,

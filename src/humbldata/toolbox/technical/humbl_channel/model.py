@@ -1,5 +1,5 @@
 """
-Context: Toolbox || Category: Technical || **Command: calc_mandelbrot_channel**.
+Context: Toolbox || Category: Technical || **Command: calc_humbl_channel**.
 
 A command to generate a Mandelbrot Channel for any time series.
 """
@@ -16,9 +16,10 @@ import uvloop
 from humbldata.core.standard_models.abstract.errors import (
     HumblDataError,
 )
+from humbldata.core.standard_models.abstract.warnings import collect_warnings
 from humbldata.core.utils.core_helpers import run_async
 from humbldata.core.utils.openbb_helpers import get_latest_price
-from humbldata.toolbox.technical.mandelbrot_channel.helpers import (
+from humbldata.toolbox.technical.humbl_channel.helpers import (
     add_window_index,
     price_range,
     vol_buckets,
@@ -37,13 +38,12 @@ from humbldata.toolbox.toolbox_helpers import (
     range_,
     std,
 )
-from humbldata.core.standard_models.abstract.warnings import collect_warnings
 
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 
 @collect_warnings
-def calc_mandelbrot_channel(  # noqa: PLR0913
+def calc_humbl_channel(  # noqa: PLR0913
     data: pl.DataFrame | pl.LazyFrame,
     window: str = "1m",
     rv_method: Literal[
@@ -68,9 +68,9 @@ def calc_mandelbrot_channel(  # noqa: PLR0913
     **kwargs,
 ) -> pl.LazyFrame:
     """
-    Context: Toolbox || Category: Technical || **Command: calc_mandelbrot_channel**.
+    Context: Toolbox || Category: Technical || **Command: calc_humbl_channel**.
 
-    This command calculates the Mandelbrot Channel for a given time series, utilizing various parameters to adjust the calculation. The Mandelbrot Channel provides insights into the volatility and price range of a stock over a specified window.
+    This command calculates the Channel for a given time series, utilizing various parameters to adjust the calculation. The Mandelbrot Channel provides insights into the volatility and price range of a stock over a specified window.
 
     Parameters
     ----------
@@ -115,7 +115,7 @@ def calc_mandelbrot_channel(  # noqa: PLR0913
     To calculate the Mandelbrot Channel for a yearly window with adjustments for realized volatility using the 'yz' method, and incorporating live price data:
 
     ```python
-    mandelbrot_channel = calc_mandelbrot_channel(
+    humbl_channel = calc_humbl_channel(
         data,
         window="1y",
         rv_adjustment=True,
@@ -203,7 +203,7 @@ def calc_mandelbrot_channel(  # noqa: PLR0913
     return out
 
 
-async def acalc_mandelbrot_channel(  # noqa: PLR0913
+async def acalc_humbl_channel(  # noqa: PLR0913
     data: pl.DataFrame | pl.LazyFrame,
     window: str = "1m",
     rv_method: str = "std",
@@ -215,18 +215,18 @@ async def acalc_mandelbrot_channel(  # noqa: PLR0913
     **kwargs,
 ) -> pl.DataFrame | pl.LazyFrame:
     """
-    Context: Toolbox || Category: Technical || Sub-Category: Mandelbrot Channel || **Command: acalc_mandelbrot_channel**.
+    Context: Toolbox || Category: Technical || Sub-Category: Humbl Channel || **Command: acalc_humbl_channel**.
 
-    Asynchronous wrapper for calc_mandelbrot_channel.
-    This function allows calc_mandelbrot_channel to be called in an async context.
+    Asynchronous wrapper for calc_humbl_channel.
+    This function allows calc_humbl_channel to be called in an async context.
 
     Notes
     -----
-    This does not make `calc_mandelbrot_channel()` non-blocking or asynchronous.
+    This does not make `calc_humbl_channel()` non-blocking or asynchronous.
     """
-    # Directly call the synchronous calc_mandelbrot_channel function
+    # Directly call the synchronous calc_humbl_channel function
 
-    return calc_mandelbrot_channel(
+    return calc_humbl_channel(
         data=data,
         window=window,
         rv_adjustment=rv_adjustment,
@@ -238,7 +238,7 @@ async def acalc_mandelbrot_channel(  # noqa: PLR0913
     )
 
 
-async def _acalc_mandelbrot_channel_historical_engine(  # noqa: PLR0913
+async def _acalc_humbl_channel_historical_engine(  # noqa: PLR0913
     data: pl.DataFrame | pl.LazyFrame,
     window: str = "1m",
     rv_method: str = "std",
@@ -250,10 +250,10 @@ async def _acalc_mandelbrot_channel_historical_engine(  # noqa: PLR0913
     **kwargs,
 ) -> pl.LazyFrame:
     """
-    Context: Toolbox || Category: Technical || Sub-Category: Mandelbrot Channel || **Command: _calc_mandelbrot_channel_historical_engine**.
+    Context: Toolbox || Category: Technical || Sub-Category: Humbl Channel || **Command: _calc_humbl_channel_historical_engine**.
 
     This function acts as the internal logic to the wrapper function
-    `calc_mandelbrot_channel_historical()`.
+    `calc_humbl_channel_historical()`.
     """
     window_days = _window_format(window, _return_timedelta=True)
     start_date = data.lazy().select(pl.col("date")).min().collect().row(0)[0]
@@ -279,7 +279,7 @@ async def _acalc_mandelbrot_channel_historical_engine(  # noqa: PLR0913
 
     tasks = [
         asyncio.create_task(
-            acalc_mandelbrot_channel(
+            acalc_humbl_channel(
                 data=data.filter(pl.col("date") <= date),
                 window=window,
                 rv_adjustment=rv_adjustment,
@@ -306,7 +306,7 @@ async def _acalc_mandelbrot_channel_historical_engine(  # noqa: PLR0913
     return out.lazy()
 
 
-def calc_mandelbrot_channel_historical(  # noqa: PLR0913
+def calc_humbl_channel_historical(  # noqa: PLR0913
     data: pl.DataFrame | pl.LazyFrame,
     window: str = "1m",
     rv_method: str = "std",
@@ -318,16 +318,16 @@ def calc_mandelbrot_channel_historical(  # noqa: PLR0913
     **kwargs,
 ) -> pl.LazyFrame:
     """
-    Context: Toolbox || Category: Technical || Sub-Category: Mandelbrot Channel || **Command: calc_mandelbrot_channel_historical**.
+    Context: Toolbox || Category: Technical || Sub-Category: Humbl Channel || **Command: calc_humbl_channel_historical**.
 
-    This function calculates the Mandelbrot Channel for historical data.
+    This function calculates the Humbl Channel for historical data.
 
-    Synchronous wrapper for the asynchronous Mandelbrot Channel historical calculation.
+    Synchronous wrapper for the asynchronous Humbl Channel historical calculation.
 
     Parameters
     ----------
-    The parameters for this function are the same as those for calc_mandelbrot_channel().
-    Please refer to the documentation of calc_mandelbrot_channel() for a detailed
+    The parameters for this function are the same as those for calc_humbl_channel().
+    Please refer to the documentation of calc_humbl_channel() for a detailed
     description of each parameter.
 
     Returns
@@ -336,7 +336,7 @@ def calc_mandelbrot_channel_historical(  # noqa: PLR0913
         A LazyFrame containing the historical Mandelbrot Channel calculations.
     """
     return run_async(
-        _acalc_mandelbrot_channel_historical_engine(
+        _acalc_humbl_channel_historical_engine(
             data=data,
             window=window,
             rv_adjustment=rv_adjustment,
@@ -349,7 +349,7 @@ def calc_mandelbrot_channel_historical(  # noqa: PLR0913
     )
 
 
-def _calc_mandelbrot_for_date(
+def _calc_humbl_for_date(
     date,
     data,
     window,
@@ -363,7 +363,7 @@ def _calc_mandelbrot_for_date(
     """Calculate Mandelbrot Channel for a single date."""
     # Only include data up to the target date, this prevents look-ahead bias
     filtered_data = data.filter(pl.col("date") <= date)
-    return calc_mandelbrot_channel(
+    return calc_humbl_channel(
         data=filtered_data,
         window=window,
         rv_adjustment=rv_adjustment,
@@ -375,7 +375,7 @@ def _calc_mandelbrot_for_date(
     )
 
 
-def calc_mandelbrot_channel_historical_mp(
+def calc_humbl_channel_historical_mp(
     data: pl.DataFrame | pl.LazyFrame,
     window: str = "1m",
     rv_adjustment: bool = True,
@@ -388,14 +388,14 @@ def calc_mandelbrot_channel_historical_mp(
     **kwargs,
 ) -> pl.LazyFrame:
     """
-    Calculate the Mandelbrot Channel historically using multiprocessing.
+    Calculate the Humbl Channel historically using multiprocessing.
 
     Parameters:
     -----------
     n_processes : int, optional
         Number of processes to use. If None, it uses all available cores.
 
-    Other parameters are the same as calc_mandelbrot_channel_historical.
+    Other parameters are the same as calc_humbl_channel_historical.
     """
     window_days = _window_format(window, _return_timedelta=True)
     start_date = data.lazy().select(pl.col("date")).min().collect().row(0)[0]
@@ -421,7 +421,7 @@ def calc_mandelbrot_channel_historical_mp(
 
     # Prepare the partial function with all arguments except the date
     calc_func = partial(
-        _calc_mandelbrot_for_date,
+        _calc_humbl_for_date,
         data=data,
         window=window,
         rv_adjustment=rv_adjustment,
@@ -442,7 +442,7 @@ def calc_mandelbrot_channel_historical_mp(
     return out.lazy()
 
 
-def calc_mandelbrot_channel_historical_concurrent(
+def calc_humbl_channel_historical_concurrent(
     data: pl.DataFrame | pl.LazyFrame,
     window: str = "1m",
     rv_method: str = "std",
@@ -456,7 +456,7 @@ def calc_mandelbrot_channel_historical_concurrent(
     **kwargs,
 ) -> pl.LazyFrame:
     """
-    Calculate the Mandelbrot Channel historically using concurrent.futures.
+    Calculate the Humbl Channel historically using concurrent.futures.
 
     Parameters:
     -----------
@@ -466,7 +466,7 @@ def calc_mandelbrot_channel_historical_concurrent(
     use_processes : bool, default True
         If True, use ProcessPoolExecutor, otherwise use ThreadPoolExecutor.
 
-    Other parameters are the same as calc_mandelbrot_channel_historical.
+    Other parameters are the same as calc_humbl_channel_historical.
     """
     window_days = _window_format(window, _return_timedelta=True)
     start_date = data.lazy().select(pl.col("date")).min().collect().row(0)[0]
@@ -492,7 +492,7 @@ def calc_mandelbrot_channel_historical_concurrent(
 
     # Prepare the partial function with all arguments except the date
     calc_func = partial(
-        _calc_mandelbrot_for_date,
+        _calc_humbl_for_date,
         data=data,
         window=window,
         rv_adjustment=rv_adjustment,

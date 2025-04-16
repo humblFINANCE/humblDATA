@@ -2,17 +2,17 @@ import polars as pl
 import pytest
 
 from humbldata.core.standard_models.abstract.errors import HumblDataError
-from humbldata.toolbox.technical.mandelbrot_channel.model import (
-    calc_mandelbrot_channel,
-    calc_mandelbrot_channel_historical,
+from humbldata.toolbox.technical.humbl_channel.model import (
+    calc_humbl_channel,
+    calc_humbl_channel_historical,
 )
 
 
 @pytest.mark.skip("validation will occur in the Fetcher")
-def test_calc_mandelbrot_channel_invalid_data():
+def test_calc_humbl_channel_invalid_data():
     """Testing Input Validation"""
     with pytest.raises(HumblDataError):
-        result = calc_mandelbrot_channel(data=pl.DataFrame().to_pandas())
+        result = calc_humbl_channel(data=pl.DataFrame().to_pandas())
 
 
 ## The internal functions used in the model are tested in the helpers.py file

@@ -52,7 +52,7 @@ def add_window_index(
     numerous 'windows', and statistics are calculated for each window.
     - The function adds a dummy `symbol` column if the data contains only one
     symbol, to avoid errors in the `group_by_dynamic()` function.
-    - It is utilized within the `log_mean()` and `calc_mandelbrot_channel()`
+    - It is utilized within the `log_mean()` and `calc_humbl_channel()`
     functions for window-based calculations.
 
     Examples
@@ -230,7 +230,7 @@ def vol_filter(
     ----------
     data : pl.DataFrame | pl.LazyFrame
         The input dataframe or lazy frame. This should be the output of
-        `vol_buckets()` function in `calc_mandelbrot_channel()`.
+        `vol_buckets()` function in `calc_humbl_channel()`.
 
     Returns
     -------

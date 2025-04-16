@@ -4,7 +4,7 @@ from src.humbldata.toolbox.technical.technical_controller import Technical
 from humbldata.core.standard_models.abstract.humblobject import HumblObject
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
 from humbldata.core.standard_models.toolbox.technical.humbl_channel import (
-    MandelbrotChannelQueryParams,
+    HumblChannelQueryParams,
 )
 
 
@@ -20,7 +20,7 @@ def context_params(request):
 
 @pytest.fixture
 def command_params(request):
-    return MandelbrotChannelQueryParams(
+    return HumblChannelQueryParams(
         historical=request.param["historical"],
         window=request.param["window"],
         _boundary_group_down=request.param["_boundary_group_down"],
@@ -68,7 +68,7 @@ def technical(context_params):
     reason="Testing and comparing mocked objects to mocked objects"
 )
 # I need to mock external API calls and just test the internal logic
-def test_mandelbrot_channel_integration(
+def test_humbl_channel_integration(
     mocker, technical, context_params, command_params
 ):
     # Arrange
@@ -77,11 +77,11 @@ def test_mandelbrot_channel_integration(
     mock_humbl_object.command_params = command_params
 
     mocker.patch.object(
-        technical, "mandelbrot_channel", return_value=mock_humbl_object
+        technical, "humbl_channel", return_value=mock_humbl_object
     )
 
     # Act
-    result = technical.mandelbrot_channel(**command_params.model_dump())
+    result = technical.humbl_channel(**command_params.model_dump())
 
     # Assert
     assert isinstance(result, HumblObject)

@@ -8,7 +8,7 @@ access to the technical module and its functions.
 from humbldata.core.standard_models.abstract.errors import HumblDataError
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
 from humbldata.core.standard_models.toolbox.technical.humbl_channel import (
-    MandelbrotChannelQueryParams,
+    HumblChannelQueryParams,
 )
 from humbldata.core.standard_models.toolbox.technical.humbl_momentum import (
     MomentumQueryParams,
@@ -29,7 +29,7 @@ class Technical:
 
     Methods
     -------
-    mandelbrot_channel(command_params: MandelbrotChannelQueryParams)
+    humbl_channel(command_params: HumblChannelQueryParams)
         Calculate the rescaled range statistics.
 
     """
@@ -109,9 +109,9 @@ class Technical:
             msg = f"Failed to calculate Momentum: {e!s}"
             raise HumblDataError(msg) from e
 
-    def mandelbrot_channel(self, **kwargs: MandelbrotChannelQueryParams):
+    def humbl_channel(self, **kwargs: HumblChannelQueryParams):
         """
-        Calculate the Mandelbrot Channel.
+        Calculate the Humbl Channel.
 
         Parameters
         ----------
@@ -158,11 +158,11 @@ class Technical:
             )
 
             from humbldata.core.standard_models.toolbox.technical.humbl_channel import (
-                MandelbrotChannelFetcher,
+                HumblChannelFetcher,
             )
 
             # Instantiate the Fetcher with the query parameters
-            fetcher = MandelbrotChannelFetcher(
+            fetcher = HumblChannelFetcher(
                 context_params=self.context_params,
                 command_params=kwargs,  # Pass kwargs directly, the Fetcher will handle conversion
             )

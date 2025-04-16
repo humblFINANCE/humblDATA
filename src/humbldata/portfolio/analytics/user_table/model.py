@@ -28,7 +28,7 @@ async def user_table_engine(
     symbols: str | list[str] | pl.Series,
     etf_data: pl.LazyFrame | None = None,
     toolbox: Toolbox | None = None,
-    mandelbrot_data: pl.LazyFrame | None = None,
+    humbl_channel_data: pl.LazyFrame | None = None,
     membership: Literal[
         "anonymous", "humblPEON", "humblPREMIUM", "humblPOWER", "admin"
     ] = "anonymous",
@@ -44,8 +44,8 @@ async def user_table_engine(
         Pre-fetched ETF data. If None, it will be fetched, by default None.
     toolbox : Toolbox or None, optional
         Pre-generated toolbox. If None, it will be generated, by default None.
-    mandelbrot_data : pl.LazyFrame or None, optional
-        Pre-calculated Mandelbrot channel data. If None, it will be calculated, by default None.
+    humbl_data : pl.LazyFrame or None, optional
+        Pre-calculated Humbl channel data. If None, it will be calculated, by default None.
     membership : Literal["anonymous", "humblPEON", "humblPREMIUM", "humblPOWER", "admin"], optional
         The user's role. If None, it will be calculated, by default None.
 
@@ -75,12 +75,12 @@ async def user_table_engine(
         etf_data = await aget_etf_category(symbols=symbols)
 
     # Calculate Mandelbrot channel if not provided
-    if mandelbrot_data is None:
+    if humbl_channel_data is None:
         # Generate toolbox params based on membership if not provided
         if toolbox is None:
             toolbox = Toolbox(symbols=symbols, membership=membership)
-        mandelbrot_data = toolbox.technical.mandelbrot_channel().to_polars(
-            collect=False
+        humbl_channel_data: pl.LazyFrame = (
+            toolbox.technical.humbl_channel().to_polars(collect=False)
         )
     # Fetch data from all sources concurrently, passing etf_data where needed
     tasks = [
@@ -95,7 +95,7 @@ async def user_table_engine(
         (
             pl.concat(lazyframes, how="align")
             .lazy()
-            .join(mandelbrot_data, on="symbol", how="left")
+            .join(humbl_channel_data, on="symbol", how="left")
             .pipe(calc_up_down_pct)
         )
         .select(

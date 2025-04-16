@@ -595,7 +595,7 @@ def cum_sum(
     -----
     This function is used to calculate the cumulative sum for the deviate series
     of detrended returns for the data in the pipeline for
-    `calc_mandelbrot_channel`.
+    `calc_humbl_channel`.
 
     So, although it is calculating a cumulative sum, it is known as a cumulative
     deviate because it is a cumulative sum on a deviate series, meaning that the
@@ -708,7 +708,7 @@ def mean(
     This function calculates the mean of a column (<_column_name>) over a
     each window in the dataset, if there are any.
     This window is intended to be the `window` that is passed in the
-    `calc_mandelbrot_channel()` function. The mean calculated is meant to be
+    `calc_humbl_channel()` function. The mean calculated is meant to be
     used as the mean of each `window` within the time series. This
     way, each block of windows has their own mean, which can then be used to
     normalize the data (i.e remove the mean) from each window section.

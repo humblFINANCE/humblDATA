@@ -191,7 +191,7 @@ def generate_plots(
     Parameters
     ----------
     data : pl.LazyFrame
-        The LazyFrame containing the symbols and MandelbrotChannelData
+        The LazyFrame containing the symbols and HumblChannelData
     equity_data : pl.LazyFrame
         The LazyFrame containing equity data for the symbols.
     template : ChartTemplate

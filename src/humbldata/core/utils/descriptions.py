@@ -30,7 +30,7 @@ DATA_DESCRIPTIONS = {
     "vwap": "Volume Weighted Average Price over the period.",
     "last_price": "The most recent price of the asset",
     "sector": "The GICS sector of the asset",
-    "mandelbrot_channel": "The Mandelbrot channel of the asset",
+    "humbl_channel": "The Mandelbrot channel of the asset",
     "buy_price": "The recommended buy price for the asset",
     "sell_price": "The recommended sell price for the asset",
     "ud_pct": "The percentage difference between the last_price and buy/sell_price",

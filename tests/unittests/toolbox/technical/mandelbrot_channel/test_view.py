@@ -3,7 +3,7 @@ import pytest
 from _pytest.fixtures import FixtureRequest
 from plotly.graph_objs import Figure
 
-from humbldata.toolbox.technical.mandelbrot_channel.view import (
+from humbldata.toolbox.technical.humbl_channel.view import (
     create_current_plot,
     create_historical_plot,
     is_historical_data,
@@ -12,9 +12,9 @@ from humbldata.toolbox.technical.mandelbrot_channel.view import (
 
 @pytest.fixture(params=["historical", "current"])
 def mandelbrot_data(request):
-    """MandelbrotChannelData Output from `.mandelbrot()`."""
+    """HumblChannelData Output from `.mandelbrot()`."""
     data_historical = pl.read_parquet(
-        "tests/test_data/mandelbrot_channel_historical.parquet"
+        "tests/test_data/humbl_channel_historical.parquet"
     )
     if request.param == "current":
         out = data_historical.group_by("symbol").agg(pl.col("*").last())
