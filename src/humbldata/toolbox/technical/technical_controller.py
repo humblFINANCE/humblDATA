@@ -11,7 +11,7 @@ from humbldata.core.standard_models.toolbox.technical.humbl_channel import (
     HumblChannelQueryParams,
 )
 from humbldata.core.standard_models.toolbox.technical.humbl_momentum import (
-    MomentumQueryParams,
+    HumblMomentumQueryParams,
 )
 from humbldata.core.utils.logger import setup_logger
 
@@ -37,7 +37,7 @@ class Technical:
     def __init__(self, context_params: ToolboxQueryParams):
         self.context_params = context_params
 
-    def humbl_momentum(self, **kwargs: MomentumQueryParams):
+    def humbl_momentum(self, **kwargs: HumblMomentumQueryParams):
         """
         Execute the Momentum command.
 
@@ -75,7 +75,7 @@ class Technical:
                 Visualization if chart=True
             context_params : ToolboxQueryParams
                 Original context parameters
-            command_params : MomentumQueryParams
+            command_params : HumblMomentumQueryParams
                 Command parameters used
             extra : dict
                 Additional metadata
@@ -92,11 +92,11 @@ class Technical:
             )
 
             from humbldata.core.standard_models.toolbox.technical.humbl_momentum import (
-                MomentumFetcher,
+                HumblMomentumFetcher,
             )
 
             # Instantiate the Fetcher with the query parameters
-            fetcher = MomentumFetcher(
+            fetcher = HumblMomentumFetcher(
                 context_params=self.context_params,
                 command_params=kwargs,
             )

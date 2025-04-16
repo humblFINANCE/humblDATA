@@ -9,7 +9,7 @@ from humbldata.core.standard_models.toolbox.technical.humbl_channel import (
     HumblChannelQueryParams,
 )
 from humbldata.core.standard_models.toolbox.technical.humbl_momentum import (
-    MomentumQueryParams,
+    HumblMomentumQueryParams,
 )
 
 
@@ -84,10 +84,10 @@ def momentum_command_params(request):
 
     Returns
     -------
-    MomentumQueryParams:
+    HumblMomentumQueryParams:
         The command parameters for Momentum calculations.
     """
-    return MomentumQueryParams(
+    return HumblMomentumQueryParams(
         method=request.param["method"],
         window=request.param["window"],
         chart=request.param["chart"],
@@ -201,10 +201,10 @@ def test_momentum_integration(
     technical, context_params, momentum_command_params
 ):
     """
-    Test the integration of passing parameters from Toolbox to Technical to MomentumFetcher.
+    Test the integration of passing parameters from Toolbox to Technical to HumblMomentumFetcher.
 
-    Tests that both ToolboxQueryParams (context) and MomentumQueryParams (command)
-    parameters are correctly passed through to the MomentumFetcher and returned
+    Tests that both ToolboxQueryParams (context) and HumblMomentumQueryParams (command)
+    parameters are correctly passed through to the HumblMomentumFetcher and returned
     in the result.
 
     Args:

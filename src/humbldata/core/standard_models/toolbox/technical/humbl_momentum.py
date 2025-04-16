@@ -25,7 +25,7 @@ from humbldata.toolbox.technical.humbl_momentum.view import generate_plots
 
 env = Env()
 Q = TypeVar("Q", bound=ToolboxQueryParams)
-logger = setup_logger("MomentumFetcher", level=env.LOGGER_LEVEL)
+logger = setup_logger("HumblMomentumFetcher", level=env.LOGGER_LEVEL)
 
 MOMENTUM_QUERY_DESCRIPTIONS = {
     "method": "Method to calculate momentum (log, simple, or shift)",
@@ -35,7 +35,7 @@ MOMENTUM_QUERY_DESCRIPTIONS = {
 }
 
 
-class MomentumQueryParams(QueryParams):
+class HumblMomentumQueryParams(QueryParams):
     """
     QueryParams model for the Momentum command.
 
@@ -137,7 +137,7 @@ class MomentumData(Data):
         strict = "filter"
 
 
-class MomentumFetcher:
+class HumblMomentumFetcher:
     """
     Fetcher for the Momentum command.
 
@@ -145,14 +145,14 @@ class MomentumFetcher:
     ----------
     context_params : ToolboxQueryParams
         The context parameters for the Toolbox query.
-    command_params : MomentumQueryParams
+    command_params : HumblMomentumQueryParams
         The command-specific parameters for the Momentum query.
 
     Attributes
     ----------
     context_params : ToolboxQueryParams
         Stores the context parameters passed during initialization.
-    command_params : MomentumQueryParams
+    command_params : HumblMomentumQueryParams
         Stores the command-specific parameters passed during initialization.
     data : pl.DataFrame
         The raw data extracted from the data provider, before transformation.
@@ -187,7 +187,7 @@ class MomentumFetcher:
             Chart object.
         context_params : ToolboxQueryParams
             Context-specific parameters.
-        command_params : MomentumQueryParams
+        command_params : HumblMomentumQueryParams
             Command-specific parameters.
         extra : dict
             Additional metadata or results.
@@ -196,16 +196,16 @@ class MomentumFetcher:
     def __init__(
         self,
         context_params: ToolboxQueryParams,
-        command_params: MomentumQueryParams,
+        command_params: HumblMomentumQueryParams,
     ):
         """
-        Initialize the MomentumFetcher with context and command parameters.
+        Initialize the HumblMomentumFetcher with context and command parameters.
 
         Parameters
         ----------
         context_params : ToolboxQueryParams
             The context parameters for the Toolbox query.
-        command_params : MomentumQueryParams
+        command_params : HumblMomentumQueryParams
             The command-specific parameters for the Momentum query.
         """
         self.context_params = context_params
@@ -218,12 +218,14 @@ class MomentumFetcher:
         """
         Transform the command-specific parameters into a query.
 
-        If command_params is not provided, it initializes a default MomentumQueryParams object.
+        If command_params is not provided, it initializes a default HumblMomentumQueryParams object.
         """
         if not self.command_params:
-            self.command_params = MomentumQueryParams()
+            self.command_params = HumblMomentumQueryParams()
         else:
-            self.command_params = MomentumQueryParams(**self.command_params)
+            self.command_params = HumblMomentumQueryParams(
+                **self.command_params
+            )
 
     def extract_data(self):
         """
