@@ -258,11 +258,11 @@ def _price_range_engine(
     data: pl.DataFrame | pl.LazyFrame,
 ) -> pl.LazyFrame:
     """
-    Context: Toolbox || Category: MandelBrot Channel || Sub-Category: Helpers || Command: **_price_range_engine**.
+    Context: Toolbox || Category: Humbl Channel || Sub-Category: Helpers || Command: **_price_range_engine**.
 
     A private function used in `price_range()` to calculate the price range.
     This adjustment uses the latest cumulative sum of the deviate series.
-    Modify Mandelbrot prices by calculating top and bottom modifiers and prices.
+    Modify Humbl Channel prices by calculating top and bottom modifiers and prices.
 
     This function takes a DataFrame or LazyFrame, along with column names for
     cumulative sum maximum and minimum.
