@@ -109,6 +109,7 @@ async def user_table_engine(
                 "ud_ratio",
                 "sector",
                 "asset_class",
+                "momentum_signal",
             ]
         )
         .rename({"recent_price": "last_price"})

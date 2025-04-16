@@ -247,7 +247,7 @@ class HumblChannelData(Data):
         title="Top Price",
         description="The top price in the Mandelbrot Channel.",
     )
-    momentum_signal: pl.Int8 = pa.Field(
+    momentum_signal: pl.Int8 | None = pa.Field(
         default=None,
         title="Momentum Signal",
         description="The momentum signal value calculated based on the specified method.",
@@ -427,6 +427,8 @@ class HumblChannelFetcher:
             transformed_data = transformed_data.join(
                 momentum_data, on=["date", "symbol"], how="left"
             )
+        else:
+            momentum_data = None
 
         self.transformed_data = HumblChannelData(
             transformed_data.collect().drop_nulls()  ## HOTFIX - need to trace where coming from w/ unequal data

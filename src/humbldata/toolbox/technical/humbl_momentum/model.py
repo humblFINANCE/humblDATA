@@ -19,7 +19,7 @@ from humbldata.toolbox.toolbox_helpers import (
 )
 
 env = Env()
-logger = setup_logger("MomentumModel", level=env.LOGGER_LEVEL)
+logger = setup_logger("humbl_momentum.model", level=env.LOGGER_LEVEL)
 
 
 def _calc_log_roc(data: pl.LazyFrame, window_days: int = 1) -> pl.LazyFrame:

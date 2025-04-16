@@ -278,7 +278,7 @@ class UserTableFetcher:
             membership=self.context_params.membership,
             interval="1d",
         )
-        self.mandelbrot = self.toolbox.technical.humbl_channel().to_polars(
+        self.humbl_channel = self.toolbox.technical.humbl_channel().to_polars(
             collect=False
         )
         return self
@@ -296,7 +296,7 @@ class UserTableFetcher:
         transformed_data: pl.LazyFrame = await user_table_engine(
             symbols=self.context_params.symbols,
             etf_data=self.etf_data,
-            mandelbrot_data=self.mandelbrot,
+            humbl_channel_data=self.humbl_channel,  # type: ignore  # noqa: PGH003
             toolbox=self.toolbox,
         )
         self.transformed_data = UserTableData(transformed_data.collect()).lazy()

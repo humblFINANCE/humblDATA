@@ -141,6 +141,10 @@ class Technical:
             False, the Mandelbrot Channel calculation is done aggregating all of the
             data into one observation. If True, then it will enable daily
             observations over-time. Defaults to False.
+        momentum : Literal["shift", "log", "simple"] | None, optional
+            Method to calculate momentum: 'shift' for simple shift, 'log' for
+            logarithmic ROC, 'simple' for simple ROC. If None, momentum
+            calculation is skipped.
         chart : bool, optional
             Whether to return a chart object. Defaults to False.
         template : str, optional
