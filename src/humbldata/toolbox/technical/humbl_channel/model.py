@@ -64,7 +64,7 @@ def calc_humbl_channel(  # noqa: PLR0913
     *,
     rv_adjustment: bool = True,
     rv_grouped_mean: bool = False,
-    live_price: bool = True,
+    yesterday_close: bool = False,
     **kwargs,
 ) -> pl.LazyFrame:
     """
@@ -94,9 +94,8 @@ def calc_humbl_channel(  # noqa: PLR0913
         Defines the method for calculating the range over standard deviation,
         affecting the width of the Mandelbrot Channel. Options include RS,
         RS_mean, RS_min, and RS_max.
-    live_price: bool, default True
-        Indicates whether to incorporate live price data into the calculation,
-        which may extend the calculation time by 1-3 seconds.
+    yesterday_close: bool, default False
+        If True, use yesterday's close price (second to last row). If False, use today's close price (last row).
     **kwargs
         Additional keyword arguments to pass to the function, if you want to
         change the behavior or pass parameters to internal functions.
@@ -117,7 +116,7 @@ def calc_humbl_channel(  # noqa: PLR0913
 
     Example
     -------
-    To calculate the Mandelbrot Channel for a yearly window with adjustments for realized volatility using the 'yz' method, and incorporating live price data:
+    To calculate the Mandelbrot Channel for a yearly window with adjustments for realized volatility using the 'yz' method:
 
     ```python
     humbl_channel = calc_humbl_channel(
@@ -127,12 +126,11 @@ def calc_humbl_channel(  # noqa: PLR0913
         rv_method="yz",
         rv_grouped_mean=False,
         rs_method="RS",
-        live_price=True
+        yesterday_close=False
     ).collect()
     ```
     """
     # Setup ====================================================================
-    # window_datetime = _window_format(window, _return_timedelta=True)
     sort_cols = _set_sort_cols(data, "symbol", "date")
 
     data = data.lazy()
@@ -190,170 +188,15 @@ def calc_humbl_channel(  # noqa: PLR0913
         [(pl.col("cum_sum_range") / pl.col("cum_sum_std")).alias("RS")]
     )
 
-    # Step 10: Get live prices if requested
-    if live_price:
-        symbols = (
-            data.select("symbol").unique().sort("symbol").collect().to_series()
-        )
-        recent_prices = get_latest_price(symbols)
-    else:
-        recent_prices = None
-
-    # Step 11: Calculate Rescaled Price Range ----------------------------------
+    # Step 10: Calculate Rescaled Price Range ----------------------------------
     out = price_range(
         data=data8,
-        recent_price_data=recent_prices,
         rs_method=rs_method,
         _rv_adjustment=rv_adjustment,
+        yesterday_close=yesterday_close,
     )
 
     return out
-
-
-async def acalc_humbl_channel(  # noqa: PLR0913
-    data: pl.DataFrame | pl.LazyFrame,
-    window: str = "1m",
-    rv_method: str = "std",
-    rs_method: Literal["RS", "RS_mean", "RS_max", "RS_min"] = "RS",
-    *,
-    rv_adjustment: bool = True,
-    rv_grouped_mean: bool = True,
-    live_price: bool = True,
-    **kwargs,
-) -> pl.DataFrame | pl.LazyFrame:
-    """
-    Context: Toolbox || Category: Technical || Sub-Category: Humbl Channel || **Command: acalc_humbl_channel**.
-
-    Asynchronous wrapper for calc_humbl_channel.
-    This function allows calc_humbl_channel to be called in an async context.
-
-    Notes
-    -----
-    This does not make `calc_humbl_channel()` non-blocking or asynchronous.
-    """
-    # Directly call the synchronous calc_humbl_channel function
-
-    return calc_humbl_channel(
-        data=data,
-        window=window,
-        rv_adjustment=rv_adjustment,
-        rv_method=rv_method,
-        rs_method=rs_method,
-        rv_grouped_mean=rv_grouped_mean,
-        live_price=live_price,
-        **kwargs,
-    )
-
-
-async def _acalc_humbl_channel_historical_engine(  # noqa: PLR0913
-    data: pl.DataFrame | pl.LazyFrame,
-    window: str = "1m",
-    rv_method: str = "std",
-    rs_method: Literal["RS", "RS_mean", "RS_max", "RS_min"] = "RS",
-    *,
-    rv_adjustment: bool = True,
-    rv_grouped_mean: bool = True,
-    live_price: bool = True,
-    **kwargs,
-) -> pl.LazyFrame:
-    """
-    Context: Toolbox || Category: Technical || Sub-Category: Humbl Channel || **Command: _calc_humbl_channel_historical_engine**.
-
-    This function acts as the internal logic to the wrapper function
-    `calc_humbl_channel_historical()`.
-    """
-    window_days = _window_format(window, _return_timedelta=True)
-    start_date = data.lazy().select(pl.col("date")).min().collect().row(0)[0]
-    start_date = start_date + window_days
-    end_date = data.lazy().select("date").max().collect().row(0)[0]
-
-    if start_date >= end_date:
-        msg = f"You set <historical=True> \n\
-        This calculation needs *at least* one window of data. \n\
-        The (start date + window) is: {start_date} and the dataset ended: {end_date}. \n\
-        Please adjust dates accordingly."
-        raise HumblDataError(msg)
-
-    dates = (
-        data.lazy()
-        .select(pl.col("date"))
-        .filter(pl.col("date") >= start_date)
-        .unique()
-        .sort("date")
-        .collect()
-        .to_series()
-    )
-
-    tasks = [
-        asyncio.create_task(
-            acalc_humbl_channel(
-                data=data.filter(pl.col("date") <= date),
-                window=window,
-                rv_adjustment=rv_adjustment,
-                rv_method=rv_method,
-                rs_method=rs_method,
-                rv_grouped_mean=rv_grouped_mean,
-                live_price=live_price,
-                **kwargs,
-            )
-        )
-        for date in dates
-    ]
-
-    lazyframes = await asyncio.gather(*tasks)
-    out = (
-        await pl.concat(lazyframes, how="vertical")
-        .sort(["symbol", "date"])
-        .rename({"recent_price": "close_price"})
-        .collect_async()
-    )
-
-    # out = await pl.collect_all_async(lazyframes)
-
-    return out.lazy()
-
-
-def calc_humbl_channel_historical(  # noqa: PLR0913
-    data: pl.DataFrame | pl.LazyFrame,
-    window: str = "1m",
-    rv_method: str = "std",
-    rs_method: Literal["RS", "RS_mean", "RS_max", "RS_min"] = "RS",
-    *,
-    rv_adjustment: bool = True,
-    rv_grouped_mean: bool = True,
-    live_price: bool = True,
-    **kwargs,
-) -> pl.LazyFrame:
-    """
-    Context: Toolbox || Category: Technical || Sub-Category: Humbl Channel || **Command: calc_humbl_channel_historical**.
-
-    This function calculates the Humbl Channel for historical data.
-
-    Synchronous wrapper for the asynchronous Humbl Channel historical calculation.
-
-    Parameters
-    ----------
-    The parameters for this function are the same as those for calc_humbl_channel().
-    Please refer to the documentation of calc_humbl_channel() for a detailed
-    description of each parameter.
-
-    Returns
-    -------
-    pl.LazyFrame
-        A LazyFrame containing the historical Mandelbrot Channel calculations.
-    """
-    return run_async(
-        _acalc_humbl_channel_historical_engine(
-            data=data,
-            window=window,
-            rv_adjustment=rv_adjustment,
-            rv_method=rv_method,
-            rs_method=rs_method,
-            rv_grouped_mean=rv_grouped_mean,
-            live_price=live_price,
-            **kwargs,
-        )
-    )
 
 
 def _calc_humbl_for_date(
@@ -364,18 +207,13 @@ def _calc_humbl_for_date(
     rv_method,
     rs_method,
     rv_grouped_mean,
-    live_price,
+    yesterday_close,
     use_live_price=None,
     **kwargs,
 ):
     """Calculate Mandelbrot Channel for a single date."""
     # Only include data up to the target date, this prevents look-ahead bias
     filtered_data = data.filter(pl.col("date") <= date)
-
-    # Override live_price based on use_live_price if provided
-    effective_live_price = (
-        live_price if use_live_price is None else use_live_price
-    )
 
     return calc_humbl_channel(
         data=filtered_data,
@@ -384,76 +222,9 @@ def _calc_humbl_for_date(
         rv_method=rv_method,
         rs_method=rs_method,
         rv_grouped_mean=rv_grouped_mean,
-        live_price=effective_live_price,
+        yesterday_close=yesterday_close,
         **kwargs,
     )
-
-
-def calc_humbl_channel_historical_mp(
-    data: pl.DataFrame | pl.LazyFrame,
-    window: str = "1m",
-    rv_adjustment: bool = True,
-    rv_method: str = "std",
-    rs_method: Literal["RS", "RS_mean", "RS_max", "RS_min"] = "RS",
-    *,
-    rv_grouped_mean: bool = True,
-    live_price: bool = True,
-    n_processes: int = 1,
-    **kwargs,
-) -> pl.LazyFrame:
-    """
-    Calculate the Humbl Channel historically using multiprocessing.
-
-    Parameters:
-    -----------
-    n_processes : int, optional
-        Number of processes to use. If None, it uses all available cores.
-
-    Other parameters are the same as calc_humbl_channel_historical.
-    """
-    window_days = _window_format(window, _return_timedelta=True)
-    start_date = data.lazy().select(pl.col("date")).min().collect().row(0)[0]
-    start_date = start_date + window_days
-    end_date = data.lazy().select("date").max().collect().row(0)[0]
-
-    if start_date >= end_date:
-        msg = f"You set <historical=True> \n\
-        This calculation needs *at least* one window of data. \n\
-        The (start date + window) is: {start_date} and the dataset ended: {end_date}. \n\
-        Please adjust dates accordingly."
-        raise HumblDataError(msg)
-
-    dates = (
-        data.lazy()
-        .select(pl.col("date"))
-        .filter(pl.col("date") >= start_date)
-        .unique()
-        .sort("date")
-        .collect()
-        .to_series()
-    )
-
-    # Prepare the partial function with all arguments except the date
-    calc_func = partial(
-        _calc_humbl_for_date,
-        data=data,
-        window=window,
-        rv_adjustment=rv_adjustment,
-        rv_method=rv_method,
-        rs_method=rs_method,
-        rv_grouped_mean=rv_grouped_mean,
-        live_price=live_price,
-        **kwargs,
-    )
-
-    # Use multiprocessing to calculate in parallel
-    with multiprocessing.Pool(processes=n_processes) as pool:
-        results = pool.map(calc_func, dates)
-
-    # Combine results
-    out = pl.concat(results, how="vertical").sort(["symbol", "date"])
-
-    return out.lazy()
 
 
 def calc_humbl_channel_historical_concurrent(
@@ -464,7 +235,7 @@ def calc_humbl_channel_historical_concurrent(
     *,
     rv_adjustment: bool = True,
     rv_grouped_mean: bool = True,
-    live_price: bool = True,
+    yesterday_close: bool = True,
     max_workers: int | None = None,
     use_processes: bool = False,
     **kwargs,
@@ -513,7 +284,7 @@ def calc_humbl_channel_historical_concurrent(
         rv_method=rv_method,
         rs_method=rs_method,
         rv_grouped_mean=rv_grouped_mean,
-        live_price=live_price,
+        yesterday_close=yesterday_close,
         **kwargs,
     )
 
@@ -523,22 +294,226 @@ def calc_humbl_channel_historical_concurrent(
         if use_processes
         else concurrent.futures.ThreadPoolExecutor
     )
-
     # Use concurrent.futures to calculate in parallel
     with executor_class(max_workers=max_workers) as executor:
-        futures = []
-        last_date = dates.tail(1)[0]  # Get the last date
-        for date in dates:
-            # Only use live price for the most recent date when live_price is True
-            use_live_price = live_price and date == last_date
-            futures.append(
-                executor.submit(calc_func, date, use_live_price=use_live_price)
-            )
-
+        futures = [executor.submit(calc_func, date) for date in dates]
         results = [
             future.result()
             for future in concurrent.futures.as_completed(futures)
         ]
+
+    # Combine results
+    out = pl.concat(results, how="vertical").sort(["symbol", "date"])
+
+    return out.lazy()
+
+
+async def acalc_humbl_channel(  # noqa: PLR0913
+    data: pl.DataFrame | pl.LazyFrame,
+    window: str = "1m",
+    rv_method: str = "std",
+    rs_method: Literal["RS", "RS_mean", "RS_max", "RS_min"] = "RS",
+    *,
+    rv_adjustment: bool = True,
+    rv_grouped_mean: bool = True,
+    yesterday_close: bool = True,
+    **kwargs,
+) -> pl.DataFrame | pl.LazyFrame:
+    """
+    Context: Toolbox || Category: Technical || Sub-Category: Humbl Channel || **Command: acalc_humbl_channel**.
+
+    Asynchronous wrapper for calc_humbl_channel.
+    This function allows calc_humbl_channel to be called in an async context.
+
+    Notes
+    -----
+    This does not make `calc_humbl_channel()` non-blocking or asynchronous.
+    """
+    # Directly call the synchronous calc_humbl_channel function
+
+    return calc_humbl_channel(
+        data=data,
+        window=window,
+        rv_adjustment=rv_adjustment,
+        rv_method=rv_method,
+        rs_method=rs_method,
+        rv_grouped_mean=rv_grouped_mean,
+        yesterday_close=yesterday_close,
+        **kwargs,
+    )
+
+
+async def _acalc_humbl_channel_historical_engine(  # noqa: PLR0913
+    data: pl.DataFrame | pl.LazyFrame,
+    window: str = "1m",
+    rv_method: str = "std",
+    rs_method: Literal["RS", "RS_mean", "RS_max", "RS_min"] = "RS",
+    *,
+    rv_adjustment: bool = True,
+    rv_grouped_mean: bool = True,
+    yesterday_close: bool = True,
+    **kwargs,
+) -> pl.LazyFrame:
+    """
+    Context: Toolbox || Category: Technical || Sub-Category: Humbl Channel || **Command: _calc_humbl_channel_historical_engine**.
+
+    This function acts as the internal logic to the wrapper function
+    `calc_humbl_channel_historical()`.
+    """
+    window_days = _window_format(window, _return_timedelta=True)
+    start_date = data.lazy().select(pl.col("date")).min().collect().row(0)[0]
+    start_date = start_date + window_days
+    end_date = data.lazy().select("date").max().collect().row(0)[0]
+
+    if start_date >= end_date:
+        msg = f"You set <historical=True> \n\
+        This calculation needs *at least* one window of data. \n\
+        The (start date + window) is: {start_date} and the dataset ended: {end_date}. \n\
+        Please adjust dates accordingly."
+        raise HumblDataError(msg)
+
+    dates = (
+        data.lazy()
+        .select(pl.col("date"))
+        .filter(pl.col("date") >= start_date)
+        .unique()
+        .sort("date")
+        .collect()
+        .to_series()
+    )
+
+    tasks = [
+        asyncio.create_task(
+            acalc_humbl_channel(
+                data=data.filter(pl.col("date") <= date),
+                window=window,
+                rv_adjustment=rv_adjustment,
+                rv_method=rv_method,
+                rs_method=rs_method,
+                rv_grouped_mean=rv_grouped_mean,
+                yesterday_close=yesterday_close,
+                **kwargs,
+            )
+        )
+        for date in dates
+    ]
+
+    lazyframes = await asyncio.gather(*tasks)
+    out = (
+        await pl.concat(lazyframes, how="vertical")
+        .sort(["symbol", "date"])
+        .rename({"recent_price": "close_price"})
+        .collect_async()
+    )
+
+    # out = await pl.collect_all_async(lazyframes)
+
+    return out.lazy()
+
+
+def calc_humbl_channel_historical(  # noqa: PLR0913
+    data: pl.DataFrame | pl.LazyFrame,
+    window: str = "1m",
+    rv_method: str = "std",
+    rs_method: Literal["RS", "RS_mean", "RS_max", "RS_min"] = "RS",
+    *,
+    rv_adjustment: bool = True,
+    rv_grouped_mean: bool = True,
+    yesterday_close: bool = True,
+    **kwargs,
+) -> pl.LazyFrame:
+    """
+    Context: Toolbox || Category: Technical || Sub-Category: Humbl Channel || **Command: calc_humbl_channel_historical**.
+
+    This function calculates the Humbl Channel for historical data.
+
+    Synchronous wrapper for the asynchronous Humbl Channel historical calculation.
+
+    Parameters
+    ----------
+    The parameters for this function are the same as those for calc_humbl_channel().
+    Please refer to the documentation of calc_humbl_channel() for a detailed
+    description of each parameter.
+
+    Returns
+    -------
+    pl.LazyFrame
+        A LazyFrame containing the historical Mandelbrot Channel calculations.
+    """
+    return run_async(
+        _acalc_humbl_channel_historical_engine(
+            data=data,
+            window=window,
+            rv_adjustment=rv_adjustment,
+            rv_method=rv_method,
+            rs_method=rs_method,
+            rv_grouped_mean=rv_grouped_mean,
+            yesterday_close=yesterday_close,
+            **kwargs,
+        )
+    )
+
+
+def calc_humbl_channel_historical_mp(
+    data: pl.DataFrame | pl.LazyFrame,
+    window: str = "1m",
+    rv_adjustment: bool = True,
+    rv_method: str = "std",
+    rs_method: Literal["RS", "RS_mean", "RS_max", "RS_min"] = "RS",
+    *,
+    rv_grouped_mean: bool = True,
+    yesterday_close: bool = True,
+    n_processes: int = 1,
+    **kwargs,
+) -> pl.LazyFrame:
+    """
+    Calculate the Humbl Channel historically using multiprocessing.
+
+    Parameters:
+    -----------
+    n_processes : int, optional
+        Number of processes to use. If None, it uses all available cores.
+
+    Other parameters are the same as calc_humbl_channel_historical.
+    """
+    window_days = _window_format(window, _return_timedelta=True)
+    start_date = data.lazy().select(pl.col("date")).min().collect().row(0)[0]
+    start_date = start_date + window_days
+    end_date = data.lazy().select("date").max().collect().row(0)[0]
+
+    if start_date >= end_date:
+        msg = f"You set <historical=True> \n\
+        This calculation needs *at least* one window of data. \n\
+        The (start date + window) is: {start_date} and the dataset ended: {end_date}. \n\
+        Please adjust dates accordingly."
+        raise HumblDataError(msg)
+
+    dates = (
+        data.lazy()
+        .select(pl.col("date"))
+        .filter(pl.col("date") >= start_date)
+        .unique()
+        .sort("date")
+        .collect()
+        .to_series()
+    )
+
+    # Prepare the partial function with all arguments except the date
+    calc_func = partial(
+        _calc_humbl_for_date,
+        data=data,
+        window=window,
+        rv_adjustment=rv_adjustment,
+        rv_method=rv_method,
+        rs_method=rs_method,
+        rv_grouped_mean=rv_grouped_mean,
+        yesterday_close=yesterday_close,
+        **kwargs,
+    )
+
+    # Use multiprocessing to calculate in parallel
+    with multiprocessing.Pool(processes=n_processes) as pool:
+        results = pool.map(calc_func, dates)
 
     # Combine results
     out = pl.concat(results, how="vertical").sort(["symbol", "date"])

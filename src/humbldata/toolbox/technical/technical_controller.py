@@ -132,9 +132,9 @@ class Technical:
         rv_grouped_mean : bool, optional
             Whether to calculate the mean value of realized volatility over
             multiple window lengths. Defaults to False.
-        live_price : bool, optional
-            Whether to calculate the ranges using the current live price, or the
-            most recent 'close' observation. Defaults to False.
+        yesterday_close : bool, optional
+            Whether to calculate the ranges using the current price, or the
+            use yesterday's close price. Defaults to False.
         historical : bool, optional
             Whether to calculate the Historical Mandelbrot Channel (over-time), and
             return a time-series of channels from the start to the end date. If

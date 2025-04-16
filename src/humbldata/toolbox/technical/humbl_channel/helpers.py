@@ -341,7 +341,6 @@ def _price_range_engine(
 
 def price_range(
     data: pl.LazyFrame | pl.DataFrame,
-    recent_price_data: pl.DataFrame | pl.LazyFrame | None = None,
     rs_method: Literal["RS", "RS_mean", "RS_max", "RS_min"] = "RS",
     _detrended_returns: str = "detrended_log_returns",  # Parameterized detrended_returns column
     _column_name_cum_sum_max: str = "cum_sum_max",
@@ -349,6 +348,7 @@ def price_range(
     *,
     _rv_adjustment: bool = False,
     _sort: bool = True,
+    yesterday_close: bool = False,
     **kwargs,
 ) -> pl.LazyFrame:
     """
@@ -364,8 +364,6 @@ def price_range(
     ----------
     data : pl.LazyFrame | pl.DataFrame
         The dataset containing the financial data.
-    recent_price_data : pl.DataFrame | pl.LazyFrame | None
-        The dataset containing the most recent price data. If None, the most recent prices are extracted from `data`.
     rs_method : Literal["RS", "RS_mean", "RS_max", "RS_min"], default "RS"
         The RS value to use. Must be one of 'RS', 'RS_mean', 'RS_max', 'RS_min'.
         RS is the column that is the Range/STD of the detrended returns.
@@ -382,6 +380,8 @@ def price_range(
         and uses that to adjust the price range.
     _sort : bool, default True
         If True, sorts the data based on symbols and dates.
+    yesterday_close : bool, default False
+        If True, use yesterday's close price (second to last row). If False, use today's close price (last row).
     **kwargs
         Arbitrary keyword arguments.
 
@@ -398,7 +398,7 @@ def price_range(
 
     Examples
     --------
-    >>> price_range_data = price_range(data, recent_price_data=None, rs_method="RS")
+    >>> price_range_data = price_range(data, rs_method="RS")
     >>> print(price_range_data.columns)
     ['symbol', 'bottom_price', 'recent_price', 'top_price']
 
@@ -451,64 +451,41 @@ def price_range(
     elif rs_method == "RS_min":
         rs_expr = pl.col("RS").min().alias("RS_min")
 
-    if recent_price_data is None:
-        # if no recent_prices_data is passed, then pull the most recent prices from the data
-        recent_price_expr = (
-            pl.col("close").slice(-2, 1).first().alias("recent_price")
+    # Choose between last close or second to last close (yesterday's close)
+    recent_price_expr = (
+        pl.col("close").slice(-2, 1).first().alias("recent_price")
+        if yesterday_close
+        else pl.col("close").last().alias("recent_price")
+    )
+
+    # Perform a single group_by operation to calculate both STD of detrended returns and RS statistics
+    price_range_data = (
+        data.group_by("symbol")
+        .agg(
+            [
+                date_expr,
+                # Conditional STD calculation based on _rv_adjustment
+                std_detrended_returns_expr,
+                # Recent Price Data
+                recent_price_expr,
+                # cum_sum_max/min last
+                last_cum_sum_max,
+                last_cum_sum_min,
+                # RS statistics
+                rs_expr,
+            ]
         )
-        # Perform a single group_by operation to calculate both STD of detrended returns and RS statistics
-        price_range_data = (
-            data.group_by("symbol")
-            .agg(
-                [
-                    date_expr,
-                    # Conditional STD calculation based on _rv_adjustment
-                    std_detrended_returns_expr,
-                    # Recent Price Data
-                    recent_price_expr,
-                    # cum_sum_max/min last
-                    last_cum_sum_max,
-                    last_cum_sum_min,
-                    # RS statistics
-                    rs_expr,
-                ]
-            )
-            # Join with recent_price_data on symbol
-            .with_columns(
-                (
-                    pl.col(rs_method)
-                    * pl.col("std_detrended_log_returns")
-                    * pl.col("recent_price")
-                ).alias("price_range")
-            )
-            .sort("symbol")
+        # Calculate price range
+        .with_columns(
+            (
+                pl.col(rs_method)
+                * pl.col("std_detrended_log_returns")
+                * pl.col("recent_price")
+            ).alias("price_range")
         )
-    else:
-        price_range_data = (
-            data.group_by("symbol")
-            .agg(
-                [
-                    date_expr,
-                    # Conditional STD calculation based on _rv_adjustment
-                    std_detrended_returns_expr,
-                    # cum_sum_max/min last
-                    last_cum_sum_max,
-                    last_cum_sum_min,
-                    # RS statistics
-                    rs_expr,
-                ]
-            )
-            # Join with recent_price_data on symbol
-            .join(recent_price_data.lazy(), on="symbol")
-            .with_columns(
-                (
-                    pl.col(rs_method)
-                    * pl.col("std_detrended_log_returns")
-                    * pl.col("recent_price")
-                ).alias("price_range")
-            )
-            .sort("symbol")
-        )
+        .sort("symbol")
+    )
+
     # Relative Position Modifier
     out = _price_range_engine(price_range_data)
 

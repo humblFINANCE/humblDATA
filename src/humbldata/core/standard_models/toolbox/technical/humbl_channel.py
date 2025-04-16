@@ -9,6 +9,7 @@ Mandelbrot Channel command.
 
 import datetime as dt
 from typing import List, Literal, TypeVar
+import warnings
 
 import pandera.polars as pa
 import polars as pl
@@ -19,6 +20,7 @@ from humbldata.core.standard_models.abstract.data import Data
 from humbldata.core.standard_models.abstract.humblobject import HumblObject
 from humbldata.core.standard_models.abstract.query_params import QueryParams
 from humbldata.core.standard_models.abstract.warnings import (
+    HumblDataWarning,
     Warning_,
     collect_warnings,
 )
@@ -42,7 +44,7 @@ MANDELBROT_QUERY_DESCRIPTIONS = {
     "rv_method": "The method to calculate the realized volatility. Only need to define when rv_adjustment is True.",
     "rs_method": "The method to use for Range/STD calculation. THis is either, min, max or mean of all RS ranges per window. If not defined, just used the most recent RS window",
     "rv_grouped_mean": "Whether to calculate the the mean value of realized volatility over multiple window lengths",
-    "live_price": "Whether to calculate the ranges using the current live price. If False, then yesterday's 'close' observation is used.",
+    "yesterday_close": "If True, use yesterday's close price (second to last row). If False, use today's close price (last row).",
     "historical": "Whether to calculate the Historical Mandelbrot Channel (over-time), and return a time-series of channels from the start to the end date. If False, the Mandelbrot Channel calculation is done aggregating all of the data into one observation. If True, then it will enable daily observations over-time.",
     "chart": "Whether to return a chart object.",
     "template": "The template/theme to use for the plotly figure.",
@@ -74,8 +76,8 @@ class HumblChannelQueryParams(QueryParams):
     rv_grouped_mean : bool
         Whether to calculate the mean value of realized volatility over
         multiple window lengths. Defaults to False.
-    live_price : bool
-        Whether to calculate the ranges using the current live price. If False, then yesterday's 'close' observation is used. Defaults to False.
+    yesterday_close : bool
+        If True, use yesterday's close price (second to last row). If False, use today's close price (last row).
     momentum : Literal["shift", "log", "simple"] | None
         Method to calculate momentum: 'shift' for simple shift, 'log' for logarithmic ROC, 'simple' for simple ROC. If None, momentum calculation is skipped.
     historical : bool
@@ -126,10 +128,10 @@ class HumblChannelQueryParams(QueryParams):
         title="Realized Volatility Grouped Mean",
         description=MANDELBROT_QUERY_DESCRIPTIONS.get("rv_grouped_mean", ""),
     )
-    live_price: bool = Field(
+    yesterday_close: bool = Field(
         default=False,
-        title="Live Price",
-        description=MANDELBROT_QUERY_DESCRIPTIONS.get("live_price", ""),
+        title="Use Yesterday's Close",
+        description="If True, use yesterday's close price (second to last row). If False, use today's close price (last row).",
     )
     momentum: Literal["shift", "log", "simple"] | None = Field(
         default="shift",
@@ -322,6 +324,7 @@ class HumblChannelFetcher:
         self.warnings: list[Warning_] = []  # Initialize warnings list
         self.extra = {}  # Initialize extra dict
 
+    @collect_warnings
     def transform_query(self):
         """
         Transform the command-specific parameters into a query.
@@ -337,6 +340,14 @@ class HumblChannelFetcher:
                 **(self.command_params or {})
             )
 
+        if self.command_params.yesterday_close:
+            warnings.warn(
+                "`recent_price` is representing yesterday's close price.",
+                category=HumblDataWarning,
+                stacklevel=1,
+            )
+
+    @collect_warnings
     def extract_data(self):
         """
         Extract the data from the provider and returns it as a Polars DataFrame.
@@ -386,7 +397,7 @@ class HumblChannelFetcher:
                 rv_method=self.command_params.rv_method,
                 rv_grouped_mean=self.command_params.rv_grouped_mean,
                 rs_method=self.command_params.rs_method,
-                live_price=self.command_params.live_price,
+                yesterday_close=self.command_params.yesterday_close,
             )
         else:
             transformed_data = calc_humbl_channel_historical_concurrent(
@@ -396,7 +407,7 @@ class HumblChannelFetcher:
                 rv_method=self.command_params.rv_method,
                 rv_grouped_mean=self.command_params.rv_grouped_mean,
                 rs_method=self.command_params.rs_method,
-                live_price=self.command_params.live_price,
+                yesterday_close=self.command_params.yesterday_close,
                 use_processes=False,
             )
 
@@ -459,12 +470,19 @@ class HumblChannelFetcher:
         logger.debug("Running .transform_data()")
         self.transform_data()
 
+        # Initialize warnings list if it doesn't exist
+        if not hasattr(self.context_params, "warnings"):
+            self.context_params.warnings = []
+
+        # Combine warnings from both sources
+        all_warnings = self.context_params.warnings + self.warnings
+
         # Use the warnings collected during the process
         return HumblObject(
             results=self.transformed_data,
             equity_data=self.equity_historical_data,
             provider=self.context_params.provider,
-            warnings=self.warnings,  # Use the warnings collected in this class
+            warnings=all_warnings,  # Use the warnings collected in this class
             chart=self.chart,
             context_params=self.context_params,
             command_params=self.command_params,
