@@ -365,11 +365,18 @@ def _calc_humbl_for_date(
     rs_method,
     rv_grouped_mean,
     live_price,
+    use_live_price=None,
     **kwargs,
 ):
     """Calculate Mandelbrot Channel for a single date."""
     # Only include data up to the target date, this prevents look-ahead bias
     filtered_data = data.filter(pl.col("date") <= date)
+
+    # Override live_price based on use_live_price if provided
+    effective_live_price = (
+        live_price if use_live_price is None else use_live_price
+    )
+
     return calc_humbl_channel(
         data=filtered_data,
         window=window,
@@ -377,7 +384,7 @@ def _calc_humbl_for_date(
         rv_method=rv_method,
         rs_method=rs_method,
         rv_grouped_mean=rv_grouped_mean,
-        live_price=live_price,
+        live_price=effective_live_price,
         **kwargs,
     )
 
@@ -519,7 +526,15 @@ def calc_humbl_channel_historical_concurrent(
 
     # Use concurrent.futures to calculate in parallel
     with executor_class(max_workers=max_workers) as executor:
-        futures = [executor.submit(calc_func, date) for date in dates]
+        futures = []
+        last_date = dates.tail(1)[0]  # Get the last date
+        for date in dates:
+            # Only use live price for the most recent date when live_price is True
+            use_live_price = live_price and date == last_date
+            futures.append(
+                executor.submit(calc_func, date, use_live_price=use_live_price)
+            )
+
         results = [
             future.result()
             for future in concurrent.futures.as_completed(futures)

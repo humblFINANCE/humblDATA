@@ -42,7 +42,7 @@ MANDELBROT_QUERY_DESCRIPTIONS = {
     "rv_method": "The method to calculate the realized volatility. Only need to define when rv_adjustment is True.",
     "rs_method": "The method to use for Range/STD calculation. THis is either, min, max or mean of all RS ranges per window. If not defined, just used the most recent RS window",
     "rv_grouped_mean": "Whether to calculate the the mean value of realized volatility over multiple window lengths",
-    "live_price": "Whether to calculate the ranges using the current live price, or the most recent 'close' observation.",
+    "live_price": "Whether to calculate the ranges using the current live price. If False, then yesterday's 'close' observation is used.",
     "historical": "Whether to calculate the Historical Mandelbrot Channel (over-time), and return a time-series of channels from the start to the end date. If False, the Mandelbrot Channel calculation is done aggregating all of the data into one observation. If True, then it will enable daily observations over-time.",
     "chart": "Whether to return a chart object.",
     "template": "The template/theme to use for the plotly figure.",
@@ -75,8 +75,7 @@ class HumblChannelQueryParams(QueryParams):
         Whether to calculate the mean value of realized volatility over
         multiple window lengths. Defaults to False.
     live_price : bool
-        Whether to calculate the ranges using the current live price, or the
-        most recent 'close' observation. Defaults to False.
+        Whether to calculate the ranges using the current live price. If False, then yesterday's 'close' observation is used. Defaults to False.
     momentum : Literal["shift", "log", "simple"] | None
         Method to calculate momentum: 'shift' for simple shift, 'log' for logarithmic ROC, 'simple' for simple ROC. If None, momentum calculation is skipped.
     historical : bool

@@ -453,7 +453,9 @@ def price_range(
 
     if recent_price_data is None:
         # if no recent_prices_data is passed, then pull the most recent prices from the data
-        recent_price_expr = pl.col("close").last().alias("recent_price")
+        recent_price_expr = (
+            pl.col("close").slice(-2, 1).first().alias("recent_price")
+        )
         # Perform a single group_by operation to calculate both STD of detrended returns and RS statistics
         price_range_data = (
             data.group_by("symbol")
