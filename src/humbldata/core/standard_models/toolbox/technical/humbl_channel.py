@@ -419,6 +419,7 @@ class HumblChannelFetcher:
                 self.transformed_data,
                 self.equity_historical_data,
                 template=self.command_params.template,
+                momentum_data=momentum_data,
             )
         else:
             self.chart = None

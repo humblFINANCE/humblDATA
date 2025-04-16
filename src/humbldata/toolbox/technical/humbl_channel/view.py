@@ -261,6 +261,7 @@ def generate_plot_for_symbol(
     equity_data: pl.DataFrame,
     symbol: str,
     template: ChartTemplate = ChartTemplate.plotly,
+    momentum_data: pl.DataFrame | None = None,
 ) -> Chart:
     """
     Generate a plot for a specific symbol that is filtered from the original DF.
@@ -278,29 +279,36 @@ def generate_plot_for_symbol(
     symbol : str
         The symbol for which to generate the plot.
     template : ChartTemplate
-        The template/theme to use for the plotly figure. Options are:
-        "humbl_light", "humbl_dark", "plotly_light", "plotly_dark", "ggplot2", "seaborn", "simple_white", "none"
+        The template/theme to use for the plotly figure.
+    momentum_data : pl.DataFrame | None, optional
+        Optional dataframe containing historical momentum signals. If provided,
+        will be used to color the equity price trace in current plot mode.
 
     Returns
     -------
     Chart
         A Chart object containing the generated plot for the specified symbol.
-
     """
     if is_historical_data(data):
         out = create_historical_plot(data, symbol, template)
     else:
+        # If we have momentum data, merge it with equity data
+        if momentum_data is not None:
+            equity_data = equity_data.join(
+                momentum_data.select(["date", "symbol", "momentum_signal"]),
+                on=["date", "symbol"],
+                how="left",
+            )
         out = create_current_plot(data, equity_data, symbol, template)
 
-    return Chart(
-        content=out.to_json(), fig=out
-    )  # TODO: use to_json() instead of to_plotly_json()
+    return Chart(content=out.to_json(), fig=out)
 
 
 def generate_plots(
     data: pl.LazyFrame,
     equity_data: pl.LazyFrame,
     template: ChartTemplate = ChartTemplate.plotly,
+    momentum_data: pl.LazyFrame | None = None,
 ) -> list[Chart]:
     """
     Context: Toolbox || Category: Technical || Subcategory: Mandelbrot Channel || **Command: generate_plots()**.
@@ -315,18 +323,29 @@ def generate_plots(
         The LazyFrame containing equity data for the symbols.
     template : ChartTemplate
         The template/theme to use for the plotly figure.
+    momentum_data : pl.LazyFrame | None, optional
+        Optional LazyFrame containing historical momentum signals. If provided,
+        will be used to color the equity price trace in current plot mode.
 
     Returns
     -------
     list[Chart]
         A list of Chart objects, each representing a plot for a unique symbol.
-
     """
     symbols = data.select("symbol").unique().collect().to_series()
 
+    # Collect DataFrames once for efficiency
+    data_df = data.collect()
+    equity_df = equity_data.collect()
+    momentum_df = momentum_data.collect() if momentum_data is not None else None
+
     plots = [
         generate_plot_for_symbol(
-            data.collect(), equity_data.collect(), symbol, template
+            data_df,
+            equity_df,
+            symbol,
+            template,
+            momentum_df,
         )
         for symbol in symbols
     ]
