@@ -213,7 +213,7 @@ def test_momentum_integration(
         momentum_command_params: The command parameters for Momentum calculations
     """
     # Act
-    result = technical.momentum(**momentum_command_params.model_dump())
+    result = technical.humbl_momentum(**momentum_command_params.model_dump())
 
     # Assert
     assert isinstance(result, HumblObject)

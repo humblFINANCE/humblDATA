@@ -2,7 +2,7 @@ import polars as pl
 import pytest
 from _pytest.fixtures import FixtureRequest
 
-from humbldata.toolbox.technical.momentum.model import momentum
+from humbldata.toolbox.technical.humbl_momentum.model import calc_humbl_momentum
 
 
 # FIXTURES =====================================================================
@@ -37,7 +37,9 @@ def test_momentum_log_integration(equity_historical, request: FixtureRequest):
     """Test the momentum function with logarithmic ROC method."""
     current_param = request.node.callspec.params.get("equity_historical")
 
-    result = momentum(equity_historical, method="log", window="1d").collect()
+    result = calc_humbl_momentum(
+        equity_historical, method="log", window="1d"
+    ).collect()
 
     if "multiple" in current_param:
         result_shape = result.select("symbol").unique().shape
@@ -69,7 +71,9 @@ def test_momentum_simple_integration(
     """Test the momentum function with simple ROC method."""
     current_param = request.node.callspec.params.get("equity_historical")
 
-    result = momentum(equity_historical, method="simple", window="1d").collect()
+    result = calc_humbl_momentum(
+        equity_historical, method="simple", window="1d"
+    ).collect()
 
     if "multiple" in current_param:
         result_shape = result.select("symbol").unique().shape
@@ -99,7 +103,9 @@ def test_momentum_shift_integration(equity_historical, request: FixtureRequest):
     """Test the momentum function with shift method."""
     current_param = request.node.callspec.params.get("equity_historical")
 
-    result = momentum(equity_historical, method="shift", window="1d").collect()
+    result = calc_humbl_momentum(
+        equity_historical, method="shift", window="1d"
+    ).collect()
 
     if "multiple" in current_param:
         result_shape = result.select("symbol").unique().shape

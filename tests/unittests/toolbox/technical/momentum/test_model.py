@@ -5,7 +5,7 @@ import polars as pl
 import pytest
 
 from humbldata.core.standard_models.abstract.errors import HumblDataError
-from humbldata.toolbox.technical.momentum.model import (
+from humbldata.toolbox.technical.humbl_momentum.model import (
     _calc_log_roc,
     _calc_shift,
     _calc_simple_roc,

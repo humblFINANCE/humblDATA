@@ -89,13 +89,13 @@ def _calc_shift(data: pl.LazyFrame, window_days: int = 1) -> pl.LazyFrame:
         raise HumblDataError("Failed to calculate shift") from e
 
 
-def momentum(
+def calc_humbl_momentum(
     data: pl.DataFrame | pl.LazyFrame,
     method: Literal["log", "simple", "shift"] = "log",
     window: str = "1d",
 ) -> pl.LazyFrame:
     """
-    Context: Toolbox || Category: Technical || Command: momentum.
+    Context: Toolbox || Category: Technical || Command: calc_humbl_momentum.
 
     Calculate momentum/Rate of Change (ROC) for time series data.
 

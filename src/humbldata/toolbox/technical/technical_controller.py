@@ -37,7 +37,7 @@ class Technical:
     def __init__(self, context_params: ToolboxQueryParams):
         self.context_params = context_params
 
-    def momentum(self, **kwargs: MomentumQueryParams):
+    def humbl_momentum(self, **kwargs: MomentumQueryParams):
         """
         Execute the Momentum command.
 

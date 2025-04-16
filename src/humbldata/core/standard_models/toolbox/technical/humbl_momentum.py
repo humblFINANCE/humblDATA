@@ -21,7 +21,7 @@ from humbldata.core.standard_models.abstract.query_params import QueryParams
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
 from humbldata.core.utils.env import Env
 from humbldata.core.utils.logger import log_start_end, setup_logger
-from humbldata.toolbox.technical.momentum.view import generate_plots
+from humbldata.toolbox.technical.humbl_momentum.view import generate_plots
 
 env = Env()
 Q = TypeVar("Q", bound=ToolboxQueryParams)
@@ -267,10 +267,12 @@ class MomentumFetcher:
             logger.debug("Transforming data with momentum calculation")
 
             # Import momentum calculation
-            from humbldata.toolbox.technical.momentum.model import momentum
+            from humbldata.toolbox.technical.humbl_momentum.model import (
+                calc_humbl_momentum,
+            )
 
             # Calculate momentum using the extracted data
-            self.transformed_data = momentum(
+            self.transformed_data = calc_humbl_momentum(
                 data=self.equity_historical_data,
                 method=self.command_params.method,
                 window=self.command_params.window,
