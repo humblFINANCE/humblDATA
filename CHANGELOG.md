@@ -1,3 +1,9 @@
+## v1.19.2 (2025-04-16)
+
+### 🐛🚑️ Fixes
+
+- enhance humbl_channel data handling
+
 ## v1.19.1 (2025-04-15)
 
 ### ♻️ Refactorings
