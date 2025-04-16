@@ -77,6 +77,8 @@ class HumblChannelQueryParams(QueryParams):
     live_price : bool
         Whether to calculate the ranges using the current live price, or the
         most recent 'close' observation. Defaults to False.
+    momentum : Literal["shift", "log", "simple"] | None
+        Method to calculate momentum: 'shift' for simple shift, 'log' for logarithmic ROC, 'simple' for simple ROC. If None, momentum calculation is skipped.
     historical : bool
         Whether to calculate the Historical Mandelbrot Channel (over-time), and
         return a time-series of channels from the start to the end date. If
@@ -129,6 +131,11 @@ class HumblChannelQueryParams(QueryParams):
         default=False,
         title="Live Price",
         description=MANDELBROT_QUERY_DESCRIPTIONS.get("live_price", ""),
+    )
+    momentum: Literal["shift", "log", "simple"] | None = Field(
+        default="shift",
+        title="Momentum Method",
+        description="Method to calculate momentum: 'shift' for simple shift, 'log' for logarithmic ROC, 'simple' for simple ROC. If None, momentum calculation is skipped.",
     )
     historical: bool = Field(
         default=False,
@@ -384,6 +391,23 @@ class HumblChannelFetcher:
                 rs_method=self.command_params.rs_method,
                 live_price=self.command_params.live_price,
                 use_processes=False,
+            )
+
+        # Apply momentum calculation if specified
+        if self.command_params.momentum is not None:
+            from humbldata.toolbox.technical.humbl_momentum.model import (
+                calc_humbl_momentum,
+            )
+
+            momentum_data = calc_humbl_momentum(
+                data=self.equity_historical_data,
+                method=self.command_params.momentum,
+                window=self.command_params.window,
+            ).select(
+                pl.col("date"), pl.col("symbol"), pl.col("momentum_signal")
+            )
+            transformed_data = transformed_data.join(
+                momentum_data, on=["date", "symbol"], how="left"
             )
 
         self.transformed_data = HumblChannelData(

@@ -108,7 +108,12 @@ def calc_humbl_channel(  # noqa: PLR0913
 
     Notes
     -----
-    The function returns a pl.LazyFrame; remember to call `.collect()` on the result to obtain a DataFrame. This lazy evaluation strategy postpones the calculation until it is explicitly requested.
+    The function returns a pl.LazyFrame; remember to call `.collect()` on the
+    result to obtain a DataFrame. This lazy evaluation strategy postpones the
+    calculation until it is explicitly requested.
+
+    For the humbl_channel calculation, we want to loop over each symbol and the
+    window_index
 
     Example
     -------
@@ -159,6 +164,8 @@ def calc_humbl_channel(  # noqa: PLR0913
 
     # Step 7: Calculate standard deviation of cumulative sums
     data7 = std(data6, _column_name="cum_sum")
+
+    # If momentum is not NOne, then add the momentum calc step here.
 
     # Step 8: Apply realized volatility adjustments if requested
     if rv_adjustment:
