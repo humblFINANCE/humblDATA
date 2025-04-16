@@ -6,6 +6,18 @@ from humbldata.core.standard_models.abstract.chart import Chart, ChartTemplate
 from humbldata.core.standard_models.abstract.humblobject import HumblObject
 from humbldata.core.utils import plotly_theme  # noqa: F401
 
+# Color constants for easy modification
+MOMENTUM_COLORS = {
+    "positive": "blue",
+    "negative": "yellow",
+    "default": "blue",  # Used when no momentum data
+}
+
+CHANNEL_COLORS = {
+    "top": "red",
+    "bottom": "green",
+}
+
 
 def create_historical_plot(
     data: pl.DataFrame,
@@ -32,20 +44,73 @@ def create_historical_plot(
     filtered_data = data.filter(pl.col("symbol") == symbol)
 
     fig = go.Figure()
+
+    # Check if momentum_signal exists
+    has_momentum = "momentum_signal" in filtered_data.schema.names()
+
+    if has_momentum:
+        # Get all series at once
+        dates = filtered_data.select("date").to_series()
+        prices = filtered_data.select("recent_price").to_series()
+        signals = filtered_data.select("momentum_signal").to_series()
+
+        # Create pairs of consecutive points and their signals
+        point_pairs = zip(
+            dates[:-1],
+            dates[1:],  # x values
+            prices[:-1],
+            prices[1:],  # y values
+            signals[:-1],  # signals for coloring
+        )
+
+        # Track if we've added legend entries
+        added_pos = added_neg = False
+
+        # Create line segments
+        for x1, x2, y1, y2, signal in point_pairs:
+            color = (
+                MOMENTUM_COLORS["positive"]
+                if signal == 1
+                else MOMENTUM_COLORS["negative"]
+            )
+            show_legend = (
+                color == MOMENTUM_COLORS["positive"] and not added_pos
+            ) or (color == MOMENTUM_COLORS["negative"] and not added_neg)
+
+            if color == MOMENTUM_COLORS["positive"]:
+                added_pos = True
+            else:
+                added_neg = True
+
+            fig.add_trace(
+                go.Scatter(
+                    x=[x1, x2],
+                    y=[y1, y2],
+                    mode="lines",
+                    line=dict(color=color, width=2),
+                    showlegend=show_legend,
+                    name="Price (Positive Momentum)"
+                    if color == MOMENTUM_COLORS["positive"]
+                    else "Price (Negative Momentum)",
+                )
+            )
+    else:
+        # Original price trace if no momentum
+        fig.add_trace(
+            go.Scatter(
+                x=filtered_data.select("date").to_series(),
+                y=filtered_data.select("recent_price").to_series(),
+                name="Recent Price",
+                line=dict(color=MOMENTUM_COLORS["default"]),
+            )
+        )
+
     fig.add_trace(
         go.Scatter(
             x=filtered_data.select("date").to_series(),
             y=filtered_data.select("bottom_price").to_series(),
             name="Bottom Price",
-            line=dict(color="green"),
-        )
-    )
-    fig.add_trace(
-        go.Scatter(
-            x=filtered_data.select("date").to_series(),
-            y=filtered_data.select("recent_price").to_series(),
-            name="Recent Price",
-            line=dict(color="blue"),
+            line=dict(color=CHANNEL_COLORS["bottom"]),
         )
     )
     fig.add_trace(
@@ -53,7 +118,7 @@ def create_historical_plot(
             x=filtered_data.select("date").to_series(),
             y=filtered_data.select("top_price").to_series(),
             name="Top Price",
-            line=dict(color="red"),
+            line=dict(color=CHANNEL_COLORS["top"]),
         )
     )
     fig.update_layout(
@@ -92,23 +157,77 @@ def create_current_plot(
     """
     filtered_data = data.filter(pl.col("symbol") == symbol)
     equity_data = equity_data.filter(pl.col("symbol") == symbol)
+
     fig = go.Figure()
-    fig.add_trace(
-        go.Scatter(
-            x=equity_data.select("date").to_series(),
-            y=equity_data.select("close").to_series(),
-            name="Recent Price",
-            line=dict(color="blue"),
+
+    # Check if momentum_signal exists
+    has_momentum = "momentum_signal" in equity_data.schema.names()
+
+    if has_momentum:
+        # Get all series at once
+        dates = equity_data.select("date").to_series()
+        prices = equity_data.select("close").to_series()
+        signals = equity_data.select("momentum_signal").to_series()
+
+        # Create pairs of consecutive points and their signals
+        point_pairs = zip(
+            dates[:-1],
+            dates[1:],  # x values
+            prices[:-1],
+            prices[1:],  # y values
+            signals[:-1],  # signals for coloring
         )
-    )
+
+        # Track if we've added legend entries
+        added_pos = added_neg = False
+
+        # Create line segments
+        for x1, x2, y1, y2, signal in point_pairs:
+            color = (
+                MOMENTUM_COLORS["positive"]
+                if signal == 1
+                else MOMENTUM_COLORS["negative"]
+            )
+            show_legend = (
+                color == MOMENTUM_COLORS["positive"] and not added_pos
+            ) or (color == MOMENTUM_COLORS["negative"] and not added_neg)
+
+            if color == MOMENTUM_COLORS["positive"]:
+                added_pos = True
+            else:
+                added_neg = True
+
+            fig.add_trace(
+                go.Scatter(
+                    x=[x1, x2],
+                    y=[y1, y2],
+                    mode="lines",
+                    line=dict(color=color, width=2),
+                    showlegend=show_legend,
+                    name="Price (Positive Momentum)"
+                    if color == MOMENTUM_COLORS["positive"]
+                    else "Price (Negative Momentum)",
+                )
+            )
+    else:
+        # Original price trace if no momentum
+        fig.add_trace(
+            go.Scatter(
+                x=equity_data.select("date").to_series(),
+                y=equity_data.select("close").to_series(),
+                name="Recent Price",
+                line=dict(color=MOMENTUM_COLORS["default"]),
+            )
+        )
+
     fig.add_hline(
         y=filtered_data.select("top_price").row(0)[0],
-        line=dict(color="red", width=2),
+        line=dict(color=CHANNEL_COLORS["top"], width=2),
         name="Top Price",
     )
     fig.add_hline(
         y=filtered_data.select("bottom_price").row(0)[0],
-        line=dict(color="green", width=2),
+        line=dict(color=CHANNEL_COLORS["bottom"], width=2),
         name="Bottom Price",
     )
     fig.update_layout(
