@@ -38,4 +38,5 @@ DATA_DESCRIPTIONS = {
     "asset_class": "The class of the asset (e.g., equity, bond, commodity)",
     "humbl_suggestion": "humbl's recommendation for the asset",
     "category": "The category/sector of the asset from `obb.etf.info()`",
+    "momentum_signal": "The momentum signal of the asset",
 }
