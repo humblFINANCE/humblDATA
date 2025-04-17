@@ -1,3 +1,9 @@
+## v1.20.3 (2025-04-17)
+
+### 🐛🚑️ Fixes
+
+- update humblCHANNEL example and data handling
+
 ## v1.20.2 (2025-04-17)
 
 ### 🐛🚑️ Fixes
