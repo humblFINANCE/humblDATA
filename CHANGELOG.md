@@ -1,3 +1,9 @@
+## v1.20.2 (2025-04-17)
+
+### 🐛🚑️ Fixes
+
+- update humblPORTFOLIO example and descriptions
+
 ## v1.20.1 (2025-04-16)
 
 ### 🐛🚑️ Fixes
