@@ -427,6 +427,17 @@ class HumblChannelFetcher:
             transformed_data = transformed_data.join(
                 momentum_data, on=["date", "symbol"], how="left"
             )
+            if self.command_params.historical is False:
+                # Append momentum to equity data only when not historical, the
+                # momentum data is already joined to the transformed_data when
+                # historical is True, so you can access the momentum data from
+                # the transformed_data object. I am doing this becuase I need
+                # equity_data to make a plot on frontend and if momentum is true
+                # then I need the momentum data in the equity_data object for the plot
+                # i am fixing this super quick in the middle of UX research so it can be improveed
+                self.equity_historical_data = self.equity_historical_data.join(
+                    momentum_data, on=["date", "symbol"], how="left"
+                ).drop_nulls()
         else:
             momentum_data = None
 
