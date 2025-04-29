@@ -1,3 +1,9 @@
+## v1.20.5 (2025-04-29)
+
+### ♻️ Refactorings
+
+- **rename**: user_table --> watchlist_table
+
 ## v1.20.4 (2025-04-29)
 
 ### 🐛🚑️ Fixes
