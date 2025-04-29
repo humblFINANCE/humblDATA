@@ -1,3 +1,9 @@
+## v1.20.4 (2025-04-29)
+
+### 🐛🚑️ Fixes
+
+- update humblCHANNEL and humblCOMPASS examples for accuracy
+
 ## v1.20.3 (2025-04-17)
 
 ### 🐛🚑️ Fixes
