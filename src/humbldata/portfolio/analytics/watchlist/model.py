@@ -1,7 +1,7 @@
 """
-**Context: Portfolio || Category: Analytics || Command: user_table**.
+**Context: Portfolio || Category: Analytics || Command: watchlist_table**.
 
-The user_table Command Module.
+The watchlist_table Command Module.
 """
 
 import asyncio
@@ -14,7 +14,7 @@ from humbldata.core.utils.openbb_helpers import (
     aget_etf_category,
     aget_latest_price,
 )
-from humbldata.portfolio.analytics.user_table.helpers import (
+from humbldata.portfolio.analytics.watchlist.helpers import (
     aget_asset_class_filter,
     aget_sector_filter,
     calc_up_down_pct,
@@ -24,7 +24,7 @@ from humbldata.toolbox.toolbox_controller import Toolbox
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 
-async def user_table_engine(
+async def watchlist_table_engine(
     symbols: str | list[str] | pl.Series,
     etf_data: pl.LazyFrame | None = None,
     toolbox: Toolbox | None = None,

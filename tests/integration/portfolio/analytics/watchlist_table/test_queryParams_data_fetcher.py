@@ -5,10 +5,10 @@ import pytest
 from humbldata.core.standard_models.abstract.humblobject import HumblObject
 
 from humbldata.core.standard_models.portfolio import PortfolioQueryParams
-from humbldata.core.standard_models.portfolio.analytics.user_table import (
-    UserTableData,
-    UserTableFetcher,
-    UserTableQueryParams,
+from humbldata.core.standard_models.portfolio.analytics.watchlist_table import (
+    WatchlistTableData,
+    WatchlistTableFetcher,
+    WatchlistTableQueryParams,
 )
 
 
@@ -27,14 +27,14 @@ from humbldata.core.standard_models.portfolio.analytics.user_table import (
         (set(), []),
     ],
 )
-def test_user_table_queryparams(input_symbols, expected_symbols):
+def test_watchlist_table_queryparams(input_symbols, expected_symbols):
     """Test Custom `@field_validator()` on `symbols` field."""
-    params = UserTableQueryParams(symbols=input_symbols)
+    params = WatchlistTableQueryParams(symbols=input_symbols)
     assert set(params.symbols) == set(expected_symbols)
 
 
 @pytest.fixture(params=["small_dataset", "large_dataset"])
-def user_table_data(request):
+def watchlist_table_data(request):
     base_data = {
         "symbol": ["AAPL", "MSFT", "GOOGL", "SPY", "QQQ"],
         "last_price": [150.0, 300.0, 2800.0, 400.0, 350.0],
@@ -77,14 +77,14 @@ def user_table_data(request):
     return pl.LazyFrame(base_data)
 
 
-def test_user_table_data_validation(user_table_data):
-    UserTableData(user_table_data.collect())
+def test_watchlist_table_data_validation(watchlist_table_data):
+    WatchlistTableData(watchlist_table_data.collect())
 
 
 @pytest.mark.asyncio()
-async def test_user_table_fetcher():
-    """Test the integration of UserTableFetcher with actual data fetching."""
-    fetcher = UserTableFetcher(
+async def test_watchlist_table_fetcher():
+    """Test the integration of WatchlistTableFetcher with actual data fetching."""
+    fetcher = WatchlistTableFetcher(
         context_params=PortfolioQueryParams(symbols=["AAPL", "MSFT"]),
         command_params=None,
     )
@@ -106,9 +106,9 @@ async def test_user_table_fetcher():
 
 
 @pytest.mark.asyncio()
-async def test_user_table_fetcher_integration():
-    """Test the UserTableFetcher and validate the data with UserTableData."""
-    fetcher = UserTableFetcher(
+async def test_watchlist_table_fetcher_integration():
+    """Test the WatchlistTableFetcher and validate the data with WatchlistTableData."""
+    fetcher = WatchlistTableFetcher(
         context_params=PortfolioQueryParams(symbols=["AAPL", "MSFT"]),
         command_params=None,
     )

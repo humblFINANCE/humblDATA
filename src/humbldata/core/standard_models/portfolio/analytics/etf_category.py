@@ -1,10 +1,10 @@
 """
-UserTable Standard Model.
+ETF Category Standard Model.
 
-Context: Portfolio || Category: Analytics || Command: user_table.
+Context: Portfolio || Category: Analytics || Command: etf_category.
 
 This module is used to define the QueryParams and Data model for the
-UserTable command.
+ETF Category command.
 """
 
 from typing import Literal, TypeVar
@@ -20,8 +20,8 @@ class ETFCategoryData(Data):
     """
     Data model for the etf_category command, a Pandera.Polars Model.
 
-    Used for simple validation of ETF category data for the UserTableFetcher
-    internal logic `aggregate_user_table_data()`
+    Used for simple validation of ETF category data for the WatchlistTableFetcher
+    internal logic `aggregate_watchlist_data()`
     """
 
     symbol: str = pa.Field(

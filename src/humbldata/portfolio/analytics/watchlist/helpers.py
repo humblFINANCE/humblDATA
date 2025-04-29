@@ -1,7 +1,7 @@
 """
-**Context: Portfolio || Category: Analytics || Command: user_table**.
+**Context: Portfolio || Category: Analytics || Command: watchlist_table**.
 
-The UserTable Helpers Module.
+The Watchlist Table Helpers Module.
 """
 
 import asyncio
@@ -37,7 +37,7 @@ async def aget_sector_filter(
     etf_data: ETFCategoryData | None = None,
 ) -> pl.LazyFrame:
     """
-    Context: Portfolio || Category: Analytics || Command: User Table || **Command: aget_sector_filter**.
+    Context: Portfolio || Category: Analytics || Command: Watchlist Table || **Command: aget_sector_filter**.
 
     Retrieves equity sector information for given symbols, filling in the ETF sector
     with the `obb.etf.info` category column from `aget_etf_sector`. This function
@@ -166,7 +166,7 @@ async def aget_asset_class_filter(
     etf_data: ETFCategoryData | None = None,
 ) -> pl.LazyFrame:
     """
-    Context: Portfolio || Category: Analytics || Command: User Table || **Command: aget_asset_class_filter**.
+    Context: Portfolio || Category: Analytics || Command: Watchlist Table || **Command: aget_asset_class_filter**.
 
     This function takes in a list of symbols and returns a LazyFrame with the
     asset class for each symbol. Unlike aget_sector_filter, this function

@@ -6,7 +6,7 @@ import pytest
 from humbldata.core.standard_models.portfolio.analytics.etf_category import (
     ETFCategoryData,
 )
-from humbldata.portfolio.analytics.user_table.helpers import (
+from humbldata.portfolio.analytics.watchlist.helpers import (
     aget_asset_class_filter,
     aget_sector_filter,
     calc_up_down_pct,
@@ -150,7 +150,7 @@ async def test_aget_asset_class_filter_without_etf_data(mocker):
     """
     symbols = ["AAPL", "XLE", "DBA"]
     mock_aget_etf_category = mocker.patch(
-        "humbldata.portfolio.analytics.user_table.helpers.aget_etf_category"
+        "humbldata.portfolio.analytics.watchlist.helpers.aget_etf_category"
     )
     mock_aget_etf_category.return_value = pl.LazyFrame(
         {
@@ -253,7 +253,7 @@ async def test_aget_sector_filter(equity_sector_data, mocker):
         )
 
         mock_aget_equity_sector = mocker.patch(
-            "humbldata.portfolio.analytics.user_table.helpers.aget_equity_sector"
+            "humbldata.portfolio.analytics.watchlist.helpers.aget_equity_sector"
         )
         mock_aget_equity_sector.return_value = equity_data
 

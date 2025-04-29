@@ -1,10 +1,10 @@
 """
-UserTable Standard Model.
+WatchlistTable Standard Model.
 
-Context: Portfolio || Category: Analytics || Command: user_table.
+Context: Portfolio || Category: Analytics || Command: watchlist_table.
 
 This module is used to define the QueryParams and Data model for the
-UserTable command.
+WatchlistTable command.
 """
 
 import asyncio
@@ -28,21 +28,21 @@ from humbldata.core.utils.descriptions import (
 from humbldata.core.utils.env import Env
 from humbldata.core.utils.logger import log_start_end, setup_logger
 from humbldata.core.utils.openbb_helpers import aget_etf_category
-from humbldata.portfolio.analytics.user_table.model import user_table_engine
+from humbldata.portfolio.analytics.watchlist.model import watchlist_table_engine
 from humbldata.toolbox.toolbox_controller import Toolbox
 
 env = Env()
 Q = TypeVar("Q", bound=PortfolioQueryParams)
 logger = setup_logger(
-    "UserTableFetcher",
+    "WatchlistTableFetcher",
     env.LOGGER_LEVEL,
 )
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 
-class UserTableQueryParams(QueryParams):
+class WatchlistTableQueryParams(QueryParams):
     """
-    QueryParams model for the UserTable command, a Pydantic v2 model.
+    QueryParams model for the WatchlistTable command, a Pydantic v2 model.
 
     Parameters
     ----------
@@ -96,11 +96,11 @@ class UserTableQueryParams(QueryParams):
         return [symbol.strip().upper() for symbol in v]
 
 
-class UserTableData(Data):
+class WatchlistTableData(Data):
     """
-    Data model for the user_table command, a Pandera.Polars Model.
+    Data model for the watchlist_table command, a Pandera.Polars Model.
 
-    This Data model is used to validate data in the `.transform_data()` method of the `UserTableFetcher` class.
+    This Data model is used to validate data in the `.transform_data()` method of the `WatchlistTableFetcher` class.
 
     Attributes
     ----------
@@ -179,22 +179,22 @@ class UserTableData(Data):
     )
 
 
-class UserTableFetcher:
+class WatchlistTableFetcher:
     """
-    Fetcher for the UserTable command.
+    Fetcher for the WatchlistTable command.
 
     Parameters
     ----------
     context_params : PortfolioQueryParams
         The context parameters for the Portfolio query.
-    command_params : UserTableQueryParams
-        The command-specific parameters for the UserTable query.
+    command_params : WatchlistTableQueryParams
+        The command-specific parameters for the WatchlistTable query.
 
     Attributes
     ----------
     context_params : PortfolioQueryParams
         Stores the context parameters passed during initialization.
-    command_params : UserTableQueryParams
+    command_params : WatchlistTableQueryParams
         Stores the command-specific parameters passed during initialization.
     data : pl.DataFrame
         The raw data extracted from the data provider, before transformation.
@@ -206,14 +206,14 @@ class UserTableFetcher:
     extract_data()
         Extracts the data from the provider and returns it as a Polars DataFrame.
     transform_data()
-        Transforms the command-specific data according to the UserTable logic.
+        Transforms the command-specific data according to the WatchlistTable logic.
     fetch_data()
         Execute TET Pattern.
 
     Returns
     -------
     HumblObject
-        results : UserTableData
+        results : WatchlistTableData
             Serializable results.
         provider : Literal['fmp', 'intrinio', 'polygon', 'tiingo', 'yfinance']
             Provider name.
@@ -223,24 +223,24 @@ class UserTableFetcher:
             Chart object.
         context_params : PortfolioQueryParams
             Context-specific parameters.
-        command_params : UserTableQueryParams
+        command_params : WatchlistTableQueryParams
             Command-specific parameters.
     """
 
     def __init__(
         self,
         context_params: PortfolioQueryParams,
-        command_params: UserTableQueryParams,
+        command_params: WatchlistTableQueryParams,
     ):
         """
-        Initialize the UserTableFetcher with context and command parameters.
+        Initialize the WatchlistTableFetcher with context and command parameters.
 
         Parameters
         ----------
         context_params : PortfolioQueryParams
             The context parameters for the Portfolio query.
-        command_params : UserTableQueryParams
-            The command-specific parameters for the UserTable query.
+        command_params : WatchlistTableQueryParams
+            The command-specific parameters for the WatchlistTable query.
         """
         self.context_params = context_params
         self.command_params = command_params
@@ -249,15 +249,13 @@ class UserTableFetcher:
         """
         Transform the command-specific parameters into a query.
 
-        If command_params is not provided, it initializes a default UserTableQueryParams object.
+        If command_params is not provided, it initializes a default WatchlistTableQueryParams object.
         """
         if not self.command_params:
-            self.command_params = None
-            # Set Default Arguments
-            self.command_params: UserTableQueryParams = UserTableQueryParams()
+            self.command_params = WatchlistTableQueryParams()
         else:
-            self.command_params: UserTableQueryParams = UserTableQueryParams(
-                **self.command_params
+            self.command_params = WatchlistTableQueryParams(
+                **self.command_params  # type: ignore  # noqa: PGH003
             )
 
     async def extract_data(self):
@@ -285,7 +283,7 @@ class UserTableFetcher:
 
     async def transform_data(self):
         """
-        Transform the command-specific data according to the user_table logic.
+        Transform the command-specific data according to the watchlist_table logic.
 
         Returns
         -------
@@ -293,13 +291,15 @@ class UserTableFetcher:
             The transformed data as a Polars DataFrame
         """
         # Implement data transformation logic here
-        transformed_data: pl.LazyFrame = await user_table_engine(
+        transformed_data: pl.LazyFrame = await watchlist_table_engine(
             symbols=self.context_params.symbols,
             etf_data=self.etf_data,
             humbl_channel_data=self.humbl_channel,  # type: ignore  # noqa: PGH003
             toolbox=self.toolbox,
         )
-        self.transformed_data = UserTableData(transformed_data.collect()).lazy()
+        self.transformed_data = WatchlistTableData(
+            transformed_data.collect()
+        ).lazy()  # type: ignore  # noqa: PGH003
         self.transformed_data = self.transformed_data.with_columns(
             pl.col(pl.Float64).round(2)
         )

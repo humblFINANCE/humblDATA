@@ -1,7 +1,7 @@
 import polars as pl
 import pytest
 
-from humbldata.portfolio.analytics.user_table.model import user_table_engine
+from humbldata.portfolio.analytics.watchlist.model import watchlist_table_engine
 from humbldata.toolbox.toolbox_controller import Toolbox
 
 
@@ -82,7 +82,7 @@ def mandelbrot_data():
 @pytest.fixture()
 def mock_latest_price(mocker):
     mock = mocker.patch(
-        "humbldata.portfolio.analytics.user_table.model.aget_latest_price"
+        "humbldata.portfolio.analytics.watchlist.model.aget_latest_price"
     )
     mock.side_effect = [
         pl.DataFrame(
@@ -116,7 +116,7 @@ def mock_latest_price(mocker):
 @pytest.fixture()
 def mock_sector_filter(mocker):
     mock = mocker.patch(
-        "humbldata.portfolio.analytics.user_table.model.aget_sector_filter"
+        "humbldata.portfolio.analytics.watchlist.model.aget_sector_filter"
     )
     mock.side_effect = [
         pl.DataFrame(
@@ -160,7 +160,7 @@ def mock_sector_filter(mocker):
 @pytest.fixture()
 def mock_asset_class_filter(mocker):
     mock = mocker.patch(
-        "humbldata.portfolio.analytics.user_table.model.aget_asset_class_filter"
+        "humbldata.portfolio.analytics.watchlist.model.aget_asset_class_filter"
     )
     mock.side_effect = [
         pl.DataFrame(
@@ -201,7 +201,7 @@ def mock_asset_class_filter(mocker):
         (["BITI", "LNGG", "ETHU", "DBA"], 3, 3),
     ],
 )
-async def test_user_table_engine(
+async def test_watchlist_table_engine(
     symbols,
     etf_idx,
     mandelbrot_idx,
@@ -221,15 +221,15 @@ async def test_user_table_engine(
 
     # Mock the async functions
     mock_latest_price = mocker.patch(
-        "humbldata.portfolio.analytics.user_table.model.aget_latest_price",
+        "humbldata.portfolio.analytics.watchlist.model.aget_latest_price",
         autospec=True,
     )
     mock_sector_filter = mocker.patch(
-        "humbldata.portfolio.analytics.user_table.model.aget_sector_filter",
+        "humbldata.portfolio.analytics.watchlist.model.aget_sector_filter",
         autospec=True,
     )
     mock_asset_class_filter = mocker.patch(
-        "humbldata.portfolio.analytics.user_table.model.aget_asset_class_filter",
+        "humbldata.portfolio.analytics.watchlist.model.aget_asset_class_filter",
         autospec=True,
     )
 
@@ -245,7 +245,7 @@ async def test_user_table_engine(
     ).lazy()
 
     # Run the function
-    result = await user_table_engine(
+    result = await watchlist_table_engine(
         symbols=symbols,
         etf_data=etf_input,
         toolbox=mock_toolbox,
@@ -295,7 +295,7 @@ async def test_user_table_engine(
 
 
 @pytest.mark.asyncio()
-async def test_user_table_engine_without_etf_data(
+async def test_watchlist_table_engine_without_etf_data(
     etf_data,
     mandelbrot_data,
     mock_latest_price,
@@ -307,7 +307,7 @@ async def test_user_table_engine_without_etf_data(
 
     # Mock aget_etf_category
     mock_aget_etf_category = mocker.patch(
-        "humbldata.portfolio.analytics.user_table.model.aget_etf_category"
+        "humbldata.portfolio.analytics.watchlist.model.aget_etf_category"
     )
     mock_aget_etf_category.return_value = etf_data[0].lazy()
 
@@ -329,7 +329,7 @@ async def test_user_table_engine_without_etf_data(
     ).lazy()
 
     # Run the function
-    result = await user_table_engine(
+    result = await watchlist_table_engine(
         symbols=symbols, toolbox=mock_toolbox, membership="anonymous"
     )
 
@@ -360,7 +360,7 @@ async def test_user_table_engine_without_etf_data(
 
 
 @pytest.mark.asyncio()
-async def test_user_table_engine_without_toolbox(
+async def test_watchlist_table_engine_without_toolbox(
     etf_data,
     mandelbrot_data,
     mock_latest_price,
@@ -376,7 +376,7 @@ async def test_user_table_engine_without_toolbox(
     mock_toolbox.technical.humbl_channel.return_value = mock_mandelbrot
 
     # Run the function
-    result = await user_table_engine(
+    result = await watchlist_table_engine(
         symbols=symbols, etf_data=etf_data[0].lazy(), membership="anonymous"
     )
 

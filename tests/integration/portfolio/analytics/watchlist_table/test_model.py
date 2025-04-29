@@ -1,17 +1,17 @@
 import polars as pl
 import pytest
 
-from humbldata.portfolio.analytics.user_table.model import user_table_engine
+from humbldata.portfolio.analytics.watchlist.model import watchlist_table_engine
 from humbldata.toolbox.toolbox_controller import Toolbox
 
 
 @pytest.mark.asyncio
-async def test_user_table_engine_integration():
+async def test_watchlist_table_engine_integration():
     # Test data
     symbols = ["AAPL", "GOOGL", "MSFT", "AMZN"]
 
     # Run the function
-    result = await user_table_engine(
+    result = await watchlist_table_engine(
         symbols=symbols,
         membership="anonymous",
     )
