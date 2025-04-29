@@ -8,8 +8,8 @@ Mandelbrot Channel command.
 """
 
 import datetime as dt
-from typing import List, Literal, TypeVar
 import warnings
+from typing import List, Literal, TypeVar
 
 import pandera.polars as pa
 import polars as pl
