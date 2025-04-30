@@ -1,3 +1,9 @@
+## v1.20.8 (2025-04-30)
+
+### 🐛🚑️ Fixes
+
+- refine humblCOMPASS backtest example and enhance query parameters
+
 ## v1.20.7 (2025-04-30)
 
 ### 🐛🚑️ Fixes
