@@ -1,3 +1,9 @@
+## v1.20.7 (2025-04-30)
+
+### 🐛🚑️ Fixes
+
+- update humblCOMPASS backtest example and data model
+
 ## v1.20.6 (2025-04-30)
 
 ### 🐛🚑️ Fixes
