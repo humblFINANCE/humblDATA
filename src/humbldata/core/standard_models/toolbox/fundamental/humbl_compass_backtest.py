@@ -174,6 +174,8 @@ class HumblCompassBacktestData(Data):
 
     Attributes
     ----------
+    symbol : pl.Utf8
+        The stock symbol being analyzed
     humbl_regime : pl.Utf8
         The HUMBL regime classification (BOOM, BOUNCE, BLOAT, BUST)
     avg_total_return_pct : pl.Float64
@@ -226,6 +228,10 @@ class HumblCompassBacktestData(Data):
         Maximum number of days to recover from drawdowns
     """
 
+    symbol: pl.Utf8 = pa.Field(
+        title="Symbol",
+        description="The stock symbol being analyzed",
+    )
     humbl_regime: pl.Utf8 = pa.Field(
         title="HUMBL Regime",
         description="The HUMBL regime classification (BOOM, BOUNCE, BLOAT, BUST)",
