@@ -64,6 +64,21 @@ class Env(metaclass=SingletonMeta):
         """Alpaca API Secret."""
         return self._environ.get("ALPACA_API_SECRET", None)
 
+    @property
+    def REDIS_REST_API_READ_ONLY_TOKEN(self) -> str | None:
+        """Redis REST API read-only token."""
+        return self._environ.get("REDIS_REST_API_READ_ONLY_TOKEN", None)
+
+    @property
+    def REDIS_API_TOKEN(self) -> str | None:
+        """Redis API token."""
+        return self._environ.get("REDIS_API_TOKEN", None)
+
+    @property
+    def REDIS_REST_API_URL(self) -> str | None:
+        """Redis REST API URL."""
+        return self._environ.get("REDIS_REST_API_URL", None)
+
     @staticmethod
     def str2bool(value: str | bool) -> bool:
         """Match a value to its boolean correspondent.

@@ -79,22 +79,24 @@ class HumblCompassBacktestQueryParams(QueryParams):
 
     Parameters
     ----------
-    symbols : List[str]
+    symbols : List[str], default ["SPY"]
         List of stock symbols to analyze
-    start_date : str
-        Start date for the backtest analysis
-    end_date : str
-        End date for the backtest analysis
-    country : CountryType, optional
-        Country for the COMPASS analysis, by default "united_states"
-    vol_window : str, optional
-        Window size for volatility calculation, by default "1m"
-    risk_free_rate : float, optional
-        Risk-free rate used in Sharpe ratio calculation, by default 0.03
-    min_regime_days : int, optional
-        Minimum number of days required for a regime to be considered valid, by default 21
-    initial_investment : float, optional
-        Initial investment amount for regime growth simulation, by default 10000.0
+    start_date : str, default "1960-01-01"
+        Start date for the backtest analysis in YYYY-MM-DD format
+    end_date : str, default current date
+        End date for the backtest analysis in YYYY-MM-DD format
+    country : CountryType, default "united_states"
+        Country or region for the COMPASS analysis. Must be one of the predefined CountryType values.
+    vol_window : str, default "1m"
+        Window size for volatility calculation. Must end with d (days), w (weeks), m (months), or y (years).
+    risk_free_rate : float, default 0.03
+        Annual risk-free rate used in Sharpe ratio calculation, expressed as decimal (e.g., 0.03 = 3%)
+    min_regime_days : int, default 21
+        Minimum number of consecutive days required for a regime to be considered valid
+    initial_investment : float, default 100000.0
+        Initial investment amount in base currency for regime growth simulation
+    chart : bool, default False
+        Whether to generate visualization charts of the backtest results
     """
 
     symbols: list[str] = Field(
