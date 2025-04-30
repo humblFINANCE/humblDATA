@@ -1,3 +1,9 @@
+## v1.20.6 (2025-04-30)
+
+### 🐛🚑️ Fixes
+
+- update notebook examples and backtest logic
+
 ## v1.20.5 (2025-04-29)
 
 ### ♻️ Refactorings
