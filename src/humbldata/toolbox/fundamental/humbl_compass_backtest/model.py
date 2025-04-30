@@ -86,6 +86,7 @@ def calculate_basic_metrics(
         .with_columns(
             (pl.col("humbl_regime") != pl.col("humbl_regime").shift())
             .cum_sum()
+            .over(["symbol"])
             .alias("regime_instance_id")
         )
         # Then calculate returns within each regime instance
@@ -93,19 +94,19 @@ def calculate_basic_metrics(
             [
                 # Daily returns
                 (pl.col("close") / pl.col("close").shift(1) - 1)
-                .over(["humbl_regime", "regime_instance_id"])
+                .over(["symbol", "humbl_regime", "regime_instance_id"])
                 .alias("daily_returns"),
                 # Log returns for volatility calculation
                 (pl.col("close") / pl.col("close").shift(1))
                 .log()
-                .over(["humbl_regime", "regime_instance_id"])
+                .over(["symbol", "humbl_regime", "regime_instance_id"])
                 .alias("log_returns"),
                 # Add win/loss indicator columns
                 (pl.col("close") > pl.col("close").shift(1))
-                .over(["humbl_regime", "regime_instance_id"])
+                .over(["symbol", "humbl_regime", "regime_instance_id"])
                 .alias("is_win_day"),
                 (pl.col("close") < pl.col("close").shift(1))
-                .over(["humbl_regime", "regime_instance_id"])
+                .over(["symbol", "humbl_regime", "regime_instance_id"])
                 .alias("is_loss_day"),
             ]
         )
@@ -128,7 +129,9 @@ def calculate_win_loss_per_instance(base_metrics: pl.LazyFrame) -> pl.LazyFrame:
     pl.LazyFrame
         Win/loss counts per regime instance
     """
-    return base_metrics.group_by(["humbl_regime", "regime_instance_id"]).agg(
+    return base_metrics.group_by(
+        ["symbol", "humbl_regime", "regime_instance_id"]
+    ).agg(
         [
             pl.col("is_win_day").sum().alias("win_days_count"),
             pl.col("is_loss_day").sum().alias("loss_days_count"),
@@ -163,24 +166,24 @@ def add_regime_instance_metrics(base_metrics: pl.LazyFrame) -> pl.LazyFrame:
         [
             pl.col("date")
             .count()
-            .over(["humbl_regime", "regime_instance_id"])
+            .over(["symbol", "humbl_regime", "regime_instance_id"])
             .alias("days_in_regime"),
             pl.col("close")
             .first()
-            .over(["humbl_regime", "regime_instance_id"])
+            .over(["symbol", "humbl_regime", "regime_instance_id"])
             .alias("regime_start_price"),
             pl.col("close")
             .last()
-            .over(["humbl_regime", "regime_instance_id"])
+            .over(["symbol", "humbl_regime", "regime_instance_id"])
             .alias("regime_end_price"),
             # Add start_date and end_date for each regime instance
             pl.col("date")
             .first()
-            .over(["humbl_regime", "regime_instance_id"])
+            .over(["symbol", "humbl_regime", "regime_instance_id"])
             .alias("start_date"),
             pl.col("date")
             .last()
-            .over(["humbl_regime", "regime_instance_id"])
+            .over(["symbol", "humbl_regime", "regime_instance_id"])
             .alias("end_date"),
             # Add next day for regime transition
             pl.col("date").shift(-1).over(["symbol"]).alias("next_day"),
@@ -244,7 +247,7 @@ def calculate_performance_metrics(
             (pl.col("daily_returns") > 0)
             .mean()
             .mul(100)
-            .over(["humbl_regime", "regime_instance_id"])
+            .over(["symbol", "humbl_regime", "regime_instance_id"])
             .alias("win_rate"),
             # Risk-free rate
             pl.lit(risk_free_rate).alias("risk_free_rate"),
@@ -300,7 +303,7 @@ def process_regime_instances(
     """
     # Extract unique regime instances sorted by start date
     regime_instances = (
-        results.group_by(["humbl_regime", "regime_instance_id"])
+        results.group_by(["symbol", "humbl_regime", "regime_instance_id"])
         .agg(
             [
                 pl.col("start_date").first(),
@@ -313,20 +316,20 @@ def process_regime_instances(
                 pl.col("regime_end_price").first(),
             ]
         )
-        .sort(["start_date"])
+        .sort(["symbol", "start_date"])
     )
 
-    # First, identify the first appearance of each regime
+    # First, identify the first appearance of each regime per symbol
     first_regime_instances = (
         regime_instances.with_row_count("row_id")
-        .group_by("humbl_regime")
+        .group_by(["symbol", "humbl_regime"])
         .agg(pl.min("row_id").alias("first_appearance_id"))
     )
 
-    # Join back to get all regime instances with their order
+    # Join back to get all regime instances with their order per symbol
     ordered_regime_instances = (
         regime_instances.with_row_count("row_id")
-        .join(first_regime_instances, on="humbl_regime")
+        .join(first_regime_instances, on=["symbol", "humbl_regime"])
         .with_columns(
             [
                 # Determine if this is the first instance of this regime
@@ -339,28 +342,30 @@ def process_regime_instances(
                 (1 + pl.col("instance_return_pct") / 100).alias(
                     "growth_factor"
                 ),
-                # Sort chronologically
+                # Sort chronologically per symbol
                 pl.col("start_date")
                 .rank("dense")
-                .over("humbl_regime")
+                .over(["symbol", "humbl_regime"])
                 .alias("instance_sequence"),
             ]
         )
-        .sort(["humbl_regime", "instance_sequence"])
+        .sort(["symbol", "humbl_regime", "instance_sequence"])
     )
 
-    # Calculate investment growth for all regimes in a single operation
+    # Calculate investment growth for all regimes in a single operation per symbol
     return ordered_regime_instances.with_columns(
         [
-            # Calculate cumulative product of growth factors within each regime
+            # Calculate cumulative product of growth factors within each symbol and regime
             pl.col("growth_factor")
             .cum_prod()
-            .over("humbl_regime")
+            .over(["symbol", "humbl_regime"])
             .alias("cumulative_growth_factor"),
-            # Calculate dollar value growth
+            # Calculate dollar value growth per symbol
             (
                 pl.lit(initial_investment)
-                * pl.col("growth_factor").cum_prod().over("humbl_regime")
+                * pl.col("growth_factor")
+                .cum_prod()
+                .over(["symbol", "humbl_regime"])
             ).alias("regime_investment_value"),
         ]
     )
@@ -398,7 +403,7 @@ def calculate_regime_growth(
         - total_ending_investment_value: Final investment value
     """
     return (
-        investment_simulation.group_by("humbl_regime")
+        investment_simulation.group_by(["symbol", "humbl_regime"])
         .agg(
             [
                 pl.col("regime_investment_value")
@@ -464,7 +469,7 @@ def calculate_summary_statistics(
         meeting the minimum days threshold
     """
     return (
-        results.group_by("humbl_regime")
+        results.group_by(["symbol", "humbl_regime"])
         .agg(
             [
                 # Average return across all instances of each regime
@@ -542,13 +547,13 @@ def calculate_drawdown_metrics(base_metrics: pl.LazyFrame) -> pl.LazyFrame:
     pl.LazyFrame
         Drawdown metrics aggregated by regime
     """
-    # First, calculate running maximum and drawdowns for all data points
+    # First, calculate running maximum and drawdowns for all data points per symbol
     metrics_with_drawdowns = base_metrics.with_columns(
         [
-            # Calculate running maximum price per regime instance
+            # Calculate running maximum price per symbol and regime instance
             pl.col("close")
             .cum_max()
-            .over(["humbl_regime", "regime_instance_id"])
+            .over(["symbol", "humbl_regime", "regime_instance_id"])
             .alias("running_max_price"),
         ]
     ).with_columns(
@@ -559,14 +564,14 @@ def calculate_drawdown_metrics(base_metrics: pl.LazyFrame) -> pl.LazyFrame:
             ),
             # Identify if at peak (price equals running max)
             (pl.col("close") == pl.col("running_max_price")).alias("is_peak"),
-            # Sequential day counter within each regime instance for recovery calculations
+            # Sequential day counter within each symbol and regime instance for recovery calculations
             pl.arange(1, pl.count() + 1)
-            .over(["humbl_regime", "regime_instance_id"])
+            .over(["symbol", "humbl_regime", "regime_instance_id"])
             .alias("day_index"),
         ]
     )
 
-    # Create a recovery marker - Identify start of drawdown periods and recoveries
+    # Create a recovery marker - Identify start of drawdown periods and recoveries per symbol
     metrics_with_recovery = metrics_with_drawdowns.with_columns(
         [
             # In drawdown when drawdown_pct < 0
@@ -575,33 +580,35 @@ def calculate_drawdown_metrics(base_metrics: pl.LazyFrame) -> pl.LazyFrame:
             (
                 pl.col("is_peak")
                 .shift(1)
-                .over(["humbl_regime", "regime_instance_id"])
+                .over(["symbol", "humbl_regime", "regime_instance_id"])
                 & ~pl.col("is_peak")
             ).alias("drawdown_start"),
             # Recovery happens when we return to a peak after being in drawdown
             (
                 ~pl.col("is_peak")
                 .shift(1)
-                .over(["humbl_regime", "regime_instance_id"])
+                .over(["symbol", "humbl_regime", "regime_instance_id"])
                 & pl.col("is_peak")
             ).alias("recovery_point"),
         ]
     ).with_columns(
         [
-            # Mark each drawdown period with unique ID
+            # Mark each drawdown period with unique ID per symbol
             pl.col("drawdown_start")
             .cum_sum()
-            .over(["humbl_regime", "regime_instance_id"])
+            .over(["symbol", "humbl_regime", "regime_instance_id"])
             .alias("drawdown_id"),
         ]
     )
 
-    # Calculate drawdown statistics by regime instance
+    # Calculate drawdown statistics by symbol and regime instance
     instance_drawdown_stats = (
         metrics_with_recovery.filter(
             pl.col("in_drawdown")
         )  # Only consider drawdown periods
-        .group_by(["humbl_regime", "regime_instance_id", "drawdown_id"])
+        .group_by(
+            ["symbol", "humbl_regime", "regime_instance_id", "drawdown_id"]
+        )
         .agg(
             [
                 # Calculate max drawdown for each drawdown period
@@ -621,6 +628,7 @@ def calculate_drawdown_metrics(base_metrics: pl.LazyFrame) -> pl.LazyFrame:
         metrics_with_recovery.filter(pl.col("recovery_point"))
         .select(
             [
+                "symbol",
                 "humbl_regime",
                 "regime_instance_id",
                 "drawdown_id",
@@ -630,10 +638,10 @@ def calculate_drawdown_metrics(base_metrics: pl.LazyFrame) -> pl.LazyFrame:
         .rename({"day_index": "recovery_day"})
     )
 
-    # Join recovery information with drawdown stats
+    # Join recovery information with drawdown stats per symbol
     drawdown_with_recovery = instance_drawdown_stats.join(
         recovery_points,
-        on=["humbl_regime", "regime_instance_id", "drawdown_id"],
+        on=["symbol", "humbl_regime", "regime_instance_id", "drawdown_id"],
         how="left",
     ).with_columns(
         [
@@ -644,9 +652,9 @@ def calculate_drawdown_metrics(base_metrics: pl.LazyFrame) -> pl.LazyFrame:
         ]
     )
 
-    # Aggregate statistics by regime
+    # Aggregate statistics by symbol and regime
     return (
-        drawdown_with_recovery.group_by("humbl_regime")
+        drawdown_with_recovery.group_by(["symbol", "humbl_regime"])
         .agg(
             [
                 # Worst drawdown across all instances (most negative value)
@@ -697,7 +705,7 @@ def calculate_win_loss_stats(
     pl.LazyFrame
         Win/loss statistics for each regime
     """
-    return win_loss_per_instance.group_by("humbl_regime").agg(
+    return win_loss_per_instance.group_by(["symbol", "humbl_regime"]).agg(
         [
             pl.col("win_days_count").max().alias("max_win_days"),
             pl.col("win_days_count").min().alias("min_win_days"),
@@ -731,7 +739,9 @@ def join_summary_with_win_loss(
     pl.LazyFrame
         Joined summary and win/loss statistics with all metrics combined
     """
-    return summary_stats.join(win_loss_stats, on="humbl_regime", how="left")
+    return summary_stats.join(
+        win_loss_stats, on=["symbol", "humbl_regime"], how="left"
+    )
 
 
 def join_summary_with_drawdowns(
@@ -762,7 +772,7 @@ def join_summary_with_drawdowns(
         Joined summary and drawdown statistics with filled null values
     """
     return summary_stats.join(
-        regime_drawdowns, on="humbl_regime", how="left"
+        regime_drawdowns, on=["symbol", "humbl_regime"], how="left"
     ).with_columns(
         [
             # Fill null values with 0
@@ -810,13 +820,14 @@ def join_summary_with_growth(
         return summary_stats.join(
             combined_regime_growth.select(
                 [
+                    "symbol",
                     "humbl_regime",
                     "cumulative_investment_growth",
                     "investment_growth_pct",
                     "total_ending_investment_value",
                 ]
             ),
-            on="humbl_regime",
+            on=["symbol", "humbl_regime"],
             how="left",
         ).with_columns(
             [
@@ -869,7 +880,7 @@ def sort_regimes(final_summary: pl.LazyFrame) -> pl.LazyFrame:
             )
             .alias("regime_order")
         )
-        .sort("regime_order")
+        .sort(["symbol", "regime_order"])
         .drop("regime_order")
     )
 
@@ -889,7 +900,7 @@ def extract_regime_date_summary(regime_metrics: pl.LazyFrame) -> pl.LazyFrame:
         Regime date summary for each regime instance
     """
     return regime_metrics.group_by(
-        ["humbl_regime", "regime_instance_id", "symbol"]
+        ["symbol", "humbl_regime", "regime_instance_id"]
     ).agg(
         [
             pl.col("start_date").first(),
@@ -983,7 +994,7 @@ def humbl_compass_backtest(
         summary_with_drawdowns, combined_regime_growth, initial_investment
     )
 
-    # Step 12: Sort regimes in correct order
+    # Step 12: Sort regimes in correct order per symbol
     final_summary = sort_regimes(final_summary)
 
     # Step 13: Extract regime date summary for visualization
