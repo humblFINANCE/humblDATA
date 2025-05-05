@@ -486,7 +486,10 @@ class HumblCompassBacktestFetcher:
             Returns self for method chaining.
         """
         equity_data = self.equity_data.lazy()
-        compass_data = self.humbl_compass_data.lazy()
+        if isinstance(self.humbl_compass_data, pl.LazyFrame):
+            compass_data = self.humbl_compass_data
+        else:
+            compass_data = self.humbl_compass_data.lazy()
 
         volatility_window_days = _window_format(
             self.command_params.vol_window,

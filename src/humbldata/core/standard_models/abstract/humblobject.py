@@ -2,7 +2,7 @@ import base64
 import io
 import json
 import re
-from typing import Any, ClassVar, Generic, TypeVar
+from typing import Any, ClassVar, Generic, TypeVar, Optional
 
 import numpy as np
 import pandas as pd
@@ -22,6 +22,11 @@ from humbldata.core.standard_models.abstract.tagged import Tagged
 from humbldata.core.standard_models.abstract.warnings import Warning_
 from humbldata.core.standard_models.portfolio import PortfolioQueryParams
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
+from humbldata.core.utils.env import Env
+from humbldata.core.utils.logger import setup_logger
+
+env = Env()
+logger = setup_logger("HumblObject", env.LOGGER_LEVEL)
 
 T = TypeVar("T")
 
@@ -88,8 +93,8 @@ class HumblObject(Tagged, Generic[T]):
         title="Context Parameters",
         description="Context parameters.",
     )
-    command_params: SerializeAsAny[QueryParams] | None = Field(
-        default=QueryParams,
+    command_params: Optional[SerializeAsAny[QueryParams]] = Field(
+        default=None,
         title="Command Parameters",
         description="Command-specific parameters.",
     )
@@ -284,7 +289,10 @@ class HumblObject(Tagged, Generic[T]):
         )
 
     def to_json(
-        self, equity_data: bool = False, chart: bool = False
+        self,
+        equity_data: bool = False,
+        chart: bool = False,
+        object_dump: bool = False,
     ) -> str | list[str]:
         """
         Convert the results to a JSON string.
@@ -292,16 +300,17 @@ class HumblObject(Tagged, Generic[T]):
         Parameters
         ----------
         equity_data : bool, optional
-            A flag to specify whether to use equity-specific data for the
-            conversion. Default is False.
+            If True, return equity data instead of results. Default is False.
         chart : bool, optional
             If True, return all generated charts as a JSON string instead of
             returning the results. Default is False.
+        object_dump : bool, optional
+            If True, serialize the entire HumblObject model to JSON. Default is False.
 
         Returns
         -------
         str | list[str]
-            The results or charts as a JSON string or list of JSON strings.
+            The results, charts, or entire object as a JSON string or list of JSON strings.
 
         Raises
         ------
@@ -317,9 +326,18 @@ class HumblObject(Tagged, Generic[T]):
 
         def json_serial(obj):
             """JSON serializer for objects not serializable by default json code."""
+            logger.debug("Serializing object of type: %s", type(obj))
             if isinstance(obj, (datetime, date)):
+                logger.debug("Converting datetime/date to ISO format")
                 return obj.isoformat()
+            elif isinstance(obj, bytes):
+                logger.debug("Converting bytes to base64 encoded string")
+                return base64.b64encode(obj).decode("utf-8")
+            elif isinstance(obj, pl.LazyFrame):
+                logger.debug("Serializing LazyFrame to binary format")
+                return obj.serialize(format="binary")
             msg = f"Type {type(obj)} not serializable"
+            logger.debug("Serialization failed: %s", msg)
             raise TypeError(msg)
 
         def decode_base64_numpy_arrays(chart_json: str) -> str:
@@ -386,7 +404,12 @@ class HumblObject(Tagged, Generic[T]):
             # Convert back to JSON string with compact formatting (no spaces)
             return json.dumps(processed_data, separators=(",", ":"))
 
-        if chart:
+        if object_dump:
+            # Serialize the entire HumblObject to JSON using Pydantic's model_dump
+            return json.dumps(
+                self.model_dump(), default=json_serial, separators=(",", ":")
+            )
+        elif chart:
             if self.chart is None:
                 msg = f"You set `.to_json(chart=True)` but there were no charts. Make sure `chart=True` in {self.command_params.__class__.__name__}"
                 raise HumblDataError(msg)

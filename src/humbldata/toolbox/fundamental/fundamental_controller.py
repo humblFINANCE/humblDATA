@@ -7,6 +7,7 @@ Fundamental module and its functions.
 """
 
 from humbldata.core.standard_models.abstract.errors import HumblDataError
+from humbldata.core.standard_models.abstract.humblobject import HumblObject
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
 from humbldata.core.standard_models.toolbox.fundamental.humbl_compass import (
     HumblCompassQueryParams,
@@ -110,7 +111,11 @@ class Fundamental:
         result = fetcher.fetch_data()
 
         # Capture the raw transformed data needed for backtest.
-        raw_transformed = fetcher._raw_transformed_df
+        # Deserialize results from string to dataframe if needed
+        if isinstance(result, dict):  # will be a dict if the value is cached
+            compass_data = result.get("results")
+        elif isinstance(result, HumblObject):
+            compass_data = result.to_polars(collect=False)
 
         # Attach a backtest method to the result.
         def backtest(**backtest_kwargs):
@@ -124,7 +129,7 @@ class Fundamental:
             bt_fetcher = HumblCompassBacktestFetcher(
                 context_params=self.context_params,
                 command_params=bt_params,
-                compass_data=raw_transformed,
+                compass_data=compass_data,
             )
             return bt_fetcher.fetch_data()
 
