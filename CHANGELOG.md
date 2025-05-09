@@ -1,3 +1,9 @@
+## v1.20.10 (2025-05-09)
+
+### 🐛🚑️ Fixes
+
+- **version**: bump version to trigger publish
+
 ## v1.20.9 (2025-05-09)
 
 ### 🐛🚑️ Fixes
