@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "jenningsFantini", email = "jenningsfantini+github@gmail.com" }
 ]
-requires-python = ">=3.12"
+requires-python = ">=3.12,<3.13"
 
 dependencies = [
     "openbb==4.4.4",
