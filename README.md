@@ -68,6 +68,11 @@ Install with `poetry`:
 poetry add humbldata
 ```
 
+Install with `uv`:
+```bash
+uv add humbldata
+```
+
 ## Documentation
 
 For complete documentation on the library's features, architecture, and how to contribute, please visit:
