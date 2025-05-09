@@ -1,3 +1,9 @@
+## v1.20.13 (2025-05-09)
+
+### 🐛🚑️ Fixes
+
+- **publish**: no env name, last for the night
+
 ## v1.20.12 (2025-05-09)
 
 ### 🐛🚑️ Fixes
