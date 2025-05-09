@@ -1,3 +1,13 @@
+## v1.20.15 (2025-05-09)
+
+### 🐛🚑️ Fixes
+
+- **docs**: remove extraneous letter
+
+### 📌➕⬇️➖⬆️ Dependencies
+
+- **add**: redis-cache
+
 ## v1.20.14 (2025-05-09)
 
 ### 🐛🚑️ Fixes
