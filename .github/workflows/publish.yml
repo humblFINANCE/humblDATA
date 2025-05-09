@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - release
-    tags: # only created when `bump.yml` is run, which only runs on master push
+    tags: # only created when `bump.yml` is run, which only runs on master push!
       - "v*"
 
 jobs:
