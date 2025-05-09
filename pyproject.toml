@@ -15,6 +15,7 @@ dependencies = [
     "polars>=1.29.0",
     "pyarrow>=20.0.0",
     "pydantic>=2.11.4",
+    "redis-cache>=0.1.5",
     "uuid7>=0.1.0",
     "uvloop>=0.21.0",
 ]

@@ -1023,7 +1023,7 @@ wheels = [
 
 [[package]]
 name = "humbldata"
-version = "1.20.1"
+version = "1.20.14"
 source = { editable = "." }
 dependencies = [
     { name = "openbb" },
@@ -1032,6 +1032,7 @@ dependencies = [
     { name = "polars" },
     { name = "pyarrow" },
     { name = "pydantic" },
+    { name = "redis-cache" },
     { name = "uuid7" },
     { name = "uvloop" },
 ]
@@ -1076,6 +1077,7 @@ requires-dist = [
     { name = "polars", specifier = ">=1.29.0" },
     { name = "pyarrow", specifier = ">=20.0.0" },
     { name = "pydantic", specifier = ">=2.11.4" },
+    { name = "redis-cache", specifier = ">=0.1.5" },
     { name = "uuid7", specifier = ">=0.1.0" },
     { name = "uvloop", specifier = ">=0.21.0" },
 ]
@@ -2942,6 +2944,12 @@ wheels = [
 ]
 
 [[package]]
+name = "pycrypto"
+version = "2.6.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/60/db/645aa9af249f059cc3a368b118de33889219e0362141e75d4eaf6f80f163/pycrypto-2.6.1.tar.gz", hash = "sha256:f2ce1e989b272cfcb677616763e0a2e7ec659effa67a88aa92b3a65528f60a3c", size = 446240 }
+
+[[package]]
 name = "pycurl"
 version = "7.45.3"
 source = { registry = "https://pypi.org/simple" }
@@ -3165,6 +3173,18 @@ wheels = [
 ]
 
 [[package]]
+name = "python-redis-lock"
+version = "4.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "redis" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/19/d7/a2a97c73d39e68aacce02667885b9e0b575eb9082866a04fbf098b4c4d99/python-redis-lock-4.0.0.tar.gz", hash = "sha256:4abd0bcf49136acad66727bf5486dd2494078ca55e49efa693f794077319091a", size = 162533 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/09/70/c5dfaec2085d9be10792704f108543ba1802e228bf040632c673066d8e78/python_redis_lock-4.0.0-py3-none-any.whl", hash = "sha256:ff786e587569415f31e64ca9337fce47c4206e832776e9e42b83bfb9ee1af4bd", size = 12165 },
+]
+
+[[package]]
 name = "python-slugify"
 version = "8.0.4"
 source = { registry = "https://pypi.org/simple" }
@@ -3299,6 +3319,35 @@ sdist = { url = "https://files.pythonhosted.org/packages/a8/b8/d16eb579277f3de9e
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ad/3f/11dd4cd4f39e05128bfd20138faea57bec56f9ffba6185d276e3107ba5b2/questionary-2.1.0-py3-none-any.whl", hash = "sha256:44174d237b68bc828e4878c763a9ad6790ee61990e0ae72927694ead57bab8ec", size = 36747 },
 ]
+
+[[package]]
+name = "redis"
+version = "6.0.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/79/12/dffaaa4374b8d5f3b7ff5c40025c9db387e06264302d5a9da6043cd84e1f/redis-6.0.0.tar.gz", hash = "sha256:5446780d2425b787ed89c91ddbfa1be6d32370a636c8fdb687f11b1c26c1fa88", size = 4620969 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/08/c8/68081c9d3531f7b2a4d663326b96a9dcbc2aef47df3c6b5c38dea90dff02/redis-6.0.0-py3-none-any.whl", hash = "sha256:a2e040aee2cdd947be1fa3a32e35a956cd839cc4c1dbbe4b2cdee5b9623fd27c", size = 268950 },
+]
+
+[[package]]
+name = "redis-cache"
+version = "0.1.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "python-redis-lock" },
+    { name = "redis-structures" },
+    { name = "vital-tools" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/61/2d/5e8a5a2c1d276dc94239f258362b9978665724811b0c95fb5be7e8beaaff/redis-cache-0.1.5.tar.gz", hash = "sha256:cd138557d61f3cc04c3cffabc114b0b1d5fef0349c0838aa19cc984e51c9a5d5", size = 4826 }
+
+[[package]]
+name = "redis-structures"
+version = "0.1.7"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "redis" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f5/0f/401e142dfd7c3bbc845139dac5523bc22023246ed540284e29e140bbff70/redis_structures-0.1.7.tar.gz", hash = "sha256:0771324fe348583ffdf7025e4034d8da939435e62bac3a1016216fb89b8e25ff", size = 38088 }
 
 [[package]]
 name = "referencing"
@@ -3966,6 +4015,15 @@ sdist = { url = "https://files.pythonhosted.org/packages/56/2c/444f465fb2c65f40c
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f3/40/b1c265d4b2b62b58576588510fc4d1fe60a86319c8de99fd8e9fec617d2c/virtualenv-20.31.2-py3-none-any.whl", hash = "sha256:36efd0d9650ee985f0cad72065001e66d49a6f24eb44d98980f630686243cf11", size = 6057982 },
 ]
+
+[[package]]
+name = "vital-tools"
+version = "0.1.13"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pycrypto" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/62/d4/5e9f3d749973cad4b5e0605408fc4e005389630dd1eb1a6db50a4b940dbd/vital-tools-0.1.13.tar.gz", hash = "sha256:72d0fbcc5a16e5c7b1971d7020ed4326144a9a34a37d69bbc2ddc945eaf9cc6d", size = 40707 }
 
 [[package]]
 name = "watchdog"
