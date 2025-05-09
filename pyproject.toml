@@ -62,7 +62,7 @@ skip = ["menv/", "tests"]
 
 [tool.commitizen]
 name = "cz_gitmoji"
-version = "1.20.8"
+version = "1.20.9"
 tag_format = "v$version"
 update_changelog_on_bump = true
 annotated_tag = true

@@ -1,3 +1,16 @@
+## v1.20.9 (2025-05-09)
+
+### 🐛🚑️ Fixes
+
+- **duplicate**: removed extra description field in pyproject.toml
+- **version**: duplicate version
+- **version**: wrong version
+- **openbb**: fixed yfinance bug by removing lumibot and switching to uv
+
+### ♻️ Refactorings
+
+- **GHA**: changed docs and publish logic to use uv as well
+
 ## v1.20.8 (2025-04-30)
 
 ### 🐛🚑️ Fixes
