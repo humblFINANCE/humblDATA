@@ -7,6 +7,8 @@ This module is used to define the QueryParams and Data model for the
 HumblCompass command.
 """
 
+import json
+import pickle
 import warnings
 from datetime import datetime
 from enum import Enum
@@ -16,6 +18,8 @@ import pandera.polars as pa
 import polars as pl
 from openbb import obb
 from pydantic import BaseModel, Field
+from redis import StrictRedis
+from redis_cache import RedisCache
 
 from humbldata.core.standard_models.abstract.chart import ChartTemplate
 from humbldata.core.standard_models.abstract.data import Data
@@ -33,10 +37,6 @@ from humbldata.toolbox.toolbox_helpers import (
     _window_format,
     _window_format_monthly,
 )
-from redis import StrictRedis
-from redis_cache import RedisCache
-import json
-import pickle
 
 env = Env()
 Q = TypeVar("Q", bound=ToolboxQueryParams)
