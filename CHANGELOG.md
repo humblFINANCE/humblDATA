@@ -1,3 +1,9 @@
+## v1.20.18 (2025-05-12)
+
+### 🐛🚑️ Fixes
+
+- **deps**: update redis-cache to python-redis-cache and adjust Python version requirements
+
 ## v1.20.17 (2025-05-09)
 
 ### 🐛🚑️ Fixes
