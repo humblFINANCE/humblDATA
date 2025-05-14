@@ -35,4 +35,4 @@ jobs:
 
       - name: Deploy Docs
         # run: uv run mike deploy --push --update-alias ${GITHUB_REF#refs/tags/} latest
-        run: uv run mkdocs gh-deploy --force
+        run: uv run mkdocs gh-deploy --force --prerelease=allow
