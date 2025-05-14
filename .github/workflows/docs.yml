@@ -31,7 +31,7 @@ jobs:
         run: pip install uv
       - name: Install dependencies with uv
         run: |
-          uv pip sync
+          uv sync --prerelease=allow
 
       - name: Deploy Docs
         # run: uv run mike deploy --push --update-alias ${GITHUB_REF#refs/tags/} latest
