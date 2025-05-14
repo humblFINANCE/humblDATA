@@ -1,3 +1,13 @@
+## v1.20.19 (2025-05-14)
+
+### 🐛🚑️ Fixes
+
+- **notebooks**: update execution counts and ID in testing.ipynb
+
+### ♻️ Refactorings
+
+- replace codebase with working files from humblDATA2
+
 ## v1.20.18 (2025-05-12)
 
 ### 🐛🚑️ Fixes
