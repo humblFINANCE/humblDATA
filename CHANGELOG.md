@@ -1,3 +1,13 @@
+## v1.20.22 (2025-05-14)
+
+### 🐛🚑️ Fixes
+
+- **docs**: rmeove unneeded flag
+
+### 📌➕⬇️➖⬆️ Dependencies
+
+- **dep**: added prerelease
+
 ## v1.20.21 (2025-05-14)
 
 ## v1.20.20 (2025-05-14)
