@@ -9,16 +9,15 @@ authors = [
 requires-python = ">=3.11,<3.13"
 
 dependencies = [
-    "openbb==4.4.4",
-    "pandera>=0.24.0rc0",
-    "plotly>=6.1.0rc0",
     "polars>=1.29.0",
     "pyarrow>=20.0.0",
     "pydantic>=2.11.4",
     "python-redis-cache>=4.0.2",
     "uuid7>=0.1.0",
     "uvloop>=0.21.0",
-    "defusedxml>=0.8.0rc2"
+    "coloredlogs>=15.0.1",
+    "plotly>=6.0.1",
+    "pandera>=0.23.1",
 ]
 
 [build-system]
@@ -36,7 +35,6 @@ dev = [
     "mkdocstrings[python]>=0.24.1,<0.25.0",
     "line-profiler>=4.1.2,<5.0.0",
     "mike>=2.0.0,<3.0.0",
-    "coloredlogs>=15.0.1,<16.0.0",
     "orjson>=3.10.12,<4.0.0",
 ]
 test = [

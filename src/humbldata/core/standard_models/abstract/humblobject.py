@@ -2,7 +2,7 @@ import base64
 import io
 import json
 import re
-from typing import Any, ClassVar, Generic, TypeVar, Optional
+from typing import Any, ClassVar, Generic, Optional, TypeVar
 
 import numpy as np
 import pandas as pd

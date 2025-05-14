@@ -13,8 +13,12 @@ import dotenv
 import polars as pl
 import uvloop
 from openbb import obb
-from openbb_core.app.model.abstract.error import OpenBBError
 
+from humbldata.core.standard_models.abstract.errors import HumblDataError
+from humbldata.core.standard_models.abstract.warnings import (
+    HumblDataWarning,
+    collect_warnings,
+)
 from humbldata.core.utils.constants import (
     OBB_EQUITY_PRICE_QUOTE_PROVIDERS,
     OBB_EQUITY_PROFILE_PROVIDERS,
@@ -23,10 +27,6 @@ from humbldata.core.utils.constants import (
 )
 from humbldata.core.utils.env import Env
 from humbldata.core.utils.logger import setup_logger
-from humbldata.core.standard_models.abstract.warnings import (
-    collect_warnings,
-    HumblDataWarning,
-)
 
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
@@ -459,9 +459,43 @@ async def aget_etf_category(
                 .alias("category")
             ]
         )
-    except OpenBBError:
+    except HumblDataError:
         return pl.LazyFrame(
             {"symbol": symbols_list, "category": [None] * len(symbols_list)}
         ).cast(pl.Utf8)
 
     return out
+
+
+def get_querystring(items: dict, exclude: list[str]) -> str:
+    """Turn a dictionary into a querystring, excluding the keys in the exclude list.
+
+    Parameters
+    ----------
+    items: dict
+        The dictionary to be turned into a querystring.
+
+    exclude: List[str]
+        The keys to be excluded from the querystring.
+
+    Returns
+    -------
+    str
+        The querystring.
+    """
+    for key in exclude:
+        items.pop(key, None)
+
+    query_items = []
+    for key, value in items.items():
+        if value is None:
+            continue
+        if isinstance(value, list):
+            for item in value:
+                query_items.append(f"{key}={item}")
+        else:
+            query_items.append(f"{key}={value}")
+
+    querystring = "&".join(query_items)
+
+    return f"{querystring}" if querystring else ""
