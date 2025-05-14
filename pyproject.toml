@@ -18,6 +18,7 @@ dependencies = [
     "python-redis-cache>=4.0.2",
     "uuid7>=0.1.0",
     "uvloop>=0.21.0",
+    "defusedxml>=0.8.0rc2"
 ]
 
 [build-system]
