@@ -1,3 +1,9 @@
+## v1.20.20 (2025-05-14)
+
+### 🐛🚑️ Fixes
+
+- **docs**: replaced uv pip sync with uv sync
+
 ## v1.20.19 (2025-05-14)
 
 ### 🐛🚑️ Fixes
