@@ -1020,7 +1020,7 @@ wheels = [
 
 [[package]]
 name = "humbldata"
-version = "1.20.17"
+version = "1.20.18"
 source = { editable = "." }
 dependencies = [
     { name = "openbb" },
