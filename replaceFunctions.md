@@ -18,6 +18,6 @@ This document outlines the files and specific OpenBB (`obb`) functions that need
 - [ ] **`src/humbldata/core/standard_models/toolbox/technical/realized_volatility.py`**
     - [ ] `obb.equity.price.historical`
 - [ ] **`src/humbldata/core/standard_models/toolbox/technical/humbl_momentum.py`**
-    - [ ] `obb.equity.price.historical`
+    - [x] `obb.equity.price.historical`
 - [ ] **`src/humbldata/core/standard_models/toolbox/technical/humbl_channel.py`**
     - [x] `obb.equity.price.historical`

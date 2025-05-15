@@ -246,7 +246,6 @@ class HumblMomentumFetcher:
             provider=self.context_params.provider,
         )
         api_client = OpenBBAPIClient()
-        api_client.api_query_params = api_query_params
         api_response = await api_client.fetch_data(
             obb_path="equity.price.historical",
             api_query_params=api_query_params,
