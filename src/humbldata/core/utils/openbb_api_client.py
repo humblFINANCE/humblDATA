@@ -1,26 +1,26 @@
 """Client for interacting with an external OpenBB-like API."""
 
 import warnings
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 import polars as pl
 from pydantic import BaseModel
 
 from humbldata.core.standard_models.abstract.humblobject import HumblObject
-from humbldata.core.standard_models.abstract.query_params import QueryParams
 from humbldata.core.standard_models.abstract.warnings import (
     HumblDataWarning,
     Warning_,  # Keep for type hinting if necessary, though self.warnings will store these
     collect_warnings,
 )
-from humbldata.core.standard_models.portfolio import PortfolioQueryParams
-from humbldata.core.standard_models.toolbox import ToolboxQueryParams
 from humbldata.core.utils.env import Env
-from humbldata.core.utils.logger import setup_logger
+from humbldata.core.utils.logger import log_start_end, setup_logger
 from humbldata.core.utils.network_helpers import (
     amake_request,
     get_querystring,
 )
+
+if TYPE_CHECKING:
+    from humbldata.core.standard_models.abstract.query_params import QueryParams
 
 logger = setup_logger(__name__)
 
@@ -33,13 +33,7 @@ class OpenBBAPIClient:
         self.env = Env()
         self.warnings: list[Warning_] = []
         self.obb_path: str | None = None
-        self.api_query_params: BaseModel | None = None
-        self.context_params: (
-            ToolboxQueryParams | PortfolioQueryParams | None
-        ) = None
-        self.command_params: QueryParams | None = (
-            None  # This is the original command's QueryParams model
-        )
+        self.api_query_params: QueryParams | None = None
         self.full_url: str | None = None
         self.raw_api_response: dict | list[dict] | None = None
         self.extra: dict = {}
@@ -123,8 +117,6 @@ class OpenBBAPIClient:
         self,
         obb_path: str,
         api_query_params: BaseModel,
-        context_params: ToolboxQueryParams | PortfolioQueryParams,
-        command_params: QueryParams,
     ):
         """
         Build the full URL and stores parameters for the API request.
@@ -137,15 +129,9 @@ class OpenBBAPIClient:
         api_query_params : BaseModel
             A Pydantic model instance containing the query parameters for the
             API request.
-        context_params : Union[ToolboxQueryParams, PortfolioQueryParams]
-            The context parameters for the HumblObject.
-        command_params : QueryParams
-            The original command's QueryParams instance.
         """
         self.obb_path = obb_path
         self.api_query_params = api_query_params
-        self.context_params = context_params
-        self.command_params = command_params
 
         if not self.api_query_params:
             # Or handle as an error, depending on expected behavior
@@ -188,12 +174,8 @@ class OpenBBAPIClient:
 
     async def _validate_client_state_for_transform(self) -> str | None:
         """Validate if the client is ready for data transformation."""
-        if (
-            self.obb_path is None
-            or self.context_params is None
-            or self.command_params is None
-        ):
-            message = "Client not properly initialized with path or params before transforming data."
+        if self.obb_path is None:
+            message = "Client not properly initialized with obb_path before transforming data."
             logger.error(message)
             return message
         return None
@@ -300,7 +282,7 @@ class OpenBBAPIClient:
         if client_state_error:
             return HumblObject(
                 results=pl.LazyFrame().serialize(format="binary"),
-                provider=None,
+                provider=self.api_query_params.provider,
                 warnings=[
                     *self.warnings,
                     Warning_(
@@ -308,27 +290,15 @@ class OpenBBAPIClient:
                         category="HumblDataCriticalError",
                     ),
                 ],
-                context_params=self.context_params
-                or ToolboxQueryParams(symbols=[]),
-                command_params=self.command_params or QueryParams(),
                 extra={"error_details": client_state_error, **self.extra},
             )
 
         api_response_error = await self._validate_api_response()
         if api_response_error:
-            # Ensure self.context_params and self.command_params are not None
-            # This should be guaranteed by _validate_client_state_for_transform
-            # but defensive check here.
-            context_params = self.context_params or ToolboxQueryParams(
-                symbols=[]
-            )
-            command_params = self.command_params or QueryParams()
             return HumblObject(
                 results=pl.LazyFrame().serialize(format="binary"),
-                provider=None,
+                provider=self.api_query_params.provider,
                 warnings=self.warnings,
-                context_params=context_params,
-                command_params=command_params,
                 extra={"error_details": api_response_error, **self.extra},
             )
 
@@ -339,27 +309,19 @@ class OpenBBAPIClient:
         extra_info_from_api = api_response_json.get("extra", {})
         final_extra = {**self.extra, **extra_info_from_api}
 
-        # Ensure self.context_params and self.command_params are not None after validations
-        # This should be guaranteed by _validate_client_state_for_transform
-        context_params = self.context_params  # type: ignore
-        command_params = self.command_params  # type: ignore
-
         return HumblObject(
             results=results_lf.serialize(format="binary"),
-            provider=context_params.provider,
+            provider=self.api_query_params.provider,
             warnings=self.warnings,
             chart=None,
-            context_params=context_params,
-            command_params=command_params,
             extra=final_extra,
         )
 
+    @log_start_end(logger=logger)
     async def fetch_data(
         self,
         obb_path: str,
         api_query_params: BaseModel,
-        context_params: ToolboxQueryParams | PortfolioQueryParams,
-        command_params: QueryParams,
     ) -> HumblObject:
         """
         Execute the TET pattern: Transform Query, Extract Data, Transform Data.
@@ -370,18 +332,12 @@ class OpenBBAPIClient:
             The OpenBB-style path for the API resource.
         api_query_params : BaseModel
             Pydantic model for API query parameters.
-        context_params : Union[ToolboxQueryParams, PortfolioQueryParams]
-            Context parameters.
-        command_params : QueryParams
-            Original command's QueryParams.
 
         Returns
         -------
         HumblObject
             A HumblObject containing the fetched and processed data.
         """
-        await self.transform_query(
-            obb_path, api_query_params, context_params, command_params
-        )
+        await self.transform_query(obb_path, api_query_params)
         await self.extract_data()
         return await self.transform_data()

@@ -89,7 +89,7 @@ class HumblObject(Tagged, Generic[T]):
         description="Extra info.",
     )
     context_params: ToolboxQueryParams | PortfolioQueryParams | None = Field(
-        default_factory=ToolboxQueryParams,
+        default=None,
         title="Context Parameters",
         description="Context parameters.",
     )
