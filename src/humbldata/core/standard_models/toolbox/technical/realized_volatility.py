@@ -9,7 +9,6 @@ Volatility command.
 
 from typing import ClassVar, TypeVar
 
-from openbb import obb
 
 from humbldata.core.standard_models.abstract.data import Data
 from humbldata.core.standard_models.abstract.query_params import QueryParams

@@ -13,7 +13,6 @@ from typing import List, Literal, TypeVar
 
 import pandera.polars as pa
 import polars as pl
-from openbb import obb
 from pydantic import Field, PrivateAttr, field_validator
 
 from humbldata.core.standard_models.abstract.data import Data
@@ -468,7 +467,7 @@ class HumblChannelFetcher:
         return self
 
     @log_start_end(logger=logger)
-    def fetch_data(self):
+    async def fetch_data(self):
         """
         Execute TET Pattern.
 
@@ -485,7 +484,7 @@ class HumblChannelFetcher:
         logger.debug("Running .transform_query()")
         self.transform_query()
         logger.debug("Running .extract_data()")
-        self.extract_data()
+        await self.extract_data()
         logger.debug("Running .transform_data()")
         self.transform_data()
 

@@ -11,7 +11,6 @@ from typing import Literal, TypeVar
 
 import pandera.polars as pa
 import polars as pl
-from openbb import obb
 from pydantic import Field, field_validator
 
 from humbldata.core.standard_models.abstract.data import Data

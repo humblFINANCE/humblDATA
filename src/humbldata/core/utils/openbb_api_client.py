@@ -7,6 +7,7 @@ import polars as pl
 from pydantic import BaseModel
 
 from humbldata.core.standard_models.abstract.humblobject import HumblObject
+from humbldata.core.standard_models.abstract.query_params import QueryParams
 from humbldata.core.standard_models.abstract.warnings import (
     HumblDataWarning,
     Warning_,  # Keep for type hinting if necessary, though self.warnings will store these
@@ -20,9 +21,9 @@ from humbldata.core.utils.network_helpers import (
 )
 
 if TYPE_CHECKING:
-    from humbldata.core.standard_models.abstract.query_params import QueryParams
+    pass
 
-logger = setup_logger(__name__)
+logger = setup_logger("OpenBBAPIClient")
 
 
 class OpenBBAPIClient:
@@ -304,6 +305,22 @@ class OpenBBAPIClient:
 
         api_response_json = self._parse_api_response_json()
         results_lf = self._extract_results_to_lazyframe(api_response_json)
+
+        # --- Convert 'date' columns from string to pl.Date or pl.Datetime if needed ---
+        if "date" in results_lf.schema:
+            dtype = results_lf.schema["date"]
+            if dtype == pl.Utf8:
+                # Try to parse as date, fallback to datetime if needed
+                try:
+                    results_lf = results_lf.with_columns(
+                        pl.col("date").str.to_date().alias("date")
+                    )
+                except Exception:
+                    results_lf = results_lf.with_columns(
+                        pl.col("date").str.to_datetime().alias("date")
+                    )
+        # --------------------------------------------------------------------------
+
         self._process_api_warnings(api_response_json)
 
         extra_info_from_api = api_response_json.get("extra", {})

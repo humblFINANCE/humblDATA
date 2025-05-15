@@ -16,7 +16,6 @@ from typing import Literal, TypeVar
 
 import pandera.polars as pa
 import polars as pl
-from openbb import obb
 from pydantic import BaseModel, Field
 from redis import StrictRedis
 from redis_cache import RedisCache

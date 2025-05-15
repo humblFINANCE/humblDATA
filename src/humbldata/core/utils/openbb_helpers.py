@@ -11,7 +11,6 @@ import warnings
 
 import polars as pl
 import uvloop
-from openbb import obb
 
 from humbldata.core.standard_models.abstract.errors import HumblDataError
 from humbldata.core.standard_models.abstract.warnings import (
