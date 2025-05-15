@@ -308,7 +308,7 @@ class OpenBBAPIClient:
 
         # --- Convert 'date' columns from string to pl.Date or pl.Datetime if needed ---
         if "date" in results_lf.collect_schema():
-            dtype = results_lf.schema["date"]
+            dtype = results_lf.collect_schema()["date"]
             if dtype == pl.Utf8:
                 # Try to parse as date, fallback to datetime if needed
                 try:

@@ -21,6 +21,10 @@ from humbldata.core.standard_models.toolbox import ToolboxQueryParams
 from humbldata.core.utils.env import Env
 from humbldata.core.utils.logger import log_start_end, setup_logger
 from humbldata.toolbox.technical.humbl_momentum.view import generate_plots
+from humbldata.core.utils.openbb_api_client import OpenBBAPIClient
+from humbldata.core.standard_models.openbbapi.EquityPriceHistoricalQueryParams import (
+    EquityPriceHistoricalQueryParams,
+)
 
 env = Env()
 Q = TypeVar("Q", bound=ToolboxQueryParams)
@@ -226,7 +230,7 @@ class HumblMomentumFetcher:
                 **self.command_params
             )
 
-    def extract_data(self):
+    async def extract_data(self):
         """
         Extract the data from the provider and returns it as a Polars DataFrame.
 
@@ -235,18 +239,20 @@ class HumblMomentumFetcher:
         pl.DataFrame
             The extracted data as a Polars DataFrame.
         """
-        # Implement data extraction logic here
-        self.equity_historical_data: pl.LazyFrame = (
-            obb.equity.price.historical(
-                symbol=self.context_params.symbols,
-                start_date=self.context_params.start_date,
-                end_date=self.context_params.end_date,
-                provider=self.context_params.provider,
-                # add kwargs
-            )
-            .to_polars()
-            .lazy()
+        api_query_params = EquityPriceHistoricalQueryParams(
+            symbol=self.context_params.symbols,
+            start_date=self.context_params.start_date,
+            end_date=self.context_params.end_date,
+            provider=self.context_params.provider,
         )
+        api_client = OpenBBAPIClient()
+        api_client.api_query_params = api_query_params
+        api_response = await api_client.fetch_data(
+            obb_path="equity.price.historical",
+            api_query_params=api_query_params,
+        )
+        self.equity_historical_data = api_response.to_polars(collect=False)
+
         if len(self.context_params.symbols) == 1:
             self.equity_historical_data = (
                 self.equity_historical_data.with_columns(
@@ -303,7 +309,7 @@ class HumblMomentumFetcher:
         return self
 
     @log_start_end(logger=logger)
-    def fetch_data(self):
+    async def fetch_data(self):
         """
         Execute TET Pattern.
 
@@ -320,7 +326,7 @@ class HumblMomentumFetcher:
         logger.debug("Running .transform_query()")
         self.transform_query()
         logger.debug("Running .extract_data()")
-        self.extract_data()
+        await self.extract_data()
         logger.debug("Running .transform_data()")
         self.transform_data()
 
