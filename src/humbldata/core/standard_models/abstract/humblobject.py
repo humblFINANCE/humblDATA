@@ -2,7 +2,7 @@ import base64
 import io
 import json
 import re
-from typing import Any, ClassVar, Generic, Optional, TypeVar
+from typing import Any, ClassVar, Generic, Optional, TypeVar, overload, Literal
 
 import numpy as np
 import pandas as pd
@@ -118,6 +118,15 @@ class HumblObject(Tagged, Generic[T]):
         # items = extract_subclass_dict(self, "command_params", items)
 
         return f"{self.__class__.__name__}\n\n" + "\n".join(items)
+
+    @overload
+    def to_polars(
+        self, collect: Literal[True] = True, equity_data: bool = False
+    ) -> pl.DataFrame: ...
+    @overload
+    def to_polars(
+        self, collect: Literal[False], equity_data: bool = False
+    ) -> pl.LazyFrame: ...
 
     def to_polars(
         self, collect: bool = True, equity_data: bool = False

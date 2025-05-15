@@ -321,7 +321,7 @@ class OpenBBAPIClient:
     async def fetch_data(
         self,
         obb_path: str,
-        api_query_params: BaseModel,
+        api_query_params: QueryParams,
     ) -> HumblObject:
         """
         Execute the TET pattern: Transform Query, Extract Data, Transform Data.
@@ -330,7 +330,7 @@ class OpenBBAPIClient:
         ----------
         obb_path : str
             The OpenBB-style path for the API resource.
-        api_query_params : BaseModel
+        api_query_params : QueryParams
             Pydantic model for API query parameters.
 
         Returns

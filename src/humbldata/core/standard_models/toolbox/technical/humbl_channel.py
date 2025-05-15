@@ -24,9 +24,13 @@ from humbldata.core.standard_models.abstract.warnings import (
     Warning_,
     collect_warnings,
 )
+from humbldata.core.standard_models.openbbapi.EquityHistoricalQueryParams import (
+    EquityHistoricalQueryParams,
+)
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
 from humbldata.core.utils.env import Env
 from humbldata.core.utils.logger import log_start_end, setup_logger
+from humbldata.core.utils.openbb_api_client import OpenBBAPIClient
 from humbldata.toolbox.technical.humbl_channel.model import (
     calc_humbl_channel,
     calc_humbl_channel_historical_concurrent,
@@ -348,7 +352,7 @@ class HumblChannelFetcher:
             )
 
     @collect_warnings
-    def extract_data(self):
+    async def extract_data(self):
         """
         Extract the data from the provider and returns it as a Polars DataFrame.
 
@@ -359,17 +363,19 @@ class HumblChannelFetcher:
         pl.DataFrame
             The extracted data as a Polars DataFrame.
         """
-        self.equity_historical_data: pl.LazyFrame = (
-            obb.equity.price.historical(
-                symbol=self.context_params.symbols,
-                start_date=self.context_params.start_date,
-                end_date=self.context_params.end_date,
-                provider=self.context_params.provider,
-                # add kwargs
-            )
-            .to_polars()
-            .lazy()
+        api_query_params = EquityHistoricalQueryParams(
+            symbol=self.context_params.symbols,
+            start_date=self.context_params.start_date,
+            end_date=self.context_params.end_date,
+            provider=self.context_params.provider,
         )
+        api_client = OpenBBAPIClient()
+        api_client.api_query_params = api_query_params
+        api_response = await api_client.fetch_data(
+            obb_path="equity.price.historical",
+            api_query_params=api_query_params,
+        )
+        self.equity_historical_data = api_response.to_polars(collect=False)
 
         if len(self.context_params.symbols) == 1:
             self.equity_historical_data = (
