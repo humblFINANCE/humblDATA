@@ -1,3 +1,10 @@
+---
+description: This rule describes how to refactor a function from obb usage to API Client logic.
+globs:
+alwaysApply: false
+---
+
+
 # Refactor Synchronous OpenBB Extraction to Async API Client Pattern
 
 This rule describes how to refactor functions that synchronously extract data from OpenBB (or similar) sources into an asynchronous, API-client-based pattern. Use this rule to standardize data extraction across the codebase.

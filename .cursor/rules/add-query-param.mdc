@@ -1,9 +1,4 @@
 ---
-description: 
-globs: 
-alwaysApply: false
----
----
 description: This rule describes how to add a new QueryParam feild to a function.
 globs:
 alwaysApply: false
