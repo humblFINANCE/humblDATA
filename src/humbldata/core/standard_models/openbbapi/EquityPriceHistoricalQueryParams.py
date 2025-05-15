@@ -6,7 +6,7 @@ from pydantic import Field
 from humbldata.core.standard_models.abstract.query_params import QueryParams
 
 
-class EquityHistoricalQueryParams(QueryParams):
+class EquityPriceHistoricalQueryParams(QueryParams):
     """
     QueryParams model for Equity Historical Price data.
 

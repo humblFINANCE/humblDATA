@@ -23,8 +23,8 @@ from humbldata.core.standard_models.abstract.warnings import (
     Warning_,
     collect_warnings,
 )
-from humbldata.core.standard_models.openbbapi.EquityHistoricalQueryParams import (
-    EquityHistoricalQueryParams,
+from humbldata.core.standard_models.openbbapi.EquityPriceHistoricalQueryParams import (
+    EquityPriceHistoricalQueryParams,
 )
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
 from humbldata.core.utils.env import Env
@@ -362,7 +362,7 @@ class HumblChannelFetcher:
         pl.DataFrame
             The extracted data as a Polars DataFrame.
         """
-        api_query_params = EquityHistoricalQueryParams(
+        api_query_params = EquityPriceHistoricalQueryParams(
             symbol=self.context_params.symbols,
             start_date=self.context_params.start_date,
             end_date=self.context_params.end_date,
