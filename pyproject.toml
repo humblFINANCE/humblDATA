@@ -18,6 +18,9 @@ dependencies = [
     "coloredlogs>=15.0.1",
     "plotly>=6.0.1",
     "pandera>=0.23.1",
+    "multidict>=6.4.3",
+    "aiohttp>=3.11.18",
+    "dotenv>=0.9.9",
 ]
 
 [build-system]

@@ -14,6 +14,7 @@ from typing import (
     Optional,
     Type,
     Union,
+    Dict,
 )
 
 import aiohttp

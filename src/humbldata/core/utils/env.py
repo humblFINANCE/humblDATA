@@ -40,6 +40,11 @@ class Env(metaclass=SingletonMeta):
         return self._environ.get("OPENBB_API_DEV_URL")
 
     @property
+    def OPENBB_API_PREFIX(self) -> str:  # noqa: N802
+        """OpenBB API Prefix."""
+        return self._environ.get("OPENBB_API_PREFIX", "/api/v1")
+
+    @property
     def OBB_PAT(self) -> str | None:  # noqa: N802
         """OpenBB Personal Access Token."""
         return self._environ.get("OBB_PAT", None)
