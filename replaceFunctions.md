@@ -15,9 +15,9 @@ This document outlines the files and specific OpenBB (`obb`) functions that need
 - [ ] **`src/humbldata/core/standard_models/toolbox/fundamental/humbl_compass.py`**
     - [ ] `obb.economy.composite_leading_indicator`
     - [ ] `obb.economy.cpi`
-- [ ] **`src/humbldata/core/standard_models/toolbox/technical/realized_volatility.py`**
-    - [ ] `obb.equity.price.historical`
-- [ ] **`src/humbldata/core/standard_models/toolbox/technical/humbl_momentum.py`**
+- [...] **`src/humbldata/core/standard_models/toolbox/technical/realized_volatility.py`**
+    - [...] `obb.equity.price.historical`
+- [x] **`src/humbldata/core/standard_models/toolbox/technical/humbl_momentum.py`**
     - [x] `obb.equity.price.historical`
-- [ ] **`src/humbldata/core/standard_models/toolbox/technical/humbl_channel.py`**
+- [x] **`src/humbldata/core/standard_models/toolbox/technical/humbl_channel.py`**
     - [x] `obb.equity.price.historical`
