@@ -17,8 +17,8 @@ from typing import Literal, TypeVar
 import pandera.polars as pa
 import polars as pl
 from pydantic import BaseModel, Field
-from redis import StrictRedis
-from redis_cache import RedisCache
+from aiocache import cached, RedisCache
+from aiocache.serializers import BaseSerializer
 
 from humbldata.core.standard_models.abstract.chart import ChartTemplate
 from humbldata.core.standard_models.abstract.data import Data
@@ -41,72 +41,43 @@ env = Env()
 Q = TypeVar("Q", bound=ToolboxQueryParams)
 logger = setup_logger("HumblCompassFetcher", level=env.LOGGER_LEVEL)
 
-# Redis setup for caching
-redis_client = StrictRedis(
-    host=getattr(env, "REDIS_HOST", "localhost"),
-    port=getattr(env, "REDIS_PORT", 6379),
-    db=getattr(env, "REDIS_DB", 0),
-    decode_responses=True,
-)
 
-
-def custom_key_serializer(args):
-    # Handle dictionary format of args from python-redis-cache
-    fetcher = None
-    if isinstance(args, dict) and "self" in args:
-        fetcher = args["self"]
-    elif (
-        isinstance(args, (list, tuple))
-        and len(args) > 0
-        and isinstance(args[0], HumblCompassFetcher)
-    ):
-        fetcher = args[0]
-
-    if fetcher and isinstance(fetcher, HumblCompassFetcher):
-        # Convert date objects to strings for JSON serialization
-        start_date = fetcher.context_params.start_date
-        if not isinstance(start_date, str):
-            start_date = start_date.strftime("%Y-%m-%d")
-        end_date = fetcher.context_params.end_date
-        if not isinstance(end_date, str):
-            end_date = end_date.strftime("%Y-%m-%d")
-
-        key_data = {
-            "start_date": start_date,
-            "end_date": end_date,
-            "country": fetcher.command_params.country,
-            "z_score": fetcher.command_params.z_score,
-        }
-        return json.dumps(key_data, sort_keys=True)
-    # Fallback for unexpected args format
-    return json.dumps({"unknown_args": str(args)}, sort_keys=True)
-
-
-def custom_serializer(value):
-    if isinstance(value, HumblObject):
-        # Serialize HumblObject using pickle to store as a binary Python object
+# Custom aiocache serializer using pickle
+class PickleSerializer(BaseSerializer):
+    def dumps(self, value):
         return pickle.dumps(value)
-    # Fallback to pickle serialization for other types
-    return pickle.dumps(value)
 
-
-def custom_deserializer(value):
-    if isinstance(value, bytes):
+    def loads(self, value):
+        if value is None:
+            return None
+        # aiocache may pass str if redis is misconfigured, so handle both
+        if isinstance(value, str):
+            try:
+                value = value.encode("latin1")
+            except Exception:
+                return value
         try:
-            # Deserialize binary data back to a Python object using pickle
             return pickle.loads(value)
-        except pickle.UnpicklingError:
+        except Exception:
             return value
-    return value
 
 
-redis_cache = RedisCache(
-    redis_client=redis_client,
-    prefix="humbl_compass",
-    key_serializer=custom_key_serializer,
-    serializer=custom_serializer,
-    deserializer=custom_deserializer,
-)
+# Custom cache key builder (mimics previous logic)
+def aiocache_key_builder(func, self, *args, **kwargs):
+    start_date = self.context_params.start_date
+    if not isinstance(start_date, str):
+        start_date = start_date.strftime("%Y-%m-%d")
+    end_date = self.context_params.end_date
+    if not isinstance(end_date, str):
+        end_date = end_date.strftime("%Y-%m-%d")
+    key_data = {
+        "start_date": start_date,
+        "end_date": end_date,
+        "country": self.command_params.country,
+        "z_score": self.command_params.z_score,
+    }
+    return json.dumps(key_data, sort_keys=True)
+
 
 HUMBLCOMPASS_QUERY_DESCRIPTIONS = {
     "example_field1": "Description for example field 1",
@@ -246,12 +217,12 @@ class HumblCompassQueryParams(QueryParams):
         title="Country for humblCOMPASS data",
         description=HUMBLCOMPASS_QUERY_DESCRIPTIONS.get("country", ""),
     )
-    cli_start_date: str = Field(
+    cli_start_date: str | None = Field(
         default=None,
         title="Adjusted start date for CLI data",
         description="The adjusted start date for CLI data collection.",
     )
-    cpi_start_date: str = Field(
+    cpi_start_date: str | None = Field(
         default=None,
         title="Adjusted start date for CPI data",
         description="The adjusted start date for CPI data collection.",
@@ -1003,9 +974,15 @@ class HumblCompassFetcher:
         return self
 
     @log_start_end(logger=logger)
-    @redis_cache.cache(
-        ttl=getattr(env, "REDIS_CACHE_TTL", 86400)
-    )  # Default TTL is 24 hours
+    @cached(
+        ttl=getattr(env, "REDIS_CACHE_TTL", 86400),
+        key_builder=aiocache_key_builder,
+        serializer=PickleSerializer(),
+        cache=RedisCache,
+        endpoint=getattr(env, "REDIS_HOST", "localhost"),
+        port=getattr(env, "REDIS_PORT", 6379),
+        namespace="humbl_compass",
+    )
     def fetch_data(self):
         """
         Execute TET Pattern.
