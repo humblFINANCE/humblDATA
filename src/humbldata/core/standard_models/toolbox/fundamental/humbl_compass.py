@@ -7,6 +7,7 @@ This module is used to define the QueryParams and Data model for the
 HumblCompass command.
 """
 
+import functools
 import json
 import pickle
 import warnings
@@ -17,9 +18,9 @@ from typing import Literal, TypeVar
 import pandera.polars as pa
 import polars as pl
 from aiocache import RedisCache, cached
+from aiocache.plugins import BasePlugin
 from aiocache.serializers import BaseSerializer
 from pydantic import BaseModel, Field
-import functools
 
 from humbldata.core.standard_models.abstract.chart import ChartTemplate
 from humbldata.core.standard_models.abstract.data import Data
@@ -50,15 +51,43 @@ Q = TypeVar("Q", bound=ToolboxQueryParams)
 logger = setup_logger("HumblCompassFetcher", level=env.LOGGER_LEVEL)
 
 
+class LogCacheHitPlugin(BasePlugin):
+    """Log cache hit and return value."""
+
+    def __init__(self, name="humbl_compass"):
+        super().__init__()
+        self.name = name
+
+    async def post_get(self, cache, key, *args, **kwargs):
+        """Log cache hit and return value."""
+        value = kwargs.get("ret")
+        if value is not None:
+            info_msg = f"{self.name} cache HIT & RETURNED"
+            debug_msg = f"{self.name} cache key: {key}"
+            logger.info(info_msg)
+            logger.debug(debug_msg)
+        return value
+
+
 # Custom aiocache serializer using pickle
 class CustomPickleSerializer(BaseSerializer):
     """Custom aiocache serializer using pickle and latin‑1 safe decoding."""
 
     def __init__(self, *args, encoding="latin1", **kwargs):
-        """
-        Force the serializer to use latin‑1 so RedisCache._get decodes bytes
-        without raising UnicodeDecodeError, while still round‑tripping the
-        original pickle byte‑stream.
+        """Initialize the custom pickle serializer with latin-1 encoding.
+
+        The latin-1 encoding is required to ensure RedisCache._get can properly
+        decode bytes without UnicodeDecodeError while preserving the original
+        pickle byte-stream.
+
+        Parameters
+        ----------
+        encoding : str, optional
+            The encoding to use for serialization, by default "latin1"
+        *args
+            Variable length argument list passed to parent class
+        **kwargs
+            Arbitrary keyword arguments passed to parent class
         """
         super().__init__(encoding=encoding, *args, **kwargs)
 
@@ -1015,7 +1044,6 @@ class HumblCompassFetcher:
         return self
 
     @log_start_end(logger=logger)
-    @log_cache_decorator(logger)
     @cached(
         ttl=getattr(env, "REDIS_CACHE_TTL", 86400),
         key_builder=aiocache_key_builder,
@@ -1024,6 +1052,7 @@ class HumblCompassFetcher:
         endpoint=getattr(env, "REDIS_HOST", "localhost"),
         port=getattr(env, "REDIS_PORT", 6379),
         namespace="humbl_compass",
+        plugins=[LogCacheHitPlugin(name="humbl_compass")],
     )
     async def fetch_data(self):
         """
