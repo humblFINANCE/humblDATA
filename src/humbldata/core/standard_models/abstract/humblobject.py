@@ -1,8 +1,6 @@
 import base64
 import io
-import json
-import re
-from typing import Any, ClassVar, Generic, Optional, TypeVar, overload, Literal
+from typing import Any, ClassVar, Generic, Literal, Optional, TypeVar, overload
 
 import numpy as np
 import pandas as pd
@@ -57,7 +55,7 @@ def extract_subclass_dict(self, attribute_name: str, items: list):
 
 
 class HumblObject(Tagged, Generic[T]):
-    """HumblObject is the base class for all dta returned from the Toolbox."""
+    """HumblObject is the base class for all data returned from the Toolbox."""
 
     _user_settings: ClassVar[BaseModel | None] = None
     _system_settings: ClassVar[BaseModel | None] = None

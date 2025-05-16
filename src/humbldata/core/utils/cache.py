@@ -6,8 +6,7 @@ This module provides custom cache plugins and serializers for HumblData.
 
 import json
 import pickle
-from datetime import datetime
-from typing import Any, List
+from typing import Any
 
 from aiocache.plugins import BasePlugin
 from aiocache.serializers import BaseSerializer
@@ -19,7 +18,7 @@ env = Env()
 logger = setup_logger("LogCacheHitPlugin", level=env.LOGGER_LEVEL)
 
 
-def build_cache_key(self: Any, command_param_fields: List[str] = []) -> str:
+def build_cache_key(self: Any, command_param_fields: list[str] = []) -> str:
     """
     Build a cache key from specified command parameters and context dates.
 
@@ -27,8 +26,8 @@ def build_cache_key(self: Any, command_param_fields: List[str] = []) -> str:
     ----------
     self : Any
         The instance containing context_params and command_params
-    command_param_fields : List[str], optional
-        List of field names from command_params to include in the key, by default empty list
+    command_param_fields : list[str], optional
+        list of field names from command_params to include in the key, by default empty list
 
     Returns
     -------
