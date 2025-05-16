@@ -7,9 +7,6 @@ This module is used to define the QueryParams and Data model for the
 HumblCompass command.
 """
 
-import functools
-import json
-import pickle
 import warnings
 from datetime import datetime
 from enum import Enum
@@ -18,8 +15,6 @@ from typing import Literal, TypeVar
 import pandera.polars as pa
 import polars as pl
 from aiocache import RedisCache, cached
-from aiocache.plugins import BasePlugin
-from aiocache.serializers import BaseSerializer
 from pydantic import BaseModel, Field
 
 from humbldata.core.standard_models.abstract.chart import ChartTemplate
@@ -37,6 +32,11 @@ from humbldata.core.standard_models.openbbapi.EconomyConsumerPriceIndexQueryPara
     EconomyConsumerPriceIndexQueryParams,
 )
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
+from humbldata.core.utils.cache import (
+    CustomPickleSerializer,
+    LogCacheHitPlugin,
+    build_cache_key,
+)
 from humbldata.core.utils.env import Env
 from humbldata.core.utils.logger import log_start_end, setup_logger
 from humbldata.core.utils.openbb_api_client import OpenBBAPIClient
@@ -51,75 +51,10 @@ Q = TypeVar("Q", bound=ToolboxQueryParams)
 logger = setup_logger("HumblCompassFetcher", level=env.LOGGER_LEVEL)
 
 
-class LogCacheHitPlugin(BasePlugin):
-    """Log cache hit and return value."""
-
-    def __init__(self, name="humbl_compass"):
-        super().__init__()
-        self.name = name
-
-    async def post_get(self, cache, key, *args, **kwargs):
-        """Log cache hit and return value."""
-        value = kwargs.get("ret")
-        if value is not None:
-            info_msg = f"{self.name} cache HIT & RETURNED"
-            debug_msg = f"{self.name} cache key: {key}"
-            logger.info(info_msg)
-            logger.debug(debug_msg)
-        return value
-
-
-# Custom aiocache serializer using pickle
-class CustomPickleSerializer(BaseSerializer):
-    """Custom aiocache serializer using pickle and latin‑1 safe decoding."""
-
-    def __init__(self, *args, encoding="latin1", **kwargs):
-        """Initialize the custom pickle serializer with latin-1 encoding.
-
-        The latin-1 encoding is required to ensure RedisCache._get can properly
-        decode bytes without UnicodeDecodeError while preserving the original
-        pickle byte-stream.
-
-        Parameters
-        ----------
-        encoding : str, optional
-            The encoding to use for serialization, by default "latin1"
-        *args
-            Variable length argument list passed to parent class
-        **kwargs
-            Arbitrary keyword arguments passed to parent class
-        """
-        super().__init__(encoding=encoding, *args, **kwargs)
-
-    def dumps(self, value):
-        """Serialize any Python object to raw pickle bytes."""
-        return pickle.dumps(value)
-
-    def loads(self, value):
-        """Deserialize bytes (or latin‑1 string) back to the original object."""
-        if value is None:
-            return None
-        # aiocache's Redis backend decodes with latin‑1 and hands us str
-        if isinstance(value, str):
-            value = value.encode("latin1")
-        return pickle.loads(value)
-
-
 # Custom cache key builder (mimics previous logic)
-def aiocache_key_builder(func, self, *args, **kwargs):
-    start_date = self.context_params.start_date
-    if not isinstance(start_date, str):
-        start_date = start_date.strftime("%Y-%m-%d")
-    end_date = self.context_params.end_date
-    if not isinstance(end_date, str):
-        end_date = end_date.strftime("%Y-%m-%d")
-    key_data = {
-        "start_date": start_date,
-        "end_date": end_date,
-        "country": self.command_params.country,
-        "z_score": self.command_params.z_score,
-    }
-    return json.dumps(key_data, sort_keys=True)
+def humbl_compass_key_builder(func, self, *args, **kwargs):
+    """Build cache key for HumblCompass data."""
+    return build_cache_key(self, command_param_fields=["country", "z_score"])
 
 
 HUMBLCOMPASS_QUERY_DESCRIPTIONS = {
@@ -625,27 +560,6 @@ class HumblCompassData(Data):
     )
 
 
-def log_cache_decorator(logger):
-    def decorator(func):
-        @functools.wraps(func)
-        async def wrapper(self, *args, **kwargs):
-            cache = RedisCache(
-                endpoint=getattr(env, "REDIS_HOST", "localhost"),
-                port=getattr(env, "REDIS_PORT", 6379),
-                namespace="humbl_compass",
-            )
-            key = aiocache_key_builder(func, self, *args, **kwargs)
-            exists = await cache.exists(key)
-            if exists:
-                logger.info("humbl_compass cache HIT")
-                logger.debug(f"humbl_compass cache key: {key}")
-            return await func(self, *args, **kwargs)
-
-        return wrapper
-
-    return decorator
-
-
 class HumblCompassFetcher:
     """
     Fetcher for the HumblCompass command.
@@ -769,11 +683,11 @@ class HumblCompassFetcher:
                 "cpi_start_date": cpi_start_date,
             }
         )
-
-        logger.info(
+        msg = (
             f"CLI start date: {self.command_params.cli_start_date} and CPI start date: {self.command_params.cpi_start_date}. "
             f"Dates are adjusted to account for CLI data release lag and z-score calculation window."
         )
+        logger.info(msg)
 
     @collect_warnings
     async def extract_data(self):
@@ -1046,7 +960,7 @@ class HumblCompassFetcher:
     @log_start_end(logger=logger)
     @cached(
         ttl=getattr(env, "REDIS_CACHE_TTL", 86400),
-        key_builder=aiocache_key_builder,
+        key_builder=humbl_compass_key_builder,
         serializer=CustomPickleSerializer(),
         cache=RedisCache,
         endpoint=getattr(env, "REDIS_HOST", "localhost"),
