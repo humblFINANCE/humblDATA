@@ -36,6 +36,13 @@ from humbldata.toolbox.toolbox_helpers import (
     _window_format,
     _window_format_monthly,
 )
+from humbldata.core.standard_models.openbbapi.EconomyCompositeLeadingIndicatorQueryParams import (
+    EconomyCompositeLeadingIndicatorQueryParams,
+)
+from humbldata.core.standard_models.openbbapi.EconomyConsumerPriceIndexQueryParams import (
+    EconomyConsumerPriceIndexQueryParams,
+)
+from humbldata.core.utils.openbb_api_client import OpenBBAPIClient
 
 env = Env()
 Q = TypeVar("Q", bound=ToolboxQueryParams)
@@ -711,7 +718,8 @@ class HumblCompassFetcher:
             f"Dates are adjusted to account for CLI data release lag and z-score calculation window."
         )
 
-    def extract_data(self):
+    @collect_warnings
+    async def extract_data(self):
         """
         Extract the data from the provider and returns it as a Polars DataFrame.
 
@@ -720,40 +728,45 @@ class HumblCompassFetcher:
         self
             The HumblCompassFetcher instance with extracted data.
         """
-        # Collect CLI Data
-        self.oecd_cli_data = (
-            obb.economy.composite_leading_indicator(
-                start_date=self.command_params.cli_start_date,
-                end_date=self.context_params.end_date,
-                provider="oecd",
-                country=self.command_params.country,
-            )
-            .to_polars()
-            .lazy()
-            .rename({"value": "cli"})
-            .with_columns(
-                [pl.col("date").dt.month_start().alias("date_month_start")]
-            )
+        # Collect CLI Data via API client
+        cli_query_params = EconomyCompositeLeadingIndicatorQueryParams(
+            start_date=self.command_params.cli_start_date,
+            end_date=self.context_params.end_date,
+            provider="oecd",
+            country=self.command_params.country,
+        )
+        api_client = OpenBBAPIClient()
+        cli_response = await api_client.fetch_data(
+            obb_path="economy.composite_leading_indicator",
+            api_query_params=cli_query_params,
+        )
+        self.oecd_cli_data = cli_response.to_polars(collect=False)
+        self.oecd_cli_data = self.oecd_cli_data.rename(
+            {"value": "cli"}
+        ).with_columns(
+            [pl.col("date").dt.month_start().alias("date_month_start")]
         )
 
-        # Collect YoY CPI Data
-        self.oecd_cpi_data = (
-            obb.economy.cpi(
-                start_date=self.command_params.cpi_start_date,
-                end_date=self.context_params.end_date,
-                frequency="monthly",
-                country=self.command_params.country,
-                transform="yoy",
-                provider="oecd",
-                harmonized=False,
-                expenditure="total",
-            )
-            .to_polars()
-            .lazy()
-            .rename({"value": "cpi"})
-            .with_columns(
-                [pl.col("date").dt.month_start().alias("date_month_start")]
-            )
+        # Collect YoY CPI Data via API client
+        cpi_query_params = EconomyConsumerPriceIndexQueryParams(
+            start_date=self.command_params.cpi_start_date,
+            end_date=self.context_params.end_date,
+            frequency="monthly",
+            country=self.command_params.country,
+            transform="yoy",
+            provider="oecd",
+            harmonized=False,
+            expenditure="total",
+        )
+        cpi_response = await api_client.fetch_data(
+            obb_path="economy.cpi",
+            api_query_params=cpi_query_params,
+        )
+        self.oecd_cpi_data = cpi_response.to_polars(collect=False)
+        self.oecd_cpi_data = self.oecd_cpi_data.rename(
+            {"value": "cpi"}
+        ).with_columns(
+            [pl.col("date").dt.month_start().alias("date_month_start")]
         )
         return self
 
@@ -983,7 +996,7 @@ class HumblCompassFetcher:
         port=getattr(env, "REDIS_PORT", 6379),
         namespace="humbl_compass",
     )
-    def fetch_data(self):
+    async def fetch_data(self):
         """
         Execute TET Pattern.
 
@@ -1000,7 +1013,7 @@ class HumblCompassFetcher:
         logger.debug("Running .transform_query()")
         self.transform_query()
         logger.debug("Running .extract_data()")
-        self.extract_data()
+        await self.extract_data()
         logger.debug("Running .transform_data()")
         self.transform_data()
 
@@ -1019,8 +1032,6 @@ class HumblCompassFetcher:
             chart=self.chart,
             context_params=self.context_params,
             command_params=self.command_params,
-            extra=self.extra
-            if hasattr(self, "extra")
-            else {},  # pipe in extra from transform_data()
+            extra=self.extra if hasattr(self, "extra") else {},
         )
         return result

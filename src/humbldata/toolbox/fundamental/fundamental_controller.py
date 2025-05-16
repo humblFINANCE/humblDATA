@@ -74,7 +74,7 @@ class Fundamental:
             msg = f"Failed to calculate HumblCompassBacktest: {e!s}"
             raise HumblDataError(msg) from e
 
-    def humbl_compass(self, **kwargs):
+    async def humbl_compass(self, **kwargs):
         """
         Execute the HumblCompass command.
 
@@ -108,7 +108,7 @@ class Fundamental:
         )
         # Get the result which is a HumblObject (with its serialized data),
         # and which also has stored raw transformed data in fetcher._raw_transformed_df.
-        result = fetcher.fetch_data()
+        result = await fetcher.fetch_data()
 
         # Capture the raw transformed data needed for backtest.
         # Deserialize results from string to dataframe if needed
