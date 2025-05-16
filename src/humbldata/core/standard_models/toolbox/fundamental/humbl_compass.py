@@ -19,6 +19,7 @@ import polars as pl
 from aiocache import RedisCache, cached
 from aiocache.serializers import BaseSerializer
 from pydantic import BaseModel, Field
+import functools
 
 from humbldata.core.standard_models.abstract.chart import ChartTemplate
 from humbldata.core.standard_models.abstract.data import Data
@@ -595,6 +596,27 @@ class HumblCompassData(Data):
     )
 
 
+def log_cache_decorator(logger):
+    def decorator(func):
+        @functools.wraps(func)
+        async def wrapper(self, *args, **kwargs):
+            cache = RedisCache(
+                endpoint=getattr(env, "REDIS_HOST", "localhost"),
+                port=getattr(env, "REDIS_PORT", 6379),
+                namespace="humbl_compass",
+            )
+            key = aiocache_key_builder(func, self, *args, **kwargs)
+            exists = await cache.exists(key)
+            if exists:
+                logger.info("humbl_compass cache HIT")
+                logger.debug(f"humbl_compass cache key: {key}")
+            return await func(self, *args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
 class HumblCompassFetcher:
     """
     Fetcher for the HumblCompass command.
@@ -993,6 +1015,7 @@ class HumblCompassFetcher:
         return self
 
     @log_start_end(logger=logger)
+    @log_cache_decorator(logger)
     @cached(
         ttl=getattr(env, "REDIS_CACHE_TTL", 86400),
         key_builder=aiocache_key_builder,

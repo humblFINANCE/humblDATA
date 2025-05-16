@@ -19,11 +19,24 @@ from humbldata.core.utils.network_helpers import (
     amake_request,
     get_querystring,
 )
+from humbldata.core.utils.rate_limiter import (
+    AsyncProviderRateLimiter,
+    RateLimitExceeded,
+)
 
 if TYPE_CHECKING:
     pass
 
 logger = setup_logger("OpenBBAPIClient")
+
+# Instantiate a global or class-level async rate limiter (tune limits as needed)
+rate_limiter = AsyncProviderRateLimiter(
+    default_limit="10/minute",
+    provider_limits={
+        # Example: ("yahoo", "/equity/price/historical"): "2/minute",
+        "oecd": "20/hour",
+    },
+)
 
 
 class OpenBBAPIClient:
@@ -159,18 +172,44 @@ class OpenBBAPIClient:
             message = "URL or obb_path not set. Run transform_query first."
             logger.error(message)
             warnings.warn(message, HumblDataWarning, stacklevel=2)
-            # Store error details in self.extra to be picked up by transform_data
             self.extra["error_details"] = message
-            self.raw_api_response = (
-                None  # Ensure it's None so transform_data handles it
-            )
+            self.raw_api_response = None
             return self
 
-        msg = f"Fetching data from: {self.full_url}"
-        logger.info(msg)
-        self.raw_api_response = await amake_request(
-            url=self.full_url, method="GET"
-        )
+        provider = None
+        if self.api_query_params is not None:
+            logger.debug(
+                f"api_query_params type: {type(self.api_query_params)}"
+            )
+            logger.debug(f"api_query_params: {self.api_query_params}")
+            provider = getattr(self.api_query_params, "provider", None)
+            logger.debug(f"provider attribute: {provider}")
+        endpoint = self._translate_path(self.obb_path)
+
+        self.extra.pop("rate_limit_usage_before_hit", None)
+        self.extra.pop("rate_limit_remaining_before_hit", None)
+        self.extra.pop("rate_limit_limit_str", None)
+        self.extra.pop("rate_limit_usage_after_hit", None)
+        self.extra.pop("rate_limit_remaining_after_hit", None)
+
+        try:
+            async with rate_limiter.context(
+                provider or "unknown", endpoint
+            ) as rl_context:
+                if rl_context and hasattr(rl_context, "extra"):
+                    self.extra.update(rl_context.extra)
+                msg = f"Fetching data from: {self.full_url}"
+                logger.info(msg)
+                self.raw_api_response = await amake_request(
+                    url=self.full_url, method="GET"
+                )
+        except RateLimitExceeded as e:
+            msg = f"Rate limit exceeded for provider={provider} endpoint={endpoint}: {e}"
+            logger.warning(msg)
+            warnings.warn(msg, HumblDataWarning, stacklevel=2)
+            self.extra["error_details"] = msg
+            self.raw_api_response = None
+            return self
         return self
 
     async def _validate_client_state_for_transform(self) -> str | None:
