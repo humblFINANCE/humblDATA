@@ -112,7 +112,7 @@ class Fundamental:
             compass_data = result.to_polars(collect=False)
 
         # Attach a backtest method to the result.
-        def backtest(**backtest_kwargs) -> HumblObject[Any]:
+        async def backtest(**backtest_kwargs) -> HumblObject[Any]:
             # Use backtest_kwargs to create backtest command parameters.
             bt_params = HumblCompassBacktestQueryParams(**backtest_kwargs)
             bt_fetcher = HumblCompassBacktestFetcher(
@@ -121,7 +121,7 @@ class Fundamental:
                 compass_data=compass_data,
             )
 
-            return bt_fetcher.fetch_data()
+            return await bt_fetcher.fetch_data()
 
         result.backtest = backtest
         return result
