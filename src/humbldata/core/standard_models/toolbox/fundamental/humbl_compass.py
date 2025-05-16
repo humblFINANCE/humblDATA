@@ -16,9 +16,9 @@ from typing import Literal, TypeVar
 
 import pandera.polars as pa
 import polars as pl
-from pydantic import BaseModel, Field
-from aiocache import cached, RedisCache
+from aiocache import RedisCache, cached
 from aiocache.serializers import BaseSerializer
+from pydantic import BaseModel, Field
 
 from humbldata.core.standard_models.abstract.chart import ChartTemplate
 from humbldata.core.standard_models.abstract.data import Data
@@ -28,21 +28,21 @@ from humbldata.core.standard_models.abstract.warnings import (
     HumblDataWarning,
     collect_warnings,
 )
-from humbldata.core.standard_models.toolbox import ToolboxQueryParams
-from humbldata.core.utils.env import Env
-from humbldata.core.utils.logger import log_start_end, setup_logger
-from humbldata.toolbox.fundamental.humbl_compass.view import generate_plots
-from humbldata.toolbox.toolbox_helpers import (
-    _window_format,
-    _window_format_monthly,
-)
 from humbldata.core.standard_models.openbbapi.EconomyCompositeLeadingIndicatorQueryParams import (
     EconomyCompositeLeadingIndicatorQueryParams,
 )
 from humbldata.core.standard_models.openbbapi.EconomyConsumerPriceIndexQueryParams import (
     EconomyConsumerPriceIndexQueryParams,
 )
+from humbldata.core.standard_models.toolbox import ToolboxQueryParams
+from humbldata.core.utils.env import Env
+from humbldata.core.utils.logger import log_start_end, setup_logger
 from humbldata.core.utils.openbb_api_client import OpenBBAPIClient
+from humbldata.toolbox.fundamental.humbl_compass.view import generate_plots
+from humbldata.toolbox.toolbox_helpers import (
+    _window_format,
+    _window_format_monthly,
+)
 
 env = Env()
 Q = TypeVar("Q", bound=ToolboxQueryParams)
@@ -50,23 +50,29 @@ logger = setup_logger("HumblCompassFetcher", level=env.LOGGER_LEVEL)
 
 
 # Custom aiocache serializer using pickle
-class PickleSerializer(BaseSerializer):
+class CustomPickleSerializer(BaseSerializer):
+    """Custom aiocache serializer using pickle and latin‑1 safe decoding."""
+
+    def __init__(self, *args, encoding="latin1", **kwargs):
+        """
+        Force the serializer to use latin‑1 so RedisCache._get decodes bytes
+        without raising UnicodeDecodeError, while still round‑tripping the
+        original pickle byte‑stream.
+        """
+        super().__init__(encoding=encoding, *args, **kwargs)
+
     def dumps(self, value):
+        """Serialize any Python object to raw pickle bytes."""
         return pickle.dumps(value)
 
     def loads(self, value):
+        """Deserialize bytes (or latin‑1 string) back to the original object."""
         if value is None:
             return None
-        # aiocache may pass str if redis is misconfigured, so handle both
+        # aiocache's Redis backend decodes with latin‑1 and hands us str
         if isinstance(value, str):
-            try:
-                value = value.encode("latin1")
-            except Exception:
-                return value
-        try:
-            return pickle.loads(value)
-        except Exception:
-            return value
+            value = value.encode("latin1")
+        return pickle.loads(value)
 
 
 # Custom cache key builder (mimics previous logic)
@@ -990,7 +996,7 @@ class HumblCompassFetcher:
     @cached(
         ttl=getattr(env, "REDIS_CACHE_TTL", 86400),
         key_builder=aiocache_key_builder,
-        serializer=PickleSerializer(),
+        serializer=CustomPickleSerializer(),
         cache=RedisCache,
         endpoint=getattr(env, "REDIS_HOST", "localhost"),
         port=getattr(env, "REDIS_PORT", 6379),

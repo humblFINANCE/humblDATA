@@ -182,14 +182,16 @@ class OpenBBAPIClient:
         return None
 
     async def _validate_api_response(self) -> str | None:
-        """Validate the raw API response."""
+        """Validate the raw API response, including API error messages (e.g., rate limiting)."""
         error_message = self.extra.get("error_details")
+        # Handle None response
         if self.raw_api_response is None and not error_message:
             error_message = (
                 f"API request to {self.full_url} failed with no data."
             )
             logger.error(error_message)
             warnings.warn(error_message, HumblDataWarning, stacklevel=2)
+        # Handle non-dict/list response
         elif (
             not isinstance(self.raw_api_response, dict | list)
             and not error_message
@@ -197,6 +199,34 @@ class OpenBBAPIClient:
             error_message = f"API response for {self.obb_path} from {self.full_url} was not a dictionary or list as expected. Type: {type(self.raw_api_response)}."
             logger.error(error_message)
             warnings.warn(error_message, HumblDataWarning, stacklevel=2)
+        # Handle API error message in dict response (e.g., rate limiting)
+        elif isinstance(self.raw_api_response, dict):
+            detail = self.raw_api_response.get("detail")
+            if detail:
+                error_message = f"API error for {self.obb_path} from {self.full_url}: {detail}"
+                logger.error(error_message)
+                warnings.warn(error_message, HumblDataWarning, stacklevel=2)
+                self.warnings.append(
+                    Warning_(
+                        message=error_message,
+                        category="OpenBBAPIError",
+                    )
+                )
+        # Handle API error message in list response (rare, but possible)
+        elif isinstance(self.raw_api_response, list):
+            for item in self.raw_api_response:
+                if isinstance(item, dict) and "detail" in item:
+                    detail = item["detail"]
+                    error_message = f"API error for {self.obb_path} from {self.full_url}: {detail}"
+                    logger.error(error_message)
+                    warnings.warn(error_message, HumblDataWarning, stacklevel=2)
+                    self.warnings.append(
+                        Warning_(
+                            message=error_message,
+                            category="OpenBBAPIError",
+                        )
+                    )
+                    break
         return error_message
 
     def _parse_api_response_json(self) -> dict:
@@ -291,7 +321,10 @@ class OpenBBAPIClient:
                         category="HumblDataCriticalError",
                     ),
                 ],
-                extra={"error_details": client_state_error, **self.extra},
+                extra={
+                    "original_api_response": self.raw_api_response,
+                    **self.extra,
+                },
             )
 
         api_response_error = await self._validate_api_response()
@@ -300,7 +333,10 @@ class OpenBBAPIClient:
                 results=pl.LazyFrame().serialize(format="binary"),
                 provider=self.api_query_params.provider,
                 warnings=self.warnings,
-                extra={"error_details": api_response_error, **self.extra},
+                extra={
+                    "original_api_response": self.raw_api_response,
+                    **self.extra,
+                },
             )
 
         api_response_json = self._parse_api_response_json()
@@ -331,7 +367,10 @@ class OpenBBAPIClient:
             provider=self.api_query_params.provider,
             warnings=self.warnings,
             chart=None,
-            extra=final_extra,
+            extra={
+                "original_api_response": self.raw_api_response,
+                **final_extra,
+            },
         )
 
     @log_start_end(logger=logger)
