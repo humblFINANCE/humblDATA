@@ -9,12 +9,12 @@ from typing import (
     Any,
     Awaitable,
     Callable,
+    Dict,
     List,
     Literal,
     Optional,
     Type,
     Union,
-    Dict,
 )
 
 import aiohttp
@@ -361,8 +361,8 @@ def get_querystring(items: dict, exclude: Optional[List[str]] = None) -> str:
         if value is None:
             continue
         if isinstance(value, list):
-            for item in value:
-                query_items.append(f"{key}={item}")
+            # Join list values with commas (e.g., symbol=AAPL,AMD)
+            query_items.append(f"{key}={','.join(map(str, value))}")
         elif isinstance(
             value, bool
         ):  # Handle boolean values correctly for URLs
