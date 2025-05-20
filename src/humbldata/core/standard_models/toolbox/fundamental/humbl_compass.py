@@ -37,6 +37,7 @@ from humbldata.core.utils.cache import (
     LogCacheHitPlugin,
     build_cache_key,
 )
+from humbldata.core.utils.core_helpers import serialize_lazyframe_to_ipc
 from humbldata.core.utils.env import Env
 from humbldata.core.utils.logger import log_start_end, setup_logger
 from humbldata.core.utils.openbb_api_client import OpenBBAPIClient
@@ -954,7 +955,9 @@ class HumblCompassFetcher:
                 )
 
         # Finally, serialize final transformed data.
-        self.transformed_data = self.transformed_data.serialize(format="binary")
+        self.transformed_data = serialize_lazyframe_to_ipc(
+            self.transformed_data
+        )
         return self
 
     @log_start_end(logger=logger)

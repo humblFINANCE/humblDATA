@@ -7,13 +7,12 @@ This module is used to define the QueryParams and Data model for the
 Mandelbrot Channel command.
 """
 
-import datetime as dt
 import warnings
-from typing import List, Literal, TypeVar
+from typing import Literal, TypeVar
 
 import pandera.polars as pa
 import polars as pl
-from pydantic import Field, PrivateAttr, field_validator
+from pydantic import Field, field_validator
 
 from humbldata.core.standard_models.abstract.data import Data
 from humbldata.core.standard_models.abstract.humblobject import HumblObject
@@ -27,6 +26,7 @@ from humbldata.core.standard_models.openbbapi.EquityPriceHistoricalQueryParams i
     EquityPriceHistoricalQueryParams,
 )
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
+from humbldata.core.utils.core_helpers import serialize_lazyframe_to_ipc
 from humbldata.core.utils.env import Env
 from humbldata.core.utils.logger import log_start_end, setup_logger
 from humbldata.core.utils.openbb_api_client import OpenBBAPIClient
@@ -459,9 +459,11 @@ class HumblChannelFetcher:
         else:
             self.chart = None
 
-        self.transformed_data = self.transformed_data.serialize(format="binary")
-        self.equity_historical_data = self.equity_historical_data.serialize(
-            format="binary"
+        self.transformed_data = serialize_lazyframe_to_ipc(
+            self.transformed_data
+        )
+        self.equity_historical_data = serialize_lazyframe_to_ipc(
+            self.equity_historical_data
         )
         return self
 

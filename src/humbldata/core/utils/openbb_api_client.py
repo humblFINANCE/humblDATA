@@ -13,6 +13,7 @@ from humbldata.core.standard_models.abstract.warnings import (
     Warning_,  # Keep for type hinting if necessary, though self.warnings will store these
     collect_warnings,
 )
+from humbldata.core.utils.core_helpers import serialize_lazyframe_to_ipc
 from humbldata.core.utils.env import Env
 from humbldata.core.utils.logger import log_start_end, setup_logger
 from humbldata.core.utils.network_helpers import (
@@ -351,7 +352,7 @@ class OpenBBAPIClient:
         client_state_error = await self._validate_client_state_for_transform()
         if client_state_error:
             return HumblObject(
-                results=pl.LazyFrame().serialize(format="binary"),
+                results=serialize_lazyframe_to_ipc(pl.LazyFrame()),
                 provider=self.api_query_params.provider,
                 warnings=[
                     *self.warnings,
@@ -369,7 +370,7 @@ class OpenBBAPIClient:
         api_response_error = await self._validate_api_response()
         if api_response_error:
             return HumblObject(
-                results=pl.LazyFrame().serialize(format="binary"),
+                results=serialize_lazyframe_to_ipc(pl.LazyFrame()),
                 provider=self.api_query_params.provider,
                 warnings=self.warnings,
                 extra={
@@ -402,7 +403,7 @@ class OpenBBAPIClient:
         final_extra = {**self.extra, **extra_info_from_api}
 
         return HumblObject(
-            results=results_lf.serialize(format="binary"),
+            results=serialize_lazyframe_to_ipc(results_lf),
             provider=self.api_query_params.provider,
             warnings=self.warnings,
             chart=None,

@@ -20,6 +20,7 @@ from humbldata.core.standard_models.abstract.data import Data
 from humbldata.core.standard_models.abstract.humblobject import HumblObject
 from humbldata.core.standard_models.abstract.query_params import QueryParams
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
+from humbldata.core.utils.core_helpers import serialize_lazyframe_to_ipc
 from humbldata.core.utils.env import Env
 from humbldata.core.utils.logger import log_start_end, setup_logger
 from humbldata.toolbox.fundamental.humbl_compass_backtest.model import (
@@ -525,13 +526,12 @@ class HumblCompassBacktestFetcher:
         if self.command_params.chart:
             self.chart = generate_plots(equity_data, regime_date_summary)
         # Store transformed data
-        self.transformed_data = (
-            HumblCompassBacktestData(final_summary)
-            .lazy()
-            .serialize(format="binary")
+        self.transformed_data = HumblCompassBacktestData(final_summary).lazy()
+        self.transformed_data = serialize_lazyframe_to_ipc(
+            self.transformed_data
         )
         # Only serialize equity_data at the end
-        self.equity_data = equity_data.serialize(format="binary")
+        self.equity_data = serialize_lazyframe_to_ipc(equity_data)
         # Only call .lazy() if daily_regime_data is a DataFrame, assign as is if LazyFrame or bytes
         if isinstance(daily_regime_data, pl.DataFrame):
             self.extra["daily_regime_data"] = daily_regime_data.lazy()

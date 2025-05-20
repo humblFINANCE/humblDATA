@@ -2,8 +2,11 @@
 
 __docformat__ = "numpy"
 
-from concurrent.futures import ThreadPoolExecutor
 import asyncio
+import io
+from concurrent.futures import ThreadPoolExecutor
+
+import polars as pl
 import uvloop
 
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
@@ -28,3 +31,26 @@ def run_async(coro):
     with ThreadPoolExecutor() as executor:
         future = executor.submit(lambda: asyncio.run(coro))
         return future.result()
+
+
+def serialize_lazyframe_to_ipc(frame: pl.LazyFrame | pl.DataFrame) -> bytes:
+    """
+    Serialize a Polars LazyFrame or DataFrame to Arrow IPC format using sink_ipc.
+
+    Parameters
+    ----------
+    frame : pl.LazyFrame | pl.DataFrame
+        The frame to serialize. If a DataFrame is passed, it will be converted
+        to a LazyFrame.
+
+    Returns
+    -------
+    bytes
+        The serialized IPC byte stream.
+    """
+    if isinstance(frame, pl.DataFrame):
+        frame = frame.lazy()
+
+    buffer = io.BytesIO()
+    frame.sink_ipc(buffer)
+    return buffer.getvalue()

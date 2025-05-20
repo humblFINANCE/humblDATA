@@ -18,6 +18,7 @@ from humbldata.core.standard_models.abstract.errors import HumblDataError
 from humbldata.core.standard_models.abstract.humblobject import HumblObject
 from humbldata.core.standard_models.abstract.query_params import QueryParams
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
+from humbldata.core.utils.core_helpers import serialize_lazyframe_to_ipc
 from humbldata.core.utils.env import Env
 from humbldata.core.utils.logger import log_start_end, setup_logger
 from humbldata.toolbox.technical.humbl_momentum.view import generate_plots
@@ -304,7 +305,9 @@ class HumblMomentumFetcher:
             logger.exception(msg)
             raise HumblDataError(msg) from e
 
-        self.transformed_data = self.transformed_data.serialize(format="binary")
+        self.transformed_data = serialize_lazyframe_to_ipc(
+            self.transformed_data
+        )
         return self
 
     @log_start_end(logger=logger)
