@@ -104,6 +104,11 @@ class Env(metaclass=SingletonMeta):
         """Redis REST API URL."""
         return self._environ.get("REDIS_REST_API_URL", None)
 
+    @property
+    def REDIS_URL(self) -> str | None:
+        """Redis URL."""
+        return self._environ.get("REDIS_URL", None)
+
     @staticmethod
     def str2bool(value: str | bool) -> bool:
         """Match a value to its boolean correspondent.
