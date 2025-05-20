@@ -7,6 +7,7 @@ This module provides custom cache plugins and serializers for HumblData.
 import json
 import pickle
 from typing import Any
+from urllib.parse import urlparse
 
 from aiocache.plugins import BasePlugin
 from aiocache.serializers import BaseSerializer
@@ -114,3 +115,33 @@ class CustomPickleSerializer(BaseSerializer):
         if isinstance(value, str):
             value = value.encode("latin1")
         return pickle.loads(value)
+
+
+def get_redis_cache_config(namespace: str = "default"):
+    """
+    Returns a dict of aiocache.RedisCache config based on environment.
+    """
+    env = Env()
+    if env.REDIS_URL:
+        parsed = urlparse(env.REDIS_URL)
+        password = parsed.password
+        host = parsed.hostname
+        port = parsed.port
+        scheme = parsed.scheme
+        if not host or not port:
+            raise ValueError(f"Invalid REDIS_URL: {env.REDIS_URL}")
+        config = {
+            "endpoint": host,
+            "port": port,
+            "password": password,
+            "namespace": namespace,
+        }
+        if scheme == "rediss":
+            config["ssl"] = True
+        return config
+    # Fallback to host/port vars (for local/dev)
+    return {
+        "endpoint": getattr(env, "REDIS_HOST", "localhost"),
+        "port": getattr(env, "REDIS_PORT", 6379),
+        "namespace": namespace,
+    }

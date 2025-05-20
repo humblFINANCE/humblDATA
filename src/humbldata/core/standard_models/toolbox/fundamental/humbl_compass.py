@@ -36,6 +36,7 @@ from humbldata.core.utils.cache import (
     CustomPickleSerializer,
     LogCacheHitPlugin,
     build_cache_key,
+    get_redis_cache_config,
 )
 from humbldata.core.utils.core_helpers import serialize_lazyframe_to_ipc
 from humbldata.core.utils.env import Env
@@ -966,9 +967,7 @@ class HumblCompassFetcher:
         key_builder=humbl_compass_key_builder,
         serializer=CustomPickleSerializer(),
         cache=RedisCache,
-        endpoint=getattr(env, "REDIS_HOST", "localhost"),
-        port=getattr(env, "REDIS_PORT", 6379),
-        namespace="humbl_compass",
+        **get_redis_cache_config(namespace="humbl_compass"),
         plugins=[LogCacheHitPlugin(name="humbl_compass")],
     )
     async def fetch_data(self):
