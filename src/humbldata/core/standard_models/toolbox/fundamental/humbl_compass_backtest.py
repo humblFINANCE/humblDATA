@@ -14,15 +14,25 @@ import numpy as np
 import pandera.polars as pa
 import polars as pl
 import pytz
+from aiocache import RedisCache, cached
 from pydantic import Field, field_validator
 
 from humbldata.core.standard_models.abstract.data import Data
 from humbldata.core.standard_models.abstract.humblobject import HumblObject
 from humbldata.core.standard_models.abstract.query_params import QueryParams
+from humbldata.core.standard_models.openbbapi.EquityPriceHistoricalQueryParams import (
+    EquityPriceHistoricalQueryParams,
+)
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
+from humbldata.core.utils.cache import (
+    CustomPickleSerializer,
+    LogCacheHitPlugin,
+    build_cache_key,
+)
 from humbldata.core.utils.core_helpers import serialize_lazyframe_to_ipc
 from humbldata.core.utils.env import Env
 from humbldata.core.utils.logger import log_start_end, setup_logger
+from humbldata.core.utils.openbb_api_client import OpenBBAPIClient
 from humbldata.toolbox.fundamental.humbl_compass_backtest.model import (
     humbl_compass_backtest,
 )
@@ -30,15 +40,28 @@ from humbldata.toolbox.fundamental.humbl_compass_backtest.view import (
     generate_plots,
 )
 from humbldata.toolbox.toolbox_helpers import _window_format
-from humbldata.core.standard_models.openbbapi.EquityPriceHistoricalQueryParams import (
-    EquityPriceHistoricalQueryParams,
-)
-from humbldata.core.utils.openbb_api_client import OpenBBAPIClient
-import asyncio
 
 env = Env()
 Q = TypeVar("Q", bound=ToolboxQueryParams)
 logger = setup_logger("HumblCompassBacktestFetcher", level=env.LOGGER_LEVEL)
+
+
+# Custom cache key builder (mimics previous logic)
+def humbl_compass_backtest_key_builder(func, self, *args, **kwargs):
+    """Build cache key for HumblCompassBacktest data."""
+    return build_cache_key(
+        self,
+        command_param_fields=[
+            "symbols",
+            "country",
+            "chart",
+            "vol_window",
+            "risk_free_rate",
+            "min_regime_days",
+            "initial_investment",
+        ],
+    )
+
 
 HUMBLCOMPASSBACKTEST_QUERY_DESCRIPTIONS = {
     "symbols": "List of stock symbols to analyze",
@@ -543,6 +566,16 @@ class HumblCompassBacktestFetcher:
         return self
 
     @log_start_end(logger=logger)
+    @cached(
+        ttl=getattr(env, "REDIS_CACHE_TTL", 86400),
+        key_builder=humbl_compass_backtest_key_builder,
+        serializer=CustomPickleSerializer(),
+        cache=RedisCache,
+        endpoint=getattr(env, "REDIS_HOST", "localhost"),
+        port=getattr(env, "REDIS_PORT", 6379),
+        namespace="humbl_compass_backtest",
+        plugins=[LogCacheHitPlugin(name="humbl_compass_backtest")],
+    )
     async def fetch_data(self):
         """
         Execute TET Pattern.

@@ -35,22 +35,21 @@ def run_async(coro):
 
 def serialize_lazyframe_to_ipc(frame: pl.LazyFrame | pl.DataFrame) -> bytes:
     """
-    Serialize a Polars LazyFrame or DataFrame to Arrow IPC format using sink_ipc.
+    Serialize a Polars LazyFrame or DataFrame to Arrow IPC format using write_ipc.
 
     Parameters
     ----------
     frame : pl.LazyFrame | pl.DataFrame
-        The frame to serialize. If a DataFrame is passed, it will be converted
-        to a LazyFrame.
+        The frame to serialize. If a LazyFrame is passed, it will be collected
+        to a DataFrame.
 
     Returns
     -------
     bytes
         The serialized IPC byte stream.
     """
-    if isinstance(frame, pl.DataFrame):
-        frame = frame.lazy()
-
+    if isinstance(frame, pl.LazyFrame):
+        frame = frame.collect()
     buffer = io.BytesIO()
-    frame.sink_ipc(buffer)
+    frame.write_ipc(buffer)
     return buffer.getvalue()
