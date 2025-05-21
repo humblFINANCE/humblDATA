@@ -1,3 +1,38 @@
+## v1.21.0 (2025-05-21)
+
+### ✨ Features
+
+- **env**: add REDIS_URL property to Env class for improved configuration
+- **QueryParams**: added EconomyQueryParams models
+- **humbl_channel**: OpenBBAPICLient class is working
+
+### 🐛🚑️ Fixes
+
+- **humbl_compass**: reset execution counts and enhance logging output in example notebook
+- **humbl_compass**: improve logging for cache hits with Redis location and update example notebook execution counts
+- **core_helpers**: using write_ipc vs sink_ipc for safer serialization
+- **humblobject**: using Arrows IPC serialization vs built in polars serialization
+- **network_helpers**: join a list of strings into a joined string
+- **humbl_compass**: move imports to top level
+- **humbl_compass**: reset execution counts and improve logging output in example notebook
+- **humbl_compass**: enhance logging for cache hits
+- **openbb_api_client**: appended rate limited warnings to humblobject response
+- **humbl_channel, humbl_momentum**: update OpenBBAPIClien usage in notebooks and mark functions as completed in replaceFunctions.md
+- **humblCHANNEL_example**: handle ImportError for 'obb' and clean notebook output
+
+### ♻️ Refactorings
+
+- **humbl_compass**: refactor fetch_data to async in notebooks and backtest logic
+- **humbl_compass**: streamline cache key building and remove unused cache logic
+- **humbl_compass**: using async caching logic now to prep for openbbapi refactor
+- **rules**: update rules for adding QueryParams and refactor to async API client
+- **humbl_momentum**: refactor data extraction to use OpenBB API client and async methods
+- **openbbapi**: added Price to standard model
+
+### ⚡️ Performance
+
+- **openbba_api_client**: use collect_schema vs schema
+
 ## v1.20.22 (2025-05-14)
 
 ### 🐛🚑️ Fixes
