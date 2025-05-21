@@ -111,8 +111,8 @@ class ToolboxQueryParams(QueryParams):
 
     """
 
-    symbols: str | list[str] | None = Field(
-        default=None,
+    symbols: str | list[str] = Field(
+        default="AAPL",
         title="Symbols/Tickers",
         description=QUERY_DESCRIPTIONS.get("symbols", ""),
     )

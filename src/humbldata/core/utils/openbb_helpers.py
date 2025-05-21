@@ -9,12 +9,14 @@ import asyncio
 import logging
 import warnings
 
-import dotenv
 import polars as pl
 import uvloop
-from openbb import obb
-from openbb_core.app.model.abstract.error import OpenBBError
 
+from humbldata.core.standard_models.abstract.errors import HumblDataError
+from humbldata.core.standard_models.abstract.warnings import (
+    HumblDataWarning,
+    collect_warnings,
+)
 from humbldata.core.utils.constants import (
     OBB_EQUITY_PRICE_QUOTE_PROVIDERS,
     OBB_EQUITY_PROFILE_PROVIDERS,
@@ -23,10 +25,6 @@ from humbldata.core.utils.constants import (
 )
 from humbldata.core.utils.env import Env
 from humbldata.core.utils.logger import setup_logger
-from humbldata.core.standard_models.abstract.warnings import (
-    collect_warnings,
-    HumblDataWarning,
-)
 
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
@@ -459,7 +457,7 @@ async def aget_etf_category(
                 .alias("category")
             ]
         )
-    except OpenBBError:
+    except HumblDataError:
         return pl.LazyFrame(
             {"symbol": symbols_list, "category": [None] * len(symbols_list)}
         ).cast(pl.Utf8)

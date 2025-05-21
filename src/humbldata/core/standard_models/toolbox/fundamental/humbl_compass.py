@@ -7,8 +7,6 @@ This module is used to define the QueryParams and Data model for the
 HumblCompass command.
 """
 
-import json
-import pickle
 import warnings
 from datetime import datetime
 from enum import Enum
@@ -16,10 +14,8 @@ from typing import Literal, TypeVar
 
 import pandera.polars as pa
 import polars as pl
-from openbb import obb
+from aiocache import RedisCache, cached
 from pydantic import BaseModel, Field
-from redis import StrictRedis
-from redis_cache import RedisCache
 
 from humbldata.core.standard_models.abstract.chart import ChartTemplate
 from humbldata.core.standard_models.abstract.data import Data
@@ -29,9 +25,23 @@ from humbldata.core.standard_models.abstract.warnings import (
     HumblDataWarning,
     collect_warnings,
 )
+from humbldata.core.standard_models.openbbapi.EconomyCompositeLeadingIndicatorQueryParams import (
+    EconomyCompositeLeadingIndicatorQueryParams,
+)
+from humbldata.core.standard_models.openbbapi.EconomyConsumerPriceIndexQueryParams import (
+    EconomyConsumerPriceIndexQueryParams,
+)
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
+from humbldata.core.utils.cache import (
+    CustomPickleSerializer,
+    LogCacheHitPlugin,
+    build_cache_key,
+    get_redis_cache_config,
+)
+from humbldata.core.utils.core_helpers import serialize_lazyframe_to_ipc
 from humbldata.core.utils.env import Env
 from humbldata.core.utils.logger import log_start_end, setup_logger
+from humbldata.core.utils.openbb_api_client import OpenBBAPIClient
 from humbldata.toolbox.fundamental.humbl_compass.view import generate_plots
 from humbldata.toolbox.toolbox_helpers import (
     _window_format,
@@ -42,72 +52,12 @@ env = Env()
 Q = TypeVar("Q", bound=ToolboxQueryParams)
 logger = setup_logger("HumblCompassFetcher", level=env.LOGGER_LEVEL)
 
-# Redis setup for caching
-redis_client = StrictRedis(
-    host=getattr(env, "REDIS_HOST", "localhost"),
-    port=getattr(env, "REDIS_PORT", 6379),
-    db=getattr(env, "REDIS_DB", 0),
-    decode_responses=True,
-)
 
+# Custom cache key builder (mimics previous logic)
+def humbl_compass_key_builder(func, self, *args, **kwargs):
+    """Build cache key for HumblCompass data."""
+    return build_cache_key(self, command_param_fields=["country", "z_score"])
 
-def custom_key_serializer(args):
-    # Handle dictionary format of args from python-redis-cache
-    fetcher = None
-    if isinstance(args, dict) and "self" in args:
-        fetcher = args["self"]
-    elif (
-        isinstance(args, (list, tuple))
-        and len(args) > 0
-        and isinstance(args[0], HumblCompassFetcher)
-    ):
-        fetcher = args[0]
-
-    if fetcher and isinstance(fetcher, HumblCompassFetcher):
-        # Convert date objects to strings for JSON serialization
-        start_date = fetcher.context_params.start_date
-        if not isinstance(start_date, str):
-            start_date = start_date.strftime("%Y-%m-%d")
-        end_date = fetcher.context_params.end_date
-        if not isinstance(end_date, str):
-            end_date = end_date.strftime("%Y-%m-%d")
-
-        key_data = {
-            "start_date": start_date,
-            "end_date": end_date,
-            "country": fetcher.command_params.country,
-            "z_score": fetcher.command_params.z_score,
-        }
-        return json.dumps(key_data, sort_keys=True)
-    # Fallback for unexpected args format
-    return json.dumps({"unknown_args": str(args)}, sort_keys=True)
-
-
-def custom_serializer(value):
-    if isinstance(value, HumblObject):
-        # Serialize HumblObject using pickle to store as a binary Python object
-        return pickle.dumps(value)
-    # Fallback to pickle serialization for other types
-    return pickle.dumps(value)
-
-
-def custom_deserializer(value):
-    if isinstance(value, bytes):
-        try:
-            # Deserialize binary data back to a Python object using pickle
-            return pickle.loads(value)
-        except pickle.UnpicklingError:
-            return value
-    return value
-
-
-redis_cache = RedisCache(
-    redis_client=redis_client,
-    prefix="humbl_compass",
-    key_serializer=custom_key_serializer,
-    serializer=custom_serializer,
-    deserializer=custom_deserializer,
-)
 
 HUMBLCOMPASS_QUERY_DESCRIPTIONS = {
     "example_field1": "Description for example field 1",
@@ -247,12 +197,12 @@ class HumblCompassQueryParams(QueryParams):
         title="Country for humblCOMPASS data",
         description=HUMBLCOMPASS_QUERY_DESCRIPTIONS.get("country", ""),
     )
-    cli_start_date: str = Field(
+    cli_start_date: str | None = Field(
         default=None,
         title="Adjusted start date for CLI data",
         description="The adjusted start date for CLI data collection.",
     )
-    cpi_start_date: str = Field(
+    cpi_start_date: str | None = Field(
         default=None,
         title="Adjusted start date for CPI data",
         description="The adjusted start date for CPI data collection.",
@@ -735,13 +685,14 @@ class HumblCompassFetcher:
                 "cpi_start_date": cpi_start_date,
             }
         )
-
-        logger.info(
+        msg = (
             f"CLI start date: {self.command_params.cli_start_date} and CPI start date: {self.command_params.cpi_start_date}. "
             f"Dates are adjusted to account for CLI data release lag and z-score calculation window."
         )
+        logger.info(msg)
 
-    def extract_data(self):
+    @collect_warnings
+    async def extract_data(self):
         """
         Extract the data from the provider and returns it as a Polars DataFrame.
 
@@ -750,40 +701,45 @@ class HumblCompassFetcher:
         self
             The HumblCompassFetcher instance with extracted data.
         """
-        # Collect CLI Data
-        self.oecd_cli_data = (
-            obb.economy.composite_leading_indicator(
-                start_date=self.command_params.cli_start_date,
-                end_date=self.context_params.end_date,
-                provider="oecd",
-                country=self.command_params.country,
-            )
-            .to_polars()
-            .lazy()
-            .rename({"value": "cli"})
-            .with_columns(
-                [pl.col("date").dt.month_start().alias("date_month_start")]
-            )
+        # Collect CLI Data via API client
+        cli_query_params = EconomyCompositeLeadingIndicatorQueryParams(
+            start_date=self.command_params.cli_start_date,
+            end_date=self.context_params.end_date,
+            provider="oecd",
+            country=self.command_params.country,
+        )
+        api_client = OpenBBAPIClient()
+        cli_response = await api_client.fetch_data(
+            obb_path="economy.composite_leading_indicator",
+            api_query_params=cli_query_params,
+        )
+        self.oecd_cli_data = cli_response.to_polars(collect=False)
+        self.oecd_cli_data = self.oecd_cli_data.rename(
+            {"value": "cli"}
+        ).with_columns(
+            [pl.col("date").dt.month_start().alias("date_month_start")]
         )
 
-        # Collect YoY CPI Data
-        self.oecd_cpi_data = (
-            obb.economy.cpi(
-                start_date=self.command_params.cpi_start_date,
-                end_date=self.context_params.end_date,
-                frequency="monthly",
-                country=self.command_params.country,
-                transform="yoy",
-                provider="oecd",
-                harmonized=False,
-                expenditure="total",
-            )
-            .to_polars()
-            .lazy()
-            .rename({"value": "cpi"})
-            .with_columns(
-                [pl.col("date").dt.month_start().alias("date_month_start")]
-            )
+        # Collect YoY CPI Data via API client
+        cpi_query_params = EconomyConsumerPriceIndexQueryParams(
+            start_date=self.command_params.cpi_start_date,
+            end_date=self.context_params.end_date,
+            frequency="monthly",
+            country=self.command_params.country,
+            transform="yoy",
+            provider="oecd",
+            harmonized=False,
+            expenditure="total",
+        )
+        cpi_response = await api_client.fetch_data(
+            obb_path="economy.cpi",
+            api_query_params=cpi_query_params,
+        )
+        self.oecd_cpi_data = cpi_response.to_polars(collect=False)
+        self.oecd_cpi_data = self.oecd_cpi_data.rename(
+            {"value": "cpi"}
+        ).with_columns(
+            [pl.col("date").dt.month_start().alias("date_month_start")]
         )
         return self
 
@@ -1000,14 +956,21 @@ class HumblCompassFetcher:
                 )
 
         # Finally, serialize final transformed data.
-        self.transformed_data = self.transformed_data.serialize(format="binary")
+        self.transformed_data = serialize_lazyframe_to_ipc(
+            self.transformed_data
+        )
         return self
 
     @log_start_end(logger=logger)
-    @redis_cache.cache(
-        ttl=getattr(env, "REDIS_CACHE_TTL", 86400)
-    )  # Default TTL is 24 hours
-    def fetch_data(self):
+    @cached(
+        ttl=getattr(env, "REDIS_CACHE_TTL", 86400),
+        key_builder=humbl_compass_key_builder,
+        serializer=CustomPickleSerializer(),
+        cache=RedisCache,
+        **get_redis_cache_config(namespace="humbl_compass"),
+        plugins=[LogCacheHitPlugin(name="humbl_compass")],
+    )
+    async def fetch_data(self):
         """
         Execute TET Pattern.
 
@@ -1024,7 +987,7 @@ class HumblCompassFetcher:
         logger.debug("Running .transform_query()")
         self.transform_query()
         logger.debug("Running .extract_data()")
-        self.extract_data()
+        await self.extract_data()
         logger.debug("Running .transform_data()")
         self.transform_data()
 
@@ -1043,8 +1006,6 @@ class HumblCompassFetcher:
             chart=self.chart,
             context_params=self.context_params,
             command_params=self.command_params,
-            extra=self.extra
-            if hasattr(self, "extra")
-            else {},  # pipe in extra from transform_data()
+            extra=self.extra if hasattr(self, "extra") else {},
         )
         return result

@@ -14,15 +14,25 @@ import numpy as np
 import pandera.polars as pa
 import polars as pl
 import pytz
-from openbb import obb
+from aiocache import RedisCache, cached
 from pydantic import Field, field_validator
 
 from humbldata.core.standard_models.abstract.data import Data
 from humbldata.core.standard_models.abstract.humblobject import HumblObject
 from humbldata.core.standard_models.abstract.query_params import QueryParams
+from humbldata.core.standard_models.openbbapi.EquityPriceHistoricalQueryParams import (
+    EquityPriceHistoricalQueryParams,
+)
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
+from humbldata.core.utils.cache import (
+    CustomPickleSerializer,
+    LogCacheHitPlugin,
+    build_cache_key,
+)
+from humbldata.core.utils.core_helpers import serialize_lazyframe_to_ipc
 from humbldata.core.utils.env import Env
 from humbldata.core.utils.logger import log_start_end, setup_logger
+from humbldata.core.utils.openbb_api_client import OpenBBAPIClient
 from humbldata.toolbox.fundamental.humbl_compass_backtest.model import (
     humbl_compass_backtest,
 )
@@ -34,6 +44,24 @@ from humbldata.toolbox.toolbox_helpers import _window_format
 env = Env()
 Q = TypeVar("Q", bound=ToolboxQueryParams)
 logger = setup_logger("HumblCompassBacktestFetcher", level=env.LOGGER_LEVEL)
+
+
+# Custom cache key builder (mimics previous logic)
+def humbl_compass_backtest_key_builder(func, self, *args, **kwargs):
+    """Build cache key for HumblCompassBacktest data."""
+    return build_cache_key(
+        self,
+        command_param_fields=[
+            "symbols",
+            "country",
+            "chart",
+            "vol_window",
+            "risk_free_rate",
+            "min_regime_days",
+            "initial_investment",
+        ],
+    )
+
 
 HUMBLCOMPASSBACKTEST_QUERY_DESCRIPTIONS = {
     "symbols": "List of stock symbols to analyze",
@@ -432,7 +460,7 @@ class HumblCompassBacktestFetcher:
             else:
                 self.command_params = HumblCompassBacktestQueryParams()
 
-    def extract_data(self):
+    async def extract_data(self):
         """
         Extract the data from the provider and returns it as a Polars DataFrame.
 
@@ -456,24 +484,30 @@ class HumblCompassBacktestFetcher:
             compass_fetcher = HumblCompassFetcher(
                 self.context_params, compass_params
             )
-            compass_results = compass_fetcher.fetch_data()
+            compass_results = await compass_fetcher.fetch_data()
             self.humbl_compass_data = compass_results.to_polars(collect=True)
         else:
             self.humbl_compass_data = self.compass_data
 
-        # Get equity data
-        equity_data = obb.equity.price.historical(
+        # Get equity data using OpenBBAPIClient
+        api_query_params = EquityPriceHistoricalQueryParams(
             symbol=self.command_params.symbols,
             start_date=self.command_params.start_date,
             end_date=self.command_params.end_date,
             provider=self.context_params.provider,
         )
-        self.equity_data = equity_data.to_polars().lazy()
+        api_client = OpenBBAPIClient()
+        api_response = await api_client.fetch_data(
+            obb_path="equity.price.historical",
+            api_query_params=api_query_params,
+        )
+        self.equity_data = api_response.to_polars(collect=False)
 
         if len(self.command_params.symbols) == 1:
             self.equity_data = self.equity_data.with_columns(
                 symbol=pl.lit(self.command_params.symbols[0])
             )
+        # Do NOT serialize here; keep as LazyFrame for downstream use
         return self
 
     def transform_data(self):
@@ -485,7 +519,11 @@ class HumblCompassBacktestFetcher:
         self
             Returns self for method chaining.
         """
-        equity_data = self.equity_data.lazy()
+        equity_data = (
+            self.equity_data.lazy()
+            if not isinstance(self.equity_data, pl.LazyFrame)
+            else self.equity_data
+        )
         if isinstance(self.humbl_compass_data, pl.LazyFrame):
             compass_data = self.humbl_compass_data
         else:
@@ -509,20 +547,36 @@ class HumblCompassBacktestFetcher:
         )
 
         if self.command_params.chart:
-            self.chart = generate_plots(self.equity_data, regime_date_summary)
+            self.chart = generate_plots(equity_data, regime_date_summary)
         # Store transformed data
-        self.transformed_data = (
-            HumblCompassBacktestData(final_summary)
-            .lazy()
-            .serialize(format="binary")
+        self.transformed_data = HumblCompassBacktestData(final_summary).lazy()
+        self.transformed_data = serialize_lazyframe_to_ipc(
+            self.transformed_data
         )
-        self.equity_data = self.equity_data.serialize(format="binary")
-        self.extra["daily_regime_data"] = daily_regime_data.lazy()
+        # Only serialize equity_data at the end
+        self.equity_data = serialize_lazyframe_to_ipc(equity_data)
+        # Only call .lazy() if daily_regime_data is a DataFrame, assign as is if LazyFrame or bytes
+        if isinstance(daily_regime_data, pl.DataFrame):
+            self.extra["daily_regime_data"] = daily_regime_data.lazy()
+        elif isinstance(daily_regime_data, pl.LazyFrame):
+            self.extra["daily_regime_data"] = daily_regime_data
+        else:
+            self.extra["daily_regime_data"] = daily_regime_data
 
         return self
 
     @log_start_end(logger=logger)
-    def fetch_data(self):
+    @cached(
+        ttl=getattr(env, "REDIS_CACHE_TTL", 86400),
+        key_builder=humbl_compass_backtest_key_builder,
+        serializer=CustomPickleSerializer(),
+        cache=RedisCache,
+        endpoint=getattr(env, "REDIS_HOST", "localhost"),
+        port=getattr(env, "REDIS_PORT", 6379),
+        namespace="humbl_compass_backtest",
+        plugins=[LogCacheHitPlugin(name="humbl_compass_backtest")],
+    )
+    async def fetch_data(self):
         """
         Execute TET Pattern.
 
@@ -539,7 +593,7 @@ class HumblCompassBacktestFetcher:
         logger.debug("Running .transform_query()")
         self.transform_query()
         logger.debug("Running .extract_data()")
-        self.extract_data()
+        await self.extract_data()
         logger.debug("Running .transform_data()")
         self.transform_data()
 

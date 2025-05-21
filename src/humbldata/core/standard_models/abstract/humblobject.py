@@ -1,8 +1,6 @@
 import base64
 import io
-import json
-import re
-from typing import Any, ClassVar, Generic, TypeVar, Optional
+from typing import Any, ClassVar, Generic, Literal, Optional, TypeVar, overload
 
 import numpy as np
 import pandas as pd
@@ -57,7 +55,7 @@ def extract_subclass_dict(self, attribute_name: str, items: list):
 
 
 class HumblObject(Tagged, Generic[T]):
-    """HumblObject is the base class for all dta returned from the Toolbox."""
+    """HumblObject is the base class for all data returned from the Toolbox."""
 
     _user_settings: ClassVar[BaseModel | None] = None
     _system_settings: ClassVar[BaseModel | None] = None
@@ -89,7 +87,7 @@ class HumblObject(Tagged, Generic[T]):
         description="Extra info.",
     )
     context_params: ToolboxQueryParams | PortfolioQueryParams | None = Field(
-        default_factory=ToolboxQueryParams,
+        default=None,
         title="Context Parameters",
         description="Context parameters.",
     )
@@ -118,6 +116,15 @@ class HumblObject(Tagged, Generic[T]):
         # items = extract_subclass_dict(self, "command_params", items)
 
         return f"{self.__class__.__name__}\n\n" + "\n".join(items)
+
+    @overload
+    def to_polars(
+        self, collect: Literal[True] = True, equity_data: bool = False
+    ) -> pl.DataFrame: ...
+    @overload
+    def to_polars(
+        self, collect: Literal[False], equity_data: bool = False
+    ) -> pl.LazyFrame: ...
 
     def to_polars(
         self, collect: bool = True, equity_data: bool = False
@@ -157,7 +164,7 @@ class HumblObject(Tagged, Generic[T]):
                 out = pl.LazyFrame.deserialize(data_io, format="json")
         elif isinstance(data, bytes):
             with io.BytesIO(data) as data_io:
-                out = pl.LazyFrame.deserialize(data_io, format="binary")
+                out = pl.read_ipc(data_io).lazy()
         else:
             raise HumblDataError(
                 "Invalid data type. Expected LazyFrame or serialized string."

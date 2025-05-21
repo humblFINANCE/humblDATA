@@ -20,6 +20,31 @@ class Env(metaclass=SingletonMeta):
         self._environ = os.environ.copy()
 
     @property
+    def ENVIRONMENT(self) -> str:  # noqa: N802
+        """Get the current API environment (development or production)."""
+        return self._environ.get("ENVIRONMENT", "development").lower()
+
+    @property
+    def ENV(self) -> str:  # noqa: N802
+        """Alias for ENVIRONMENT."""
+        return self.ENVIRONMENT
+
+    @property
+    def OPENBB_API_PROD_URL(self) -> str | None:  # noqa: N802
+        """OpenBB External API Production URL (root)."""
+        return self._environ.get("OPENBB_API_PROD_URL")
+
+    @property
+    def OPENBB_API_DEV_URL(self) -> str | None:  # noqa: N802
+        """OpenBB External API Development URL (root)."""
+        return self._environ.get("OPENBB_API_DEV_URL")
+
+    @property
+    def OPENBB_API_PREFIX(self) -> str:  # noqa: N802
+        """OpenBB API Prefix."""
+        return self._environ.get("OPENBB_API_PREFIX", "/api/v1")
+
+    @property
     def OBB_PAT(self) -> str | None:  # noqa: N802
         """OpenBB Personal Access Token."""
         return self._environ.get("OBB_PAT", None)
@@ -78,6 +103,11 @@ class Env(metaclass=SingletonMeta):
     def REDIS_REST_API_URL(self) -> str | None:
         """Redis REST API URL."""
         return self._environ.get("REDIS_REST_API_URL", None)
+
+    @property
+    def REDIS_URL(self) -> str | None:
+        """Redis URL."""
+        return self._environ.get("REDIS_URL", None)
 
     @staticmethod
     def str2bool(value: str | bool) -> bool:

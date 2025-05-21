@@ -1,51 +1,71 @@
 """A wrapper around OpenBB QueryParams Standardized Model to use with humbldata."""  # noqa: W505
 
-from openbb_core.provider.abstract.query_params import (
-    QueryParams as OpenBBQueryParams,
-)
+from typing import Any, Dict
+
+from pydantic import BaseModel, ConfigDict
 
 
-class QueryParams(OpenBBQueryParams):
+class QueryParams(BaseModel):
+    """The OpenBB Standardized QueryParams Model.
+
+    The `QueryParams` class is designed to hold query parameters, to be extended by
+    providers and to be used by fetchers when making data provider requests.
+
+    Key Features:
+    - Alias handling: Utilizes an aliasing mechanism to maintain compatibility with different naming
+        conventions across various data formats. The alias is only applied when running `model_dump`.
+    - Json schema extra merging:
+
+        Merge different json schema extra, identified by provider.
+        Example:
+            FMP fetcher:
+                __json_schema_extra__ = {"symbol": {"multiple_items_allowed": True}}
+            Intrinio fetcher
+                __json_schema_extra__ = {"symbol": {"multiple_items_allowed": False}}
+
+            Creates new fields in the `symbol` schema:
+            {
+                "type": "string",
+                "description": "Symbol to get data for.",
+                "fmp": {"multiple_items_allowed": True},
+                "intrinio": {"multiple_items_allowed": False}
+                ...,
+            }
+
+        Multiple fields can be tagged with the same or multiple properties.
+        Example:
+        __json_schema_extra__ = {
+            "<field_name_A>": {"foo": 123, "bar": 456},
+            "<field_name_B>": {"foo": 789}
+        }
+
+    Attributes:
+    __alias_dict__ (Dict[str, str]):
+        A dictionary that maps field names to their aliases,
+        facilitating the use of different naming conventions.
+    __json_schema_extra__ (Dict[str, List[str]]):
+        Properties to be included in the json schema extra.
+    model_config (ConfigDict):
+        A configuration dictionary that defines the model's behavior,
+        such as accepting extra fields, populating by name, and alias
+        generation.
     """
-    An abstract standard_model to represent a base QueryParams Data.
 
-    QueryParams model should be used to define the query parameters for a
-    `context.category.command` call.
+    __alias_dict__: Dict[str, str] = {}
+    __json_schema_extra__: Dict[str, Any] = {}
 
-    This QueryParams model is meant to be inherited and built upon by other
-    standard_models for a specific context.
+    def __repr__(self):
+        """Return the string representation of the QueryParams object."""
+        return f"{self.__class__.__name__}({', '.join([f'{k}={v}' for k, v in self.model_dump().items()])})"
 
-    Examples
-    --------
-    ```py
-    class EquityHistoricalQueryParams(QueryParams):
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
 
-        symbol: str = Field(description=QUERY_DESCRIPTIONS.get("symbol", ""))
-        interval: Optional[str] = Field(
-            default="1d",
-            description=QUERY_DESCRIPTIONS.get("interval", ""),
-        )
-        start_date: Optional[dateType] = Field(
-            default=None,
-            description=QUERY_DESCRIPTIONS.get("start_date", ""),
-        )
-        end_date: Optional[dateType] = Field(
-            default=None,
-            description=QUERY_DESCRIPTIONS.get("end_date", ""),
-        )
-
-        @field_validator("symbol", mode="before", check_fields=False)
-        @classmethod
-        def upper_symbol(cls, v: Union[str, List[str], Set[str]]):
-            if isinstance(v, str):
-                return v.upper()
-            return ",".join([symbol.upper() for symbol in list(v)])
-    ```
-
-    This would create a class that would be used to query historical price data
-    for equities from any given command.
-
-    This could then be used to create a
-    `MandelbrotChannelEquityHistoricalQueryParams` that would define what query
-    parameters are needed for the Mandelbrot Channel command.
-    """
+    def model_dump(self, *args, **kwargs):
+        """Dump the model."""
+        original = super().model_dump(*args, **kwargs)
+        if self.__alias_dict__:
+            return {
+                self.__alias_dict__.get(key, key): value
+                for key, value in original.items()
+            }
+        return original

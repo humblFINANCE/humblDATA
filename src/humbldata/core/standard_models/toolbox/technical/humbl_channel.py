@@ -7,14 +7,12 @@ This module is used to define the QueryParams and Data model for the
 Mandelbrot Channel command.
 """
 
-import datetime as dt
 import warnings
-from typing import List, Literal, TypeVar
+from typing import Literal, TypeVar
 
 import pandera.polars as pa
 import polars as pl
-from openbb import obb
-from pydantic import Field, PrivateAttr, field_validator
+from pydantic import Field, field_validator
 
 from humbldata.core.standard_models.abstract.data import Data
 from humbldata.core.standard_models.abstract.humblobject import HumblObject
@@ -24,9 +22,14 @@ from humbldata.core.standard_models.abstract.warnings import (
     Warning_,
     collect_warnings,
 )
+from humbldata.core.standard_models.openbbapi.EquityPriceHistoricalQueryParams import (
+    EquityPriceHistoricalQueryParams,
+)
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
+from humbldata.core.utils.core_helpers import serialize_lazyframe_to_ipc
 from humbldata.core.utils.env import Env
 from humbldata.core.utils.logger import log_start_end, setup_logger
+from humbldata.core.utils.openbb_api_client import OpenBBAPIClient
 from humbldata.toolbox.technical.humbl_channel.model import (
     calc_humbl_channel,
     calc_humbl_channel_historical_concurrent,
@@ -348,7 +351,7 @@ class HumblChannelFetcher:
             )
 
     @collect_warnings
-    def extract_data(self):
+    async def extract_data(self):
         """
         Extract the data from the provider and returns it as a Polars DataFrame.
 
@@ -359,17 +362,18 @@ class HumblChannelFetcher:
         pl.DataFrame
             The extracted data as a Polars DataFrame.
         """
-        self.equity_historical_data: pl.LazyFrame = (
-            obb.equity.price.historical(
-                symbol=self.context_params.symbols,
-                start_date=self.context_params.start_date,
-                end_date=self.context_params.end_date,
-                provider=self.context_params.provider,
-                # add kwargs
-            )
-            .to_polars()
-            .lazy()
+        api_query_params = EquityPriceHistoricalQueryParams(
+            symbol=self.context_params.symbols,
+            start_date=self.context_params.start_date,
+            end_date=self.context_params.end_date,
+            provider=self.context_params.provider,
         )
+        api_client = OpenBBAPIClient()
+        api_response = await api_client.fetch_data(
+            obb_path="equity.price.historical",
+            api_query_params=api_query_params,
+        )
+        self.equity_historical_data = api_response.to_polars(collect=False)
 
         if len(self.context_params.symbols) == 1:
             self.equity_historical_data = (
@@ -455,14 +459,16 @@ class HumblChannelFetcher:
         else:
             self.chart = None
 
-        self.transformed_data = self.transformed_data.serialize(format="binary")
-        self.equity_historical_data = self.equity_historical_data.serialize(
-            format="binary"
+        self.transformed_data = serialize_lazyframe_to_ipc(
+            self.transformed_data
+        )
+        self.equity_historical_data = serialize_lazyframe_to_ipc(
+            self.equity_historical_data
         )
         return self
 
     @log_start_end(logger=logger)
-    def fetch_data(self):
+    async def fetch_data(self):
         """
         Execute TET Pattern.
 
@@ -479,7 +485,7 @@ class HumblChannelFetcher:
         logger.debug("Running .transform_query()")
         self.transform_query()
         logger.debug("Running .extract_data()")
-        self.extract_data()
+        await self.extract_data()
         logger.debug("Running .transform_data()")
         self.transform_data()
 

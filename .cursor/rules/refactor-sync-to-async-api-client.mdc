@@ -1,0 +1,106 @@
+---
+description: This rule describes how to refactor a function from obb usage to API Client logic.
+globs:
+alwaysApply: false
+---
+
+
+# Refactor Synchronous OpenBB Extraction to Async API Client Pattern
+
+This rule describes how to refactor functions that synchronously extract data from OpenBB (or similar) sources into an asynchronous, API-client-based pattern. Use this rule to standardize data extraction across the codebase.
+
+## When to Apply
+# Refactor Synchronous OpenBB Extraction to Async API Client Pattern
+
+This rule describes how to refactor functions that synchronously extract data from OpenBB (or similar) sources into an asynchronous, API-client-based pattern. Use this rule to standardize data extraction across the codebase.
+
+## When to Apply
+- The function directly calls `obb.equity.price.historical` or similar synchronous OpenBB SDK methods.
+- The function returns or processes a Polars DataFrame (or LazyFrame) from the result.
+
+## How to Refactor
+1. **Change the function to `async def` and update all call sites to use `await`.**
+2. **Replace direct OpenBB SDK calls with an async API client call:**
+   - Instantiate the API client (e.g., `OpenBBAPIClient`).
+   - Build query parameters using a Pydantic model (e.g., `EquityHistoricalQueryParams`).
+   - Call the API client’s async fetch method (e.g., `await api_client.fetch_data(...)`).
+   - Convert the response to a Polars DataFrame or LazyFrame as needed.
+3. **Preserve any logic that adds columns or processes the DataFrame after extraction.**
+4. **Keep decorators and return values as in the original function.**
+5. **Update imports to include the API client and query param model.**
+6. **Update or add async-compatible tests.**
+
+## Required Imports
+Add or update the following imports as needed:
+
+```python
+from humbldata.core.standard_models.openbbapi.EquityHistoricalQueryParams import EquityHistoricalQueryParams
+from humbldata.core.utils.openbb_api_client import OpenBBAPIClient
+```
+
+Please
+
+## QueryParams File Requirement
+- A Pydantic `QueryParams` class **must** exist for the API route being queried (e.g., `EquityHistoricalQueryParams` for `equity.price.historical`).
+- This class should be located in the `src/humbldata/core/standard_models/openbbapi/` folder, named according to the route (e.g., `EquityHistoricalQueryParams.py`).
+- If the class does not exist, create a new file in that folder with a Pydantic model containing all required parameters for the API route.
+
+## How to Create a QueryParams Class
+1. Name the file and class according to the API route (e.g., `EquityHistoricalQueryParams`).
+2. Inherit from `pydantic.BaseModel` (or your project's base QueryParams class).
+3. Define all required and optional parameters as class attributes, with types and validation as needed.
+4. Add docstrings for clarity and maintainability.
+5. Place the file in `src/humbldata/core/standard_models/openbbapi/`.
+
+**If you do not know the required parameters for the API route, prompt the user to provide them or to specify the OpenBB endpoint's signature.**
+
+## Example QueryParams Class
+```python
+from pydantic import BaseModel
+
+class EquityHistoricalQueryParams(BaseModel):
+    symbol: str
+    start_date: str
+    end_date: str
+    provider: str = "yfinance"
+    # Add other parameters as needed
+```
+
+## Example
+**Before:**
+```python
+self.equity_historical_data: pl.LazyFrame = (
+    obb.equity.price.historical(
+        symbol=self.context_params.symbols,
+        start_date=self.context_params.start_date,
+        end_date=self.context_params.end_date,
+        provider=self.context_params.provider,
+    )
+    .to_polars()
+    .lazy()
+)
+```
+
+**After:**
+```python
+api_query_params = EquityHistoricalQueryParams(
+    symbol=self.context_params.symbols,
+    start_date=self.context_params.start_date,
+    end_date=self.context_params.end_date,
+    provider=self.context_params.provider,
+)
+api_client = OpenBBAPIClient()
+api_client.api_query_params = api_query_params
+api_response = await api_client.fetch_data(
+    obb_path="equity.price.historical",
+    api_query_params=api_query_params,
+)
+self.equity_historical_data = api_response.to_polars(collect=False)
+```
+
+## Notes
+- Always use the async API client for new or refactored data extraction.
+- Use Pydantic models for query params to ensure validation and standardization.
+- If the function is part of a class, store the result in an instance variable as before.
+- If only one symbol is provided, add the `symbol` column as in the original logic.
+- Ensure all downstream code and tests are updated for async compatibility.
