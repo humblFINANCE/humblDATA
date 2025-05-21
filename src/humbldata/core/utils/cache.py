@@ -64,19 +64,42 @@ def build_cache_key(self: Any, command_param_fields: list[str] = []) -> str:
     return json.dumps(key_data, sort_keys=True)
 
 
+def get_redis_location(env: Env) -> str:
+    """
+    Helper to determine if Redis is local or remote.
+    Returns 'remote' if REDIS_URL is set and not localhost/127.0.0.1, else 'local'.
+    """
+    redis_url = env.REDIS_URL
+    if redis_url:
+        parsed = urlparse(redis_url)
+        host = parsed.hostname
+        if host and host not in ("localhost", "127.0.0.1"):
+            return "remote"
+        return "local"
+    # Fallback to REDIS_HOST
+    host = getattr(env, "REDIS_HOST", "localhost")
+    if host not in ("localhost", "127.0.0.1"):
+        return "remote"
+    return "local"
+
+
 class LogCacheHitPlugin(BasePlugin):
     """Log cache hit and return value."""
 
     def __init__(self, name="humbl_compass"):
         super().__init__()
         self.name = name
+        self.env = Env()
+        self.redis_location = get_redis_location(self.env)
 
     async def post_get(self, cache, key, *args, **kwargs):
         """Log cache hit and return value."""
         value = kwargs.get("ret")
         if value is not None:
-            info_msg = f"{self.name} cache HIT & RETURNED"
-            debug_msg = f"{self.name} cache key: {key}"
+            info_msg = f"{self.name} cache HIT & RETURNED [{self.redis_location} redis]"
+            debug_msg = (
+                f"{self.name} cache key: {key} [{self.redis_location} redis]"
+            )
             logger.info(info_msg)
             logger.debug(debug_msg)
         return value
