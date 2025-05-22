@@ -1,6 +1,6 @@
 [project]
 name = "humbldata"
-version = "1.21.3"
+version = "1.22.0"
 description = "open-sourcing the math behind major financial institutional investors/banks. this package connects financial data analysis to the humblFINANCE website."
 readme = "README.md"
 authors = [
@@ -68,7 +68,7 @@ skip = ["menv/", "tests"]
 
 [tool.commitizen]
 name = "cz_gitmoji"
-version = "1.21.3"
+version = "1.22.0"
 tag_format = "v$version"
 update_changelog_on_bump = true
 annotated_tag = true

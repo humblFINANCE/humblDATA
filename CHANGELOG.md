@@ -1,3 +1,13 @@
+## v1.22.0 (2025-05-22)
+
+### ✨ Features
+
+- **bump**: trigger bump
+
+### 📌➕⬇️➖⬆️ Dependencies
+
+- **uv**: added numpy
+
 ## v1.21.3 (2025-05-22)
 
 ### 🐛🚑️ Fixes
