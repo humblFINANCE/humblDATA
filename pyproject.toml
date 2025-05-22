@@ -24,6 +24,7 @@ dependencies = [
     "aiocache>=0.12.3",
     "limits>=5.2.0",
     "numpy>=2.2.5",
+    "pandas>=2.2.3",
 ]
 
 [build-system]

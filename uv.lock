@@ -844,7 +844,7 @@ wheels = [
 
 [[package]]
 name = "humbldata"
-version = "1.21.3"
+version = "1.22.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiocache" },
@@ -854,6 +854,7 @@ dependencies = [
     { name = "limits" },
     { name = "multidict" },
     { name = "numpy" },
+    { name = "pandas" },
     { name = "pandera" },
     { name = "plotly" },
     { name = "polars" },
@@ -904,6 +905,7 @@ requires-dist = [
     { name = "limits", specifier = ">=5.2.0" },
     { name = "multidict", specifier = ">=6.4.3" },
     { name = "numpy", specifier = ">=2.2.5" },
+    { name = "pandas", specifier = ">=2.2.3" },
     { name = "pandera", specifier = ">=0.23.1" },
     { name = "plotly", specifier = ">=6.0.1" },
     { name = "polars", specifier = ">=1.29.0" },
