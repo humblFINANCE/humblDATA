@@ -1,7 +1,7 @@
 [project]
 name = "humbldata"
 version = "1.21.3"
-description = "open-sourcing the math behind major financial institutional investors/banks. this package connects data analysis to the humblFINANCE website."
+description = "open-sourcing the math behind major financial institutional investors/banks. this package connects financial data analysis to the humblFINANCE website."
 readme = "README.md"
 authors = [
     { name = "jenningsFantini", email = "jenningsfantini+github@gmail.com" }
