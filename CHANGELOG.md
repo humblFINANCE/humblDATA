@@ -1,3 +1,9 @@
+## v1.21.1 (2025-05-22)
+
+### 🐛🚑️ Fixes
+
+- **rate_limiter**: enhance logging output and update rate limit usage reporting
+
 ## v1.21.0 (2025-05-21)
 
 ### ✨ Features
