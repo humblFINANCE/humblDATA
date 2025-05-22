@@ -6,7 +6,6 @@ These are various methods to calculate the realized volatility of financial data
 """
 
 import math
-from datetime import timedelta
 
 import numpy as np
 import polars as pl

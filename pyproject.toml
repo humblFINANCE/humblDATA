@@ -23,6 +23,7 @@ dependencies = [
     "dotenv>=0.9.9",
     "aiocache>=0.12.3",
     "limits>=5.2.0",
+    "numpy>=2.2.5",
 ]
 
 [build-system]

@@ -8,12 +8,10 @@ Each function corresponds to a key step in the backtest analysis process, making
 the code more modular and testable.
 """
 
-import datetime as dt
 from typing import Optional
 
 import numpy as np
 import polars as pl
-import pytz
 
 
 def forward_fill_regime_data(

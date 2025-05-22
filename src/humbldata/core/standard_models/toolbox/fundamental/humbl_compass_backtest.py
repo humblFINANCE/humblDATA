@@ -10,7 +10,6 @@ HumblCompassBacktest command.
 import datetime as dt
 from typing import Literal, TypeVar
 
-import numpy as np
 import pandera.polars as pa
 import polars as pl
 import pytz
