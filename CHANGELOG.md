@@ -1,3 +1,9 @@
+## v1.21.3 (2025-05-22)
+
+### 🐛🚑️ Fixes
+
+- **openbb_api_client**: implement shared aiohttp ClientSession for improved connection pooling and timeout handling
+
 ## v1.21.2 (2025-05-22)
 
 ### 🐛🚑️ Fixes
