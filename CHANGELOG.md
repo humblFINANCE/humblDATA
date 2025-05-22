@@ -1,3 +1,9 @@
+## v1.21.2 (2025-05-22)
+
+### 🐛🚑️ Fixes
+
+- **watchlist**: refactor humbl_channel fetching and enhance data serialization
+
 ## v1.21.1 (2025-05-22)
 
 ### 🐛🚑️ Fixes
