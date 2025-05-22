@@ -19,11 +19,15 @@ from humbldata.core.utils.logger import log_start_end, setup_logger
 from humbldata.core.utils.network_helpers import (
     amake_request,
     get_querystring,
+    get_async_requests_session,
 )
 from humbldata.core.utils.rate_limiter import (
     AsyncProviderRateLimiter,
     RateLimitExceeded,
 )
+import aiohttp
+import asyncio
+import atexit
 
 if TYPE_CHECKING:
     pass
@@ -38,6 +42,71 @@ rate_limiter = AsyncProviderRateLimiter(
         "oecd": "20/hour",
     },
 )
+
+# --------------------------------------------------
+# Shared connection pool for all OpenBBAPIClient instances
+# --------------------------------------------------
+
+
+class _SharedSession:
+    """Singleton-style holder for a shared aiohttp ClientSession.
+
+    We create one ClientSession backed by a configurable TCPConnector so that
+    all concurrent API requests reuse the same connection pool.  This avoids
+    spawning a brand-new TCP connection for every request – a common source of
+    latency and *TimeoutError*s when many coroutines hit the same host at once.
+
+    The session is created lazily on first access and kept open for the life of
+    the process.  It is closed automatically on interpreter shutdown via
+    `atexit`, but you may also call `_SharedSession.close()` manually.
+    """
+
+    _session: "aiohttp.ClientSession | None" = None
+    _lock: "asyncio.Lock | None" = None
+
+    @classmethod
+    async def get(cls) -> "aiohttp.ClientSession":
+        # Lazily instantiate an asyncio.Lock the first time we need it – this
+        # avoids creating it at import time when an event-loop might not yet
+        # exist.
+        if cls._lock is None:
+            cls._lock = asyncio.Lock()
+
+        async with cls._lock:
+            if cls._session is None or cls._session.closed:
+                connector = aiohttp.TCPConnector(
+                    limit=20,  # max simultaneous connections overall
+                    limit_per_host=10,  # max per domain/IP
+                    ttl_dns_cache=300,  # cache DNS lookups for 5 minutes
+                )
+
+                # Re-use our existing helper for consistent defaults (user-agent,
+                # compression handling, etc.).
+                cls._session = await get_async_requests_session(
+                    connector=connector
+                )
+        return cls._session
+
+    @classmethod
+    async def close(cls):
+        if cls._session and not cls._session.closed:
+            await cls._session.close()
+
+
+def _atexit_close_session():
+    """Ensure the shared aiohttp session is closed when the interpreter exits."""
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            loop.create_task(_SharedSession.close())
+        else:
+            loop.run_until_complete(_SharedSession.close())
+    except RuntimeError:
+        # Event loop already closed – nothing left to clean up.
+        pass
+
+
+atexit.register(_atexit_close_session)
 
 
 class OpenBBAPIClient:
@@ -199,10 +268,20 @@ class OpenBBAPIClient:
             ) as rl_context:
                 if rl_context and hasattr(rl_context, "extra"):
                     self.extra.update(rl_context.extra)
+
                 msg = f"Fetching data from: {self.full_url}"
                 logger.info(msg)
+
+                # Use the shared connection-pooled ClientSession so that all
+                # concurrent requests reuse sockets.  Increase timeout to a
+                # more forgiving 30 seconds (API is occasionally slow under
+                # load).
+                session = await _SharedSession.get()
                 self.raw_api_response = await amake_request(
-                    url=self.full_url, method="GET"
+                    url=self.full_url,
+                    method="GET",
+                    timeout=30,
+                    session=session,
                 )
         except RateLimitExceeded as e:
             msg = f"Rate limit exceeded for provider={provider} endpoint={endpoint}: {e}"
