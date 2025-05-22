@@ -1,3 +1,9 @@
+## v1.22.1 (2025-05-22)
+
+### 🐛🚑️ Fixes
+
+- **bump**: added pandas as a dep
+
 ## v1.22.0 (2025-05-22)
 
 ### ✨ Features
