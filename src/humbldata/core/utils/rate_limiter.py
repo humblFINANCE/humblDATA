@@ -1,6 +1,4 @@
-import asyncio
-import logging
-import time
+from datetime import datetime
 
 from limits import parse
 from limits.aio.storage import (
@@ -47,18 +45,18 @@ class ProviderRateLimiter:
         if endpoint and (provider, endpoint) in self.provider_limits:
             limit_str = self.provider_limits[(provider, endpoint)]
             logger.debug(
-                f"[RateLimiter] get_limit: provider={provider}, endpoint={endpoint}, key=({provider}, {endpoint}), value={limit_str}"
+                f"get_limit: provider={provider}, endpoint={endpoint}, key=({provider}, {endpoint}), value={limit_str}"
             )
             return parse(limit_str)
         # provider-wide override
         if provider in self.provider_limits:
             limit_str = self.provider_limits[provider]
             logger.debug(
-                f"[RateLimiter] get_limit: provider={provider}, endpoint={endpoint}, key={provider}, value={limit_str}"
+                f"get_limit: provider={provider}, endpoint={endpoint}, key={provider}, value={limit_str}"
             )
             return parse(limit_str)
         logger.debug(
-            f"[RateLimiter] get_limit: provider={provider}, endpoint={endpoint}, using default {self.default_limit}"
+            f"get_limit: provider={provider}, endpoint={endpoint}, using default {self.default_limit}"
         )
         return self.default_limit
 
@@ -99,14 +97,16 @@ class ProviderRateLimiter:
         limit = self.get_limit(provider, endpoint)
         key = self._rate_limit_key(provider, endpoint)
         logger.debug(
-            f"[RateLimiter] get_usage: provider={provider}, endpoint={endpoint}, key={key}, limit_item={limit}"
+            f"get_usage: provider={provider}, endpoint={endpoint}, key={key}, limit_item={limit}"
         )
-        count, _ = self.limiter.get_window_stats(limit, key)
-        remaining_calls = max(0, limit.amount - count)
-        parts = str(limit).split("/")
-        limit_period_str = parts[1] if len(parts) > 1 else "unknown"
-        usage_str = f"{count} / {limit.amount} per {limit_period_str}"
-        return count, remaining_calls, str(limit), usage_str
+        reset_time, remaining = self.limiter.get_window_stats(limit, key)
+        reset_time_str = (
+            datetime.fromtimestamp(reset_time).isoformat()
+            if reset_time
+            else "unknown"
+        )
+        usage_str = f"{remaining} remaining out of {limit.amount} per {str(limit)} (resets at {reset_time_str})"
+        return remaining, str(limit), usage_str, reset_time_str
 
 
 class AsyncProviderRateLimiter:
@@ -151,14 +151,18 @@ class AsyncProviderRateLimiter:
         limit_item = self.get_limit(provider, endpoint)
         key = self._rate_limit_key(provider, endpoint)
         logger.debug(
-            f"[RateLimiter] get_usage: provider={provider}, endpoint={endpoint}, key={key}, limit_item={limit_item}"
+            f"get_usage: provider={provider}, endpoint={endpoint}, key={key}, limit_item={limit_item}"
         )
-        count, _ = await self.limiter.get_window_stats(limit_item, key)
-        remaining_calls = max(0, limit_item.amount - count)
-        parts = str(limit_item).split("/")
-        limit_period_str = parts[1] if len(parts) > 1 else "unknown"
-        usage_str = f"{count} / {limit_item.amount} per {limit_period_str}"
-        return count, remaining_calls, str(limit_item), usage_str
+        reset_time, remaining = await self.limiter.get_window_stats(
+            limit_item, key
+        )
+        reset_time_str = (
+            datetime.fromtimestamp(reset_time).isoformat()
+            if reset_time
+            else "unknown"
+        )
+        usage_str = f"{remaining} remaining out of {limit_item.amount} per {str(limit_item)} (resets at {reset_time_str})"
+        return remaining, str(limit_item), usage_str, reset_time_str
 
 
 class _AsyncRateLimitContext:
@@ -183,42 +187,41 @@ class _AsyncRateLimitContext:
 
         strategy_limiter = self.async_provider_limiter.limiter
 
-        current_hits, _ = await strategy_limiter.get_window_stats(
+        reset_time, remaining = await strategy_limiter.get_window_stats(
             limit_item, key
         )
-        remaining_calls = max(0, limit_item.amount - current_hits)
-
-        parts = str(limit_item).split("/")
-        limit_period_str = parts[1] if len(parts) > 1 else "unknown"
-        usage_str_before_hit = (
-            f"{current_hits} / {limit_item.amount} per {limit_period_str}"
+        reset_time_str = (
+            datetime.fromtimestamp(reset_time).isoformat()
+            if reset_time
+            else "unknown"
         )
-
-        logging.info(
-            f"[RateLimiter] Check {self.provider} {self.endpoint or ''}: {usage_str_before_hit}. Remaining: {remaining_calls}"
+        route = self.endpoint or ""
+        logger.info(
+            f"Checking Rate Limits for Provider: {self.provider} Route: {route} | {remaining}/{limit_item.amount} remaining (resets at {reset_time_str})"
         )
         self.extra = {
-            "rate_limit_usage_before_hit": usage_str_before_hit,
-            "rate_limit_remaining_before_hit": remaining_calls,
+            "rate_limit_usage_before_hit": f"{remaining}/{limit_item.amount}",
+            "rate_limit_remaining_before_hit": remaining,
             "rate_limit_limit_str": str(limit_item),
+            "rate_limit_reset_time": reset_time_str,
         }
 
         allowed = await strategy_limiter.test(limit_item, key)
         if not allowed:
             raise RateLimitExceeded(
-                f"Rate limit exceeded for {self.provider} {self.endpoint or ''}. Usage: {usage_str_before_hit}"
+                f"Rate limit exceeded for {self.provider} {self.endpoint or ''}. Usage: {f'{remaining}/{limit_item.amount}'}"
             )
 
         await strategy_limiter.hit(limit_item, key)
 
-        usage_after_hit_str = (
-            f"{current_hits + 1} / {limit_item.amount} per {limit_period_str}"
+        # After hit, remaining should decrease by 1
+        logger.info(
+            f"Updating Rate Limit - Provider: {self.provider} Route: {route} | {remaining - 1}/{limit_item.amount} remaining (resets at {reset_time_str})"
         )
-        logging.info(
-            f"[RateLimiter] HIT {self.provider} {self.endpoint or ''}: {usage_after_hit_str}. Remaining: {remaining_calls - 1}"
+        self.extra["rate_limit_usage_after_hit"] = (
+            f"{remaining - 1}/{limit_item.amount}"
         )
-        self.extra["rate_limit_usage_after_hit"] = usage_after_hit_str
-        self.extra["rate_limit_remaining_after_hit"] = remaining_calls - 1
+        self.extra["rate_limit_remaining_after_hit"] = remaining - 1
         return self
 
     async def __aexit__(self, exc_type, exc, tb):
