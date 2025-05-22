@@ -6,7 +6,6 @@ to have specific data outputs.
 """
 
 import asyncio
-import logging
 import warnings
 
 import polars as pl
@@ -17,183 +16,51 @@ from humbldata.core.standard_models.abstract.warnings import (
     HumblDataWarning,
     collect_warnings,
 )
+from humbldata.core.standard_models.openbbapi.EquityPriceQuoteQueryParams import (
+    EquityPriceQuoteQueryParams,
+)
+from humbldata.core.standard_models.openbbapi.EquityProfileQueryParams import (
+    EquityProfileQueryParams,
+)
+from humbldata.core.standard_models.openbbapi.EtfInfoQueryParams import (
+    EtfInfoQueryParams,
+)
 from humbldata.core.utils.constants import (
     OBB_EQUITY_PRICE_QUOTE_PROVIDERS,
     OBB_EQUITY_PROFILE_PROVIDERS,
     OBB_ETF_INFO_PROVIDERS,
     US_ETF_SYMBOLS,
 )
-from humbldata.core.utils.env import Env
 from humbldata.core.utils.logger import setup_logger
+from humbldata.core.utils.openbb_api_client import OpenBBAPIClient
 
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+
+
+logger = setup_logger("openbb_helpers")
 
 
 def obb_login(pat: str | None = None) -> bool:
     """
     Log into the OpenBB Hub using a Personal Access Token (PAT).
-
-    This function wraps the `obb.account.login` method to provide a simplified
-    interface for logging into OpenBB Hub. It optionally accepts a PAT. If no PAT
-    is provided, it attempts to use the PAT stored in the environment variable
-    `OBB_PAT`.
-
-    Parameters
-    ----------
-    pat : str | None, optional
-        The personal access token for authentication. If None, the token is
-        retrieved from the environment variable `OBB_PAT`. Default is None.
-
-    Returns
-    -------
-    bool
-        True if login is successful, False otherwise.
-
-    Raises
-    ------
-    HumblDataError
-        If an error occurs during the login process.
-
-    Examples
-    --------
-    >>> # obb_login("your_personal_access_token_here")
-    True
-
-    >>> # obb_login()  # Assumes `OBB_PAT` is set in the environment
-    True
-
+    (DISABLED: direct obb usage removed)
     """
-    if pat is None:
-        pat = Env().OBB_PAT
-    try:
-        obb.account.login(pat=pat, remember_me=True)
-        # obb.account.save()
-
-        # dotenv.set_key(dotenv.find_dotenv(), "OBB_LOGGED_IN", "true")
-
-        return True
-    except Exception as e:
-        from humbldata.core.standard_models.abstract.warnings import (
-            HumblDataWarning,
-        )
-
-        # dotenv.set_key(dotenv.find_dotenv(), "OBB_LOGGED_IN", "false")
-
-        warnings.warn(
-            "An error occurred while logging into OpenBB. Details below:\n"
-            + repr(e),
-            category=HumblDataWarning,
-            stacklevel=1,
-        )
-        return False
-
-
-@collect_warnings
-def get_latest_price(
-    symbol: str | list[str] | pl.Series,
-    provider: OBB_EQUITY_PRICE_QUOTE_PROVIDERS | None = "yfinance",
-) -> pl.LazyFrame | None:
-    """
-    Context: Core || Category: Utils || Subcategory: OpenBB Helpers || **Command: get_latest_price**.
-
-    Queries the latest stock price data for the given symbol(s) using the
-    specified provider. Defaults to YahooFinance (`yfinance`) if no provider is
-    specified. Returns a LazyFrame with the stock symbols and their latest prices.
-
-    Parameters
-    ----------
-    symbol : str | list[str] | pl.Series
-        The stock symbol(s) to query for the latest price. Accepts a single
-        symbol, a list of symbols, or a Polars Series of symbols.
-    provider : OBB_EQUITY_PRICE_QUOTE_PROVIDERS, optional
-        The data provider for fetching stock prices. Defaults is `yfinance`,
-        in which case a default provider is used.
-
-    Returns
-    -------
-    pl.LazyFrame | None
-        A Polars LazyFrame with columns for the stock symbols ('symbol') and
-        their latest prices ('last_price'). Returns None if there's an error.
-    """
-    # Configure logger using the setup_logger utility
-    logger = setup_logger(__name__)
-
-    # Suppress OpenBB logging
-    logging.getLogger("openbb_terminal.stocks.stocks_model").setLevel(
-        logging.CRITICAL
+    warnings.warn(
+        "obb_login is deprecated: direct obb usage removed in favor of API client.",
+        category=HumblDataWarning,
+        stacklevel=1,
     )
-
-    # Convert symbol to list format
-    if isinstance(symbol, str):
-        symbols = [symbol]
-    elif isinstance(symbol, pl.Series):
-        symbols = symbol.to_list()
-    else:
-        symbols = symbol
-
-    try:
-        logger.info(f"Fetching latest price for {symbols} using {provider}")
-        return (
-            obb.equity.price.quote(symbols, provider=provider)
-            .to_polars()
-            .select(["symbol", "last_price"])
-            .rename({"last_price": "recent_price"})
-            .lazy()
-        )
-    except pl.exceptions.ColumnNotFoundError:
-        warning_message = f"Failed to get latest price for {symbols} using {provider}, trying fmp..."
-        logger.warning(warning_message)
-
-        try:
-            obb.account.login(pat=Env().OBB_PAT, remember_me=True)
-            result = (
-                obb.equity.price.quote(symbols, provider="fmp")
-                .to_polars()
-                .select(["symbol", "last_price"])
-                .rename({"last_price": "recent_price"})
-                .lazy()
-            )
-
-            # Only emit a warning if we successfully got data from fmp
-            warnings.warn(
-                warning_message + " Successfully retrieved data from fmp.",
-                category=HumblDataWarning,
-                stacklevel=1,
-            )
-            return result
-
-        except Exception as e:
-            error_message = (
-                f"Failed to get latest price using fmp. Error: {e!s}"
-            )
-            logger.exception(error_message)
-            warnings.warn(
-                error_message,
-                category=HumblDataWarning,
-                stacklevel=1,
-            )
-            return None
-    except Exception as e:
-        error_message = (
-            f"Failed to get latest price using {provider}. Error: {e!s}"
-        )
-        logger.exception(error_message)
-        warnings.warn(
-            error_message,
-            category=HumblDataWarning,
-            stacklevel=1,
-        )
-        return None
+    return False
 
 
 async def aget_latest_price(
     symbols: str | list[str] | pl.Series,
-    provider: OBB_EQUITY_PRICE_QUOTE_PROVIDERS | None = "yfinance",
+    provider: OBB_EQUITY_PRICE_QUOTE_PROVIDERS = "yfinance",
 ) -> pl.LazyFrame:
     """
     Asynchronous version of get_latest_price.
 
-    Context: Core || Category: Utils || Subcategory: OpenBB Helpers || **Command: get_latest_price_async**.
+    Context: Core || Category: Utils || Subcategory: OpenBB Helpers || **Command: aget_latest_price**.
 
     Queries the latest stock price data for the given symbol(s) using the
     specified provider asynchronously. This functions collects the latest prices
@@ -221,11 +88,28 @@ async def aget_latest_price(
     -----
     If entering symbols as a string, DO NOT include spaces between the symbols.
     """
-    loop = asyncio.get_event_loop()
-    result = await loop.run_in_executor(
-        None, lambda: obb.equity.price.quote(symbols, provider=provider)
+    # Normalize symbols to list[str] or str
+    if isinstance(symbols, pl.Series):
+        symbols = symbols.to_list()
+    # Only allow supported providers for the API endpoint
+    allowed_providers = {"fmp", "intrinio", "yfinance"}
+    provider_literal = provider if provider in allowed_providers else None
+    # Build QueryParams
+    api_query_params = EquityPriceQuoteQueryParams(
+        symbol=symbols,
+        provider=provider_literal,
     )
-    out = result.to_polars().lazy()
+    api_client = OpenBBAPIClient()
+    api_response = await api_client.fetch_data(
+        obb_path="equity.price.quote",
+        api_query_params=api_query_params,
+    )
+    # Convert HumblObject results to LazyFrame
+    if api_response.results is not None:
+        out = api_response.to_polars(collect=False)
+    else:
+        out = pl.LazyFrame([])
+    # Standardize output: symbol, recent_price
     if {"last_price", "prev_close"}.issubset(out.collect_schema().names()):
         out = out.select(
             [
@@ -278,56 +162,40 @@ async def aget_last_close(
 
     If entering symbols as a string, DO NOT include spaces between the symbols.
     """
-    loop = asyncio.get_event_loop()
-    result = await loop.run_in_executor(
-        None, lambda: obb.equity.price.quote(symbols, provider=provider)
+    # Normalize symbols to list[str] or str
+    if isinstance(symbols, pl.Series):
+        symbols = symbols.to_list()
+    allowed_providers = {"fmp", "intrinio", "yfinance"}
+    provider_literal = provider if provider in allowed_providers else None
+    # Build QueryParams
+    api_query_params = EquityPriceQuoteQueryParams(
+        symbol=symbols,
+        provider=provider_literal,
     )
-    out = result.to_polars().lazy()
-
-    return out.select(pl.col("symbol"), pl.col("prev_close"))
-
-
-def get_equity_sector(
-    symbols: str | list[str] | pl.Series,
-    provider: OBB_EQUITY_PROFILE_PROVIDERS | None = "yfinance",
-) -> pl.LazyFrame:
-    """
-    Context: Core || Category: Utils || Subcategory: OpenBB Helpers || **Command: get_sector**.
-
-    Retrieves the sector information for the given stock symbol(s) using OpenBB's equity profile data.
-
-    Parameters
-    ----------
-    symbols : str | list[str] | pl.Series
-        The stock symbol(s) to query for sector information. Accepts a single
-        symbol, a list of symbols, or a Polars Series of symbols.
-    provider : str | None, optional
-        The data provider to use for fetching sector information. If None, the default
-        provider will be used.
-
-    Returns
-    -------
-    pl.LazyFrame
-        A Polars LazyFrame with columns for the stock symbols ('symbol') and
-        their corresponding sectors ('sector').
-
-    Notes
-    -----
-    This function uses OpenBB's equity profile data to fetch sector information.
-    It returns a lazy frame for efficient processing, especially with large datasets.
-    """
-    try:
-        result = obb.equity.profile(symbols, provider=provider)
-        return result.to_polars().select(["symbol", "sector"]).lazy()
-    except pl.exceptions.ColumnNotFoundError:
-        # If an error occurs, return a LazyFrame with symbol and null sector
-        if isinstance(symbols, str):
-            symbols = [symbols]
-        elif isinstance(symbols, pl.Series):
-            symbols = symbols.to_list()
-        return pl.LazyFrame(
-            {"symbol": symbols, "sector": [None] * len(symbols)}
+    api_client = OpenBBAPIClient()
+    api_response = await api_client.fetch_data(
+        obb_path="equity.price.quote",
+        api_query_params=api_query_params,
+    )
+    # Convert HumblObject results to LazyFrame
+    if api_response.results is not None:
+        out = api_response.to_polars(collect=False)
+    else:
+        out = pl.LazyFrame([])
+    # Standardize output: symbol, prev_close
+    if "prev_close" in out.collect_schema().names():
+        out = out.select(pl.col("symbol"), pl.col("prev_close"))
+    else:
+        warnings.warn(
+            "No latest close price found in API response.",
+            category=HumblDataWarning,
+            stacklevel=2,
         )
+        # fallback: just return symbol and None prev_close
+        out = out.select(pl.col("symbol")).with_columns(
+            [pl.lit(None).alias("prev_close")]
+        )
+    return out
 
 
 async def aget_equity_sector(
@@ -372,21 +240,35 @@ async def aget_equity_sector(
     so we can select the sector column from the ETF data and return it as a
     NULL sector for the equity.
     """
-    loop = asyncio.get_event_loop()
-    try:
-        result = await loop.run_in_executor(
-            None, lambda: obb.equity.profile(symbols, provider=provider)
-        )
-        return result.to_polars().select(["symbol", "sector"]).lazy()
-    except pl.exceptions.ColumnNotFoundError:
+    # Normalize symbols to list[str] or str
+    if isinstance(symbols, pl.Series):
+        symbols = symbols.to_list()
+    # Build QueryParams
+    api_query_params = EquityProfileQueryParams(
+        symbol=symbols,
+        provider=provider,
+    )
+    api_client = OpenBBAPIClient()
+    api_response = await api_client.fetch_data(
+        obb_path="equity.profile",
+        api_query_params=api_query_params,
+    )
+    # Convert HumblObject results to LazyFrame
+    if api_response.results is not None:
+        out = api_response.to_polars(collect=False)
+    else:
+        out = pl.LazyFrame([])
+    # Standardize output: symbol, sector
+    if "sector" in out.collect_schema().names():
+        out = out.select([pl.col("symbol"), pl.col("sector")])
+    else:
         # If an error occurs, return a LazyFrame with symbol and null sector
         if isinstance(symbols, str):
             symbols = [symbols]
-        elif isinstance(symbols, pl.Series):
-            symbols = symbols.to_list()
-        return pl.LazyFrame(
+        out = pl.LazyFrame(
             {"symbol": symbols, "sector": [None] * len(symbols)}
         ).cast(pl.Utf8)
+    return out
 
 
 async def aget_etf_category(
@@ -440,13 +322,20 @@ async def aget_etf_category(
     # Create a mapping of original symbols to their validity status
     all_symbols_df = pl.LazyFrame({"symbol": symbols_list})
 
-    loop = asyncio.get_event_loop()
     try:
-        # Only query OpenBB for valid ETF symbols
-        result = await loop.run_in_executor(
-            None, lambda: obb.etf.info(valid_symbols, provider=provider)
+        # Use API client to fetch ETF info for valid symbols
+        api_query_params = EtfInfoQueryParams(
+            symbol=valid_symbols,
+            provider=provider,
         )
-        out = result.to_polars().lazy().select(["symbol", "category"])
+        api_client = OpenBBAPIClient()
+        api_response = await api_client.fetch_data(
+            obb_path="etf.info",
+            api_query_params=api_query_params,
+        )
+        out = api_response.to_polars(collect=False).select(
+            ["symbol", "category"]
+        )
 
         # Left join to include all input symbols, filling missing categories with null
         out = all_symbols_df.join(out, on="symbol", how="left").with_columns(

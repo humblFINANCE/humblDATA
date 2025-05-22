@@ -80,8 +80,8 @@ async def watchlist_table_engine(
         if toolbox is None:
             toolbox = Toolbox(symbols=symbols, membership=membership)
         humbl_channel_data: pl.LazyFrame = (
-            toolbox.technical.humbl_channel().to_polars(collect=False)
-        )
+            await toolbox.technical.humbl_channel()
+        ).to_polars(collect=False)
     # Fetch data from all sources concurrently, passing etf_data where needed
     tasks = [
         aget_latest_price(symbols=symbols),

@@ -18,7 +18,6 @@ from humbldata.core.standard_models.abstract.errors import (
 )
 from humbldata.core.standard_models.abstract.warnings import collect_warnings
 from humbldata.core.utils.core_helpers import run_async
-from humbldata.core.utils.openbb_helpers import get_latest_price
 from humbldata.toolbox.technical.humbl_channel.helpers import (
     add_window_index,
     price_range,

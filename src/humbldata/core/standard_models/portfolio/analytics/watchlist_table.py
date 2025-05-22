@@ -8,19 +8,18 @@ WatchlistTable command.
 """
 
 import asyncio
-from datetime import datetime
-from typing import Literal, TypeVar
+from typing import TypeVar
 
 import pandera.polars as pa
 import polars as pl
-import pytz
 import uvloop
-from pydantic import Field, field_validator
+from pydantic import field_validator
 
 from humbldata.core.standard_models.abstract.data import Data
 from humbldata.core.standard_models.abstract.humblobject import HumblObject
 from humbldata.core.standard_models.abstract.query_params import QueryParams
 from humbldata.core.standard_models.portfolio import PortfolioQueryParams
+from humbldata.core.utils.core_helpers import serialize_lazyframe_to_ipc
 from humbldata.core.utils.descriptions import (
     DATA_DESCRIPTIONS,
     QUERY_DESCRIPTIONS,
@@ -276,9 +275,8 @@ class WatchlistTableFetcher:
             membership=self.context_params.membership,
             interval="1d",
         )
-        self.humbl_channel = self.toolbox.technical.humbl_channel().to_polars(
-            collect=False
-        )
+        self.humbl_channel = await self.toolbox.technical.humbl_channel()
+        self.humbl_channel = self.humbl_channel.to_polars(collect=False)
         return self
 
     async def transform_data(self):
@@ -303,6 +301,10 @@ class WatchlistTableFetcher:
         self.transformed_data = self.transformed_data.with_columns(
             pl.col(pl.Float64).round(2)
         )
+        self.transformed_data = serialize_lazyframe_to_ipc(
+            self.transformed_data
+        )
+
         return self
 
     @log_start_end(logger=logger)
