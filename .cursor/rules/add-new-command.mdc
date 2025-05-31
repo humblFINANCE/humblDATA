@@ -1,0 +1,212 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Adding New Commands to humblDATA
+
+This rule provides a comprehensive guide for adding new commands to the humblDATA codebase following the CCCC (Core, Context, Category, Command) method and using the automated script.
+
+## Overview: CCCC Method Structure
+
+The humblDATA codebase follows a hierarchical structure:
+- **Core**: Shared logic and standard models (`src/humbldata/core/`)
+- **Context**: Top-level modules like `Toolbox`, `Portfolio` (`src/humbldata/toolbox/`)
+- **Category**: Feature groupings like `Technical`, `Quantitative`, `Fundamental` (`src/humbldata/toolbox/technical/`)
+- **Command**: Specific implementations like `humbl_signal`, `humbl_channel` (`src/humbldata/toolbox/technical/humbl_signal/`)
+
+## Prerequisites
+
+Before adding a new command, ensure you understand:
+- The context (e.g., `toolbox`, `portfolio`) where your command belongs
+- The category (e.g., `technical`, `fundamental`) that groups related functionality
+- The specific command name (e.g., `humbl_signal`, `mandelbrot_channel`)
+
+## Step-by-Step Process
+
+### 1. Run the Automated Script
+
+Use the `add_command.py` script to generate the basic structure:
+
+```bash
+poetry run poe add-command
+```
+
+The script will prompt you for:
+- **Context name**: e.g., "toolbox"
+- **Category name**: e.g., "technical" (use '/' for sub-categories)
+- **Command name**: e.g., "humbl_signal"
+- **Add view.py file**: Usually "y" for visualization
+- **Add helpers.py file**: "y" if you need helper functions
+
+### 2. Files Created by the Script
+
+The script creates these files automatically:
+
+```
+src/humbldata/core/standard_models/toolbox/technical/humbl_signal.py  # Standard model
+src/humbldata/toolbox/technical/humbl_signal/
+├── __init__.py
+├── model.py      # Core calculation logic
+├── helpers.py    # Helper functions (if requested)
+└── view.py       # Visualization logic (if requested)
+```
+
+### 3. Controller Updates
+
+The script automatically updates:
+- **Context Controller**: `src/humbldata/toolbox/toolbox_controller.py`
+- **Category Controller**: `src/humbldata/toolbox/technical/technical_controller.py`
+
+These updates include:
+- Import statements for new QueryParams
+- New method definitions that call the Fetcher
+- Proper error handling with `HumblDataError`
+
+### 4. Standard Model Structure
+
+The generated standard model (`src/humbldata/core/standard_models/toolbox/technical/humbl_signal.py`) contains:
+
+- **QueryParams**: Pydantic model for command-specific parameters
+- **Data**: Pandera.Polars model for data validation
+- **Fetcher**: Main class implementing TET (Transform, Extract, Transform) pattern
+
+#### Key Components:
+
+```python
+class HumblSignalQueryParams(QueryParams):
+    # Command-specific parameters with Field definitions
+
+class HumblSignalData(Data):
+    # Data model with Pandera.Polars field validations
+
+class HumblSignalFetcher:
+    # Main fetcher with TET pattern methods:
+    # - transform_query()
+    # - extract_data()
+    # - transform_data()
+    # - fetch_data()
+```
+
+### 5. Customization Required
+
+After running the script, customize these components:
+
+#### A. QueryParams
+- Replace example fields with actual command parameters
+- Add proper field validators using `@field_validator`
+- Update `DESCRIPTIONS` dictionary with meaningful descriptions
+- Set appropriate defaults and constraints
+
+#### B. Data Model
+- Define actual data schema with proper Polars types
+- Add field descriptions and validation rules
+- Use proper field aliases if needed (e.g., `alias="(close_price|recent_price)"`)
+
+#### C. Core Logic (model.py)
+- Implement the actual calculation function
+- Follow naming convention: `calc_{command_name}()` or just `{command_name}()`
+- Add proper docstrings with Context || Category || Command format
+
+#### D. Fetcher Methods
+- **transform_query()**: Handle parameter validation and defaults
+- **extract_data()**: Implement data fetching from providers (OpenBB, APIs, etc.)
+- **transform_data()**: Apply your calculation logic using the model.py function
+- Use `@collect_warnings` decorator for warning collection
+
+#### E. View (if applicable)
+- Implement `generate_plots()` function returning `List[Chart]`
+- Create specific plot functions for your data visualization needs
+- Support different chart templates and styling options
+
+#### F. Helpers (if applicable)
+- Add mathematical or utility functions needed by your command
+- Keep functions "DUMB" - pure mathematical transformations
+- Follow the pattern of existing helpers
+
+### 6. Integration Points
+
+#### Controller Method Pattern
+The category controller method should follow this pattern:
+
+```python
+def humbl_signal(self, **kwargs: HumblSignalQueryParams):
+    """
+    Execute the HumblSignal command.
+
+    Parameters
+    ----------
+    **kwargs : HumblSignalQueryParams
+        The command-specific parameters.
+    """
+    try:
+        logger.debug("Initializing HumblSignal calculation with params: %s", kwargs)
+
+        from humbldata.core.standard_models.toolbox.technical.humbl_signal import HumblSignalFetcher
+
+        fetcher = HumblSignalFetcher(
+            context_params=self.context_params,
+            command_params=kwargs,
+        )
+
+        logger.debug("Fetching HumblSignal data")
+        return fetcher.fetch_data()
+
+    except Exception as e:
+        logger.exception("Error calculating HumblSignal")
+        msg = f"Failed to calculate HumblSignal: {e!s}"
+        raise HumblDataError(msg) from e
+```
+
+### 7. Testing
+
+After implementation:
+- Create unit tests in `tests/unittests/toolbox/technical/humbl_signal/`
+- Create integration tests in `tests/integration/toolbox/technical/humbl_signal/`
+- Test with various parameter combinations
+- Verify data validation works correctly
+
+### 8. Documentation
+
+Update documentation:
+- Add docstrings following NumPy style
+- Include usage examples in docstrings
+- Update relevant documentation files if needed
+
+## Common Patterns to Follow
+
+### Field Validation
+```python
+@field_validator("window", mode="after", check_fields=False)
+@classmethod
+def window_format(cls, v) -> str:
+    if isinstance(v, str):
+        return _window_format(v, _return_timedelta=False)
+    raise TypeError("Window must be a string.")
+```
+
+### Error Handling
+- Use `HumblDataError` for command-specific errors
+- Include descriptive error messages with context
+- Use `logger.exception()` for detailed error logging
+
+### Warning Collection
+- Use `@collect_warnings` decorator on methods that may generate warnings
+- Combine warnings from context and command levels
+- Pass all warnings to the final HumblObject
+
+## Files to Reference
+
+- [CCCC Method Documentation](mdc:docs/code_design/cccc_method.md) - Understanding the architectural pattern
+- [Add Command Script](mdc:scripts/add_command.py) - The automated generation script
+- [Existing Standard Model](mdc:src/humbldata/core/standard_models/toolbox/technical/humbl_channel.py) - Complete example
+- [Technical Controller](mdc:src/humbldata/toolbox/technical/technical_controller.py) - Controller pattern example
+
+## Final Notes
+
+- Always run the automated script first to ensure consistency
+- Follow existing naming conventions exactly
+- Test thoroughly with various parameter combinations
+- The TET pattern (Transform, Extract, Transform) is crucial for data flow
+- Use lazy evaluation with Polars LazyFrames when possible
+- Implement proper data validation with Pandera models

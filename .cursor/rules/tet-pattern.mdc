@@ -1,0 +1,369 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# TET Pattern (Transform, Extract, Transform) in humblDATA
+
+This rule explains the TET (Transform, Extract, Transform) pattern used by all Fetcher classes in humblDATA, which is the core data processing pipeline for commands.
+
+## TET Pattern Overview
+
+The TET pattern is a standardized data processing flow used by all Fetcher classes:
+
+1. **Transform Query (T1)**: Transform and validate input parameters
+2. **Extract Data (E)**: Fetch raw data from external sources (APIs, databases)
+3. **Transform Data (T2)**: Apply business logic and calculations to produce final results
+
+## Pattern Implementation
+
+### Basic Fetcher Structure
+```python
+class CommandFetcher:
+    """Fetcher implementing TET pattern."""
+
+    def __init__(self, context_params: ContextParams, command_params: CommandParams):
+        self.context_params = context_params
+        self.command_params = command_params
+        self.warnings: list[Warning_] = []
+        self.extra = {}
+        self.chart = None
+
+    # T1: Transform Query
+    @collect_warnings
+    def transform_query(self):
+        """Transform and validate input parameters."""
+
+    # E: Extract Data
+    @collect_warnings
+    async def extract_data(self):
+        """Extract raw data from external sources."""
+
+    # T2: Transform Data
+    @collect_warnings
+    def transform_data(self):
+        """Apply calculations and business logic."""
+
+    # Orchestrator
+    @log_start_end(logger=logger)
+    async def fetch_data(self):
+        """Execute TET pattern and return HumblObject."""
+```
+
+## T1: Transform Query
+
+**Purpose**: Validate, normalize, and prepare input parameters for data extraction.
+
+### Key Responsibilities
+- Validate command parameters using Pydantic models
+- Set default values for optional parameters
+- Transform parameter formats (e.g., window strings to timedeltas)
+- Collect parameter validation warnings
+
+### Implementation Pattern
+```python
+@collect_warnings
+def transform_query(self):
+    """
+    Transform the command-specific parameters into a query.
+
+    If command_params is not provided, it initializes a default QueryParams object.
+    """
+    if not self.command_params:
+        # Set Default Arguments
+        self.command_params = CommandQueryParams()
+    elif not isinstance(self.command_params, CommandQueryParams):
+        # Convert dict to Pydantic model
+        self.command_params = CommandQueryParams(**(self.command_params or {}))
+
+    # Additional parameter processing
+    if self.command_params.some_condition:
+        warnings.warn(
+            "Special condition detected in parameters.",
+            category=HumblDataWarning,
+            stacklevel=1,
+        )
+```
+
+### Common Transform Query Tasks
+- **Parameter Type Conversion**: Convert strings to appropriate types
+- **Default Value Assignment**: Set defaults for optional parameters
+- **Validation**: Ensure parameter combinations are valid
+- **Warning Generation**: Alert users about parameter implications
+
+## E: Extract Data
+
+**Purpose**: Fetch raw data from external sources needed for calculations.
+
+### Key Responsibilities
+- Connect to data providers (OpenBB API, databases, files)
+- Handle authentication and rate limiting
+- Transform provider-specific formats to standardized formats
+- Cache data when appropriate
+
+### Implementation Pattern
+```python
+@collect_warnings
+async def extract_data(self):
+    """
+    Extract the data from the provider and returns it as a Polars DataFrame.
+
+    Returns
+    -------
+    self
+        Returns self to enable method chaining
+    """
+    # Build API query from context parameters
+    api_query_params = EquityPriceHistoricalQueryParams(
+        symbol=self.context_params.symbols,
+        start_date=self.context_params.start_date,
+        end_date=self.context_params.end_date,
+        provider=self.context_params.provider,
+    )
+
+    # Fetch data using OpenBB API client
+    api_client = OpenBBAPIClient()
+    api_response = await api_client.fetch_data(
+        obb_path="equity.price.historical",
+        api_query_params=api_query_params,
+    )
+
+    # Convert to standardized format
+    self.raw_data = api_response.to_polars(collect=False)
+
+    # Add symbol column if single symbol (API quirk handling)
+    if len(self.context_params.symbols) == 1:
+        self.raw_data = self.raw_data.with_columns(
+            symbol=pl.lit(self.context_params.symbols[0])
+        )
+
+    return self
+```
+
+### Common Extract Data Tasks
+- **API Calls**: Fetch data from external providers
+- **Data Format Conversion**: Convert to Polars LazyFrame
+- **Data Cleaning**: Handle missing values, duplicates
+- **Error Handling**: Manage network failures, rate limits
+
+## T2: Transform Data
+
+**Purpose**: Apply business logic and calculations to produce final results.
+
+### Key Responsibilities
+- Execute command-specific calculations using model.py functions
+- Validate output data schema using Pandera models
+- Generate visualizations if requested
+- Serialize data for storage/transmission
+
+### Implementation Pattern
+```python
+@collect_warnings
+def transform_data(self):
+    """
+    Transform the command-specific data according to the command logic.
+
+    Returns
+    -------
+    self
+        Returns self to enable method chaining
+    """
+    # Apply main calculation from model.py
+    transformed_data = calc_command_function(
+        data=self.raw_data,
+        window=self.command_params.window,
+        method=self.command_params.method,
+        # ... other parameters
+    )
+
+    # Validate output schema
+    self.transformed_data = CommandData(
+        transformed_data.collect().drop_nulls()
+    ).lazy()
+
+    # Generate charts if requested
+    if self.command_params.chart:
+        self.chart = generate_plots(
+            self.transformed_data,
+            template=self.command_params.template,
+        )
+    else:
+        self.chart = None
+
+    # Serialize for output
+    self.transformed_data = serialize_lazyframe_to_ipc(self.transformed_data)
+
+    return self
+```
+
+### Common Transform Data Tasks
+- **Calculation Execution**: Apply mathematical/statistical functions
+- **Data Validation**: Ensure output matches expected schema
+- **Visualization**: Generate charts and plots
+- **Serialization**: Prepare data for output
+
+## Orchestration: fetch_data()
+
+**Purpose**: Coordinate the TET pipeline and package results into a HumblObject.
+
+### Implementation Pattern
+```python
+@log_start_end(logger=logger)
+async def fetch_data(self):
+    """
+    Execute TET Pattern.
+
+    This method executes the query transformation, data fetching and
+    transformation process by first calling `transform_query` to prepare
+    the query parameters, then extracting the raw data using `extract_data`
+    method, and finally transforming the raw data using `transform_data` method.
+
+    Returns
+    -------
+    HumblObject
+        The HumblObject containing the transformed data and metadata.
+    """
+    logger.debug("Running .transform_query()")
+    self.transform_query()
+
+    logger.debug("Running .extract_data()")
+    await self.extract_data()
+
+    logger.debug("Running .transform_data()")
+    self.transform_data()
+
+    # Initialize warnings if they don't exist
+    if not hasattr(self.context_params, "warnings"):
+        self.context_params.warnings = []
+
+    if not hasattr(self, "warnings"):
+        self.warnings = []
+
+    if not hasattr(self, "extra"):
+        self.extra = {}
+
+    # Combine warnings from all sources
+    all_warnings = self.context_params.warnings + self.warnings
+
+    return HumblObject(
+        results=self.transformed_data,
+        provider=self.context_params.provider,
+        warnings=all_warnings,
+        chart=self.chart,
+        context_params=self.context_params,
+        command_params=self.command_params,
+        extra=self.extra,
+    )
+```
+
+## Error Handling in TET
+
+### Warning Collection
+Use `@collect_warnings` decorator on each TET method to automatically collect warnings:
+
+```python
+from humbldata.core.standard_models.abstract.warnings import collect_warnings
+
+@collect_warnings
+def transform_query(self):
+    # Method implementation
+    # Warnings are automatically collected
+```
+
+### Exception Handling
+Each TET method should handle its specific error cases:
+
+```python
+@collect_warnings
+async def extract_data(self):
+    try:
+        # Data extraction logic
+        self.raw_data = await fetch_from_api()
+        return self
+    except NetworkError as e:
+        msg = f"Failed to fetch data from provider: {e}"
+        raise HumblDataError(msg) from e
+    except ValueError as e:
+        msg = f"Invalid data format received: {e}"
+        raise HumblDataError(msg) from e
+```
+
+## Method Chaining
+
+The TET pattern supports method chaining by returning `self` from each method:
+
+```python
+# This enables fluent interface usage (though not typically used directly)
+result = fetcher.transform_query().extract_data().transform_data()
+```
+
+## Async Considerations
+
+### When to Use Async
+- **extract_data()**: Always async for API calls and I/O operations
+- **fetch_data()**: Always async to coordinate async extract_data()
+- **transform_query()**: Sync - parameter validation is CPU-bound
+- **transform_data()**: Sync - calculations are CPU-bound
+
+### Async Pattern
+```python
+# Controller calls the async fetch_data method
+async def command_method(self, **kwargs):
+    fetcher = CommandFetcher(
+        context_params=self.context_params,
+        command_params=kwargs,
+    )
+    return await fetcher.fetch_data()  # Note the await
+```
+
+## Testing TET Methods
+
+### Test Each Method Independently
+```python
+class TestCommandFetcher:
+    """Test cases for CommandFetcher TET methods."""
+
+    def test_transform_query(self, fetcher):
+        """Test T1: transform_query."""
+        fetcher.transform_query()
+        assert isinstance(fetcher.command_params, CommandQueryParams)
+
+    async def test_extract_data(self, fetcher):
+        """Test E: extract_data."""
+        await fetcher.extract_data()
+        assert hasattr(fetcher, 'raw_data')
+        assert isinstance(fetcher.raw_data, pl.LazyFrame)
+
+    def test_transform_data(self, fetcher_with_data):
+        """Test T2: transform_data."""
+        fetcher_with_data.transform_data()
+        assert hasattr(fetcher_with_data, 'transformed_data')
+
+    async def test_fetch_data_integration(self, fetcher):
+        """Test full TET pipeline."""
+        result = await fetcher.fetch_data()
+        assert isinstance(result, HumblObject)
+```
+
+## Common Patterns and Best Practices
+
+### Data Flow
+- **LazyFrame Usage**: Keep data as LazyFrame until final collection
+- **Memory Management**: Collect data only when necessary
+- **Type Consistency**: Always return `self` from TET methods for chaining
+
+### Error Recovery
+- **Graceful Degradation**: Provide reasonable defaults when possible
+- **Clear Error Messages**: Include context about which TET stage failed
+- **Warning Propagation**: Collect warnings from all stages
+
+### Performance
+- **Lazy Evaluation**: Use Polars LazyFrame for efficient computation
+- **Minimal Collections**: Avoid premature `.collect()` calls
+- **Async I/O**: Use async for all network operations
+
+## References
+
+- [Humbl Channel Fetcher Example](mdc:src/humbldata/core/standard_models/toolbox/technical/humbl_channel.py) - Complete TET implementation
+- [Abstract HumblObject](mdc:src/humbldata/core/standard_models/abstract/humblobject.py) - Output format
+- [Warning Collection Utilities](mdc:src/humbldata/core/standard_models/abstract/warnings.py) - Warning handling patterns

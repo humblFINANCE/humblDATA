@@ -1,0 +1,361 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# humblDATA Coding Patterns and Conventions
+
+This rule documents the specific patterns, conventions, and best practices used throughout the humblDATA codebase to ensure consistency when adding new features.
+
+## Naming Conventions
+
+### File and Directory Names
+- **snake_case** for all files and directories: `humbl_signal.py`, `mandelbrot_channel/`
+- **PascalCase** for class names: `HumblSignalQueryParams`, `HumblChannelFetcher`
+- **snake_case** for function names: `calc_humbl_signal()`, `generate_plots()`
+
+### Class Naming Patterns
+- **QueryParams**: `{CommandName}QueryParams` (e.g., `HumblChannelQueryParams`)
+- **Data Models**: `{CommandName}Data` (e.g., `HumblChannelData`)
+- **Fetchers**: `{CommandName}Fetcher` (e.g., `HumblChannelFetcher`)
+- **Controllers**: `{CategoryName}` (e.g., `Technical`, `Quantitative`)
+
+### Function Naming Patterns
+- **Calculation functions**: `calc_{command_name}()` (e.g., `calc_humbl_channel()`)
+- **Helper functions**: descriptive names like `add_window_index()`, `vol_filter()`
+- **View functions**: `generate_plots()`, `create_{plot_type}_plot()`
+
+## Docstring Conventions
+
+### Context Headers
+Every module, class, and function should include context information:
+
+```python
+"""
+Context: Toolbox || Category: Technical || Command: humbl_signal || **Function: generate_plots()**.
+"""
+```
+
+### Parameter Documentation
+Use NumPy style docstrings consistently:
+
+```python
+def calc_humbl_signal(
+    data: pl.DataFrame | pl.LazyFrame,
+    window: str = "1d",
+    method: Literal["log", "simple", "shift"] = "log",
+) -> pl.LazyFrame:
+    """
+    Context: Toolbox || Category: Technical || Command: calc_humbl_signal.
+
+    Calculate signal for time series data.
+
+    Parameters
+    ----------
+    data : pl.DataFrame | pl.LazyFrame
+        Input data containing at minimum 'close' and 'date' columns
+    window : str, default "1d"
+        Window to calculate signal over
+    method : Literal["log", "simple", "shift"], default "log"
+        Method to calculate signal
+
+    Returns
+    -------
+    pl.LazyFrame
+        DataFrame with added signal columns
+
+    Raises
+    ------
+    HumblDataError
+        If required columns are missing or calculation fails
+    """
+```
+
+## Data Handling Patterns
+
+### Polars Usage
+- **Prefer LazyFrames**: Use `pl.LazyFrame` for transformations, collect only when necessary
+- **Type Annotations**: Always specify `pl.DataFrame | pl.LazyFrame` for flexibility
+- **Column Selection**: Use `.select()` and `.with_columns()` for transformations
+
+```python
+# Good pattern
+data = data.lazy().with_columns(
+    pl.col("close").log().alias("log_returns")
+).select(
+    pl.col("date"), pl.col("symbol"), pl.col("log_returns")
+)
+
+# Collect only when needed
+result = data.collect()
+```
+
+### Data Validation with Pandera
+```python
+class HumblSignalData(Data):
+    """Data model for the humbl_signal command."""
+
+    date: pl.Date = pa.Field(
+        default=None,
+        title="Date",
+        description="The date of the data point.",
+    )
+    symbol: str = pa.Field(
+        default=None,
+        title="Symbol",
+        description="The stock symbol.",
+    )
+    signal_value: float = pa.Field(
+        default=None,
+        title="Signal Value",
+        description="The calculated signal value.",
+        alias="(signal|signal_value|calculated_signal)",
+        regex=True,
+    )
+```
+
+## Standard Model Structure
+
+### QueryParams Pattern
+```python
+COMMAND_QUERY_DESCRIPTIONS = {
+    "window": "The window size for calculation",
+    "method": "The calculation method to use",
+}
+
+class CommandQueryParams(QueryParams):
+    """QueryParams for the Command command."""
+
+    window: str = Field(
+        default="1d",
+        title="Window",
+        description=COMMAND_QUERY_DESCRIPTIONS.get("window", ""),
+    )
+
+    @field_validator("window", mode="after", check_fields=False)
+    @classmethod
+    def validate_window(cls, v) -> str:
+        return _window_format(v, _return_timedelta=False)
+```
+
+### Fetcher Pattern (TET - Transform, Extract, Transform)
+```python
+class CommandFetcher:
+    """Fetcher for the Command command implementing TET pattern."""
+
+    def __init__(self, context_params: ContextQueryParams, command_params: CommandQueryParams):
+        self.context_params = context_params
+        self.command_params = command_params
+        self.warnings: list[Warning_] = []
+        self.extra = {}
+        self.chart = None
+
+    @collect_warnings
+    def transform_query(self):
+        """Transform parameters (T1)."""
+        if not self.command_params:
+            self.command_params = CommandQueryParams()
+        elif not isinstance(self.command_params, CommandQueryParams):
+            self.command_params = CommandQueryParams(**(self.command_params or {}))
+
+    @collect_warnings
+    async def extract_data(self):
+        """Extract data from providers (E)."""
+        # Data extraction logic
+        return self
+
+    @collect_warnings
+    def transform_data(self):
+        """Transform data with command logic (T2)."""
+        # Apply calculation using model.py functions
+        transformed_data = calc_command_function(
+            data=self.raw_data,
+            **self.command_params.model_dump()
+        )
+
+        self.transformed_data = CommandData(transformed_data.collect()).lazy()
+        return self
+
+    @log_start_end(logger=logger)
+    async def fetch_data(self):
+        """Execute TET pattern and return HumblObject."""
+        self.transform_query()
+        await self.extract_data()
+        self.transform_data()
+
+        return HumblObject(
+            results=self.transformed_data,
+            provider=self.context_params.provider,
+            warnings=self.context_params.warnings + self.warnings,
+            chart=self.chart,
+            context_params=self.context_params,
+            command_params=self.command_params,
+            extra=self.extra,
+        )
+```
+
+## Error Handling Patterns
+
+### Standard Error Handling
+```python
+try:
+    logger.debug("Initializing Command calculation with params: %s", kwargs)
+
+    fetcher = CommandFetcher(
+        context_params=self.context_params,
+        command_params=kwargs,
+    )
+
+    logger.debug("Fetching Command data")
+    return fetcher.fetch_data()
+
+except Exception as e:
+    logger.exception("Error calculating Command")
+    msg = f"Failed to calculate Command: {e!s}"
+    raise HumblDataError(msg) from e
+```
+
+### Data Validation Errors
+```python
+from humbldata.core.standard_models.abstract.errors import HumblDataError
+
+def validate_required_columns(data: pl.DataFrame, *columns: str):
+    """Validate that required columns exist in the dataframe."""
+    missing = [col for col in columns if col not in data.columns]
+    if missing:
+        msg = f"Missing required columns: {missing}"
+        raise HumblDataError(msg)
+```
+
+## Helper Function Patterns
+
+### Mathematical Functions (Keep them "DUMB")
+```python
+def calculate_signal_helper(
+    prices: pl.Series,
+    window: int,
+    method: str = "simple"
+) -> pl.Series:
+    """
+    Pure mathematical function for signal calculation.
+
+    This function should have no side effects and only perform calculations.
+    """
+    if method == "simple":
+        return prices.pct_change(window)
+    elif method == "log":
+        return prices.log().diff(window)
+    else:
+        raise ValueError(f"Unknown method: {method}")
+```
+
+### Data Transformation Helpers
+```python
+def _set_sort_cols(data: pl.DataFrame | pl.LazyFrame, *preferred_cols: str) -> list[str]:
+    """Determine appropriate columns for sorting."""
+    available_cols = data.columns if hasattr(data, 'columns') else data.collect().columns
+    return [col for col in preferred_cols if col in available_cols]
+
+def _check_required_columns(data: pl.DataFrame | pl.LazyFrame, *required: str):
+    """Check that required columns exist in the data."""
+    available = data.columns if hasattr(data, 'columns') else data.collect().columns
+    missing = [col for col in required if col not in available]
+    if missing:
+        raise HumblDataError(f"Missing required columns: {missing}")
+```
+
+## Import Organization
+
+### Standard Import Order
+```python
+"""Module docstring with context information."""
+
+# Standard library imports
+import asyncio
+import warnings
+from typing import Literal, TypeVar
+
+# Third-party imports
+import pandera.polars as pa
+import polars as pl
+from pydantic import Field, field_validator
+
+# humblDATA imports - core
+from humbldata.core.standard_models.abstract.data import Data
+from humbldata.core.standard_models.abstract.humblobject import HumblObject
+from humbldata.core.standard_models.abstract.query_params import QueryParams
+
+# humblDATA imports - context-specific
+from humbldata.core.standard_models.toolbox import ToolboxQueryParams
+
+# humblDATA imports - utilities
+from humbldata.core.utils.env import Env
+from humbldata.core.utils.logger import log_start_end, setup_logger
+
+# humblDATA imports - command-specific
+from humbldata.toolbox.technical.command.model import calc_command_function
+```
+
+## Logging Patterns
+
+### Logger Setup
+```python
+from humbldata.core.utils.logger import setup_logger
+
+logger = setup_logger("CommandFetcher", level=env.LOGGER_LEVEL)
+```
+
+### Logging Usage
+```python
+# Debug for flow tracking
+logger.debug("Running .transform_query()")
+logger.debug("Fetching Command data")
+
+# Exception for error cases
+logger.exception("Error calculating Command")
+```
+
+## Testing Patterns
+
+### Unit Test Structure
+```python
+import pytest
+import polars as pl
+from humbldata.toolbox.technical.command.model import calc_command_function
+
+class TestCalcCommandFunction:
+    """Test cases for calc_command_function."""
+
+    @pytest.fixture
+    def sample_data(self):
+        """Sample data for testing."""
+        return pl.DataFrame({
+            "date": ["2023-01-01", "2023-01-02"],
+            "symbol": ["AAPL", "AAPL"],
+            "close": [150.0, 155.0]
+        })
+
+    def test_calc_command_basic(self, sample_data):
+        """Test basic command calculation."""
+        result = calc_command_function(sample_data)
+        assert isinstance(result, pl.LazyFrame)
+        assert "signal" in result.collect().columns
+```
+
+## Files to Reference for Patterns
+
+- [Technical Controller](mdc:src/humbldata/toolbox/technical/technical_controller.py) - Controller patterns
+- [Humbl Channel Standard Model](mdc:src/humbldata/core/standard_models/toolbox/technical/humbl_channel.py) - Complete standard model example
+- [Humbl Channel Model](mdc:src/humbldata/toolbox/technical/humbl_channel/model.py) - Calculation function patterns
+- [Volatility Helpers](mdc:src/humbldata/toolbox/technical/volatility/realized_volatility_helpers.py) - Helper function patterns
+- [Toolbox Helpers](mdc:src/humbldata/toolbox/toolbox_helpers.py) - Utility function patterns
+
+## Key Principles
+
+1. **Consistency**: Follow existing patterns exactly for predictable codebase navigation
+2. **Separation of Concerns**: Keep calculation logic in model.py, validation in standard models, visualization in view.py
+3. **Type Safety**: Use proper type hints and Pydantic/Pandera validation
+4. **Lazy Evaluation**: Use Polars LazyFrames for performance
+5. **Error Handling**: Use HumblDataError with descriptive messages
+6. **Documentation**: Include context headers and comprehensive docstrings
+7. **Testing**: Write tests for all calculation functions and edge cases
