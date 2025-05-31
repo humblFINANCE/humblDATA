@@ -638,6 +638,7 @@ from humbldata.core.standard_models.abstract.data import Data
 from humbldata.core.standard_models.abstract.humblobject import HumblObject
 from humbldata.core.standard_models.abstract.query_params import QueryParams
 from humbldata.core.standard_models.{context} import {clean_name(context, case="PascalCase")}QueryParams
+from humbldata.core.utils.core_helpers import serialize_lazyframe_to_ipc
 from humbldata.core.utils.env import Env
 from humbldata.core.utils.logger import log_start_end, setup_logger
 
@@ -806,7 +807,7 @@ class {clean_name(command, case="PascalCase")}Fetcher:
         """
         # Implement data transformation logic here
         self.transformed_data = {clean_name(command, case="PascalCase")}Data(self.data)
-        self.transformed_data = self.transformed_data.serialize()
+        self.transformed_data = serialize_lazyframe_to_ipc(self.transformed_data)
         return self
 
     @log_start_end(logger=logger)
