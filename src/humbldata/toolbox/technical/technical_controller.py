@@ -5,6 +5,7 @@ available. This will be passed as a `@property` to the `Toolbox()` class, giving
 access to the technical module and its functions.
 """
 
+from humbldata.core.standard_models.toolbox.technical.humbl_signal import HumblSignalQueryParams
 from humbldata.core.standard_models.abstract.errors import HumblDataError
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
 from humbldata.core.standard_models.toolbox.technical.humbl_channel import (
@@ -109,6 +110,37 @@ class Technical:
             msg = f"Failed to calculate Momentum: {e!s}"
             raise HumblDataError(msg) from e
 
+
+    def humbl_signal(self, **kwargs: HumblSignalQueryParams):
+        """
+        Execute the HumblSignal command.
+
+        Parameters
+        ----------
+        **kwargs : HumblSignalQueryParams
+            The command-specific parameters.
+        """
+        try:
+            logger.debug(
+                "Initializing HumblSignal calculation with params: %s",
+                kwargs,
+            )
+
+            from humbldata.core.standard_models.toolbox.technical.humbl_signal import HumblSignalFetcher
+
+            # Instantiate the Fetcher with the query parameters
+            fetcher = HumblSignalFetcher(
+                context_params=self.context_params,
+                command_params=kwargs,
+            )
+
+            logger.debug("Fetching HumblSignal data")
+            return fetcher.fetch_data()
+
+        except Exception as e:
+            logger.exception("Error calculating HumblSignal")
+            msg = f"Failed to calculate HumblSignal: {e!s}"
+            raise HumblDataError(msg) from e
     def humbl_channel(self, **kwargs: HumblChannelQueryParams):
         """
         Calculate the Humbl Channel.
