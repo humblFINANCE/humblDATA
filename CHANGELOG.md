@@ -1,3 +1,13 @@
+## v1.23.0 (2025-05-31)
+
+### ✨ Features
+
+- **technical**: add humbl_signal method to Technical controller for signal calculations
+
+### 📌➕⬇️➖⬆️ Dependencies
+
+- **uv**: added test packages
+
 ## v1.22.1 (2025-05-22)
 
 ### 🐛🚑️ Fixes
