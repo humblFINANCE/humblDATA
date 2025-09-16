@@ -7,6 +7,7 @@ Fundamental module and its functions.
 """
 
 from typing import Any
+
 from humbldata.core.standard_models.abstract.errors import HumblDataError
 from humbldata.core.standard_models.abstract.humblobject import HumblObject
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
@@ -88,7 +89,8 @@ class Fundamental:
         template : str, optional
             The template/theme to use for the plotly figure
         z_score : str, optional
-            The time window for z-score calculation
+            The time window for z-score calculation. The z-score is calcualted
+            for the CLI and CPI data to show the deviation/depth from the mean.
 
         Returns
         -------

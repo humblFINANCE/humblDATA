@@ -1,8 +1,11 @@
 """Client for interacting with an external OpenBB-like API."""
 
+import asyncio
+import atexit
 import warnings
 from typing import TYPE_CHECKING, cast
 
+import aiohttp
 import polars as pl
 from pydantic import BaseModel
 
@@ -18,19 +21,13 @@ from humbldata.core.utils.env import Env
 from humbldata.core.utils.logger import log_start_end, setup_logger
 from humbldata.core.utils.network_helpers import (
     amake_request,
-    get_querystring,
     get_async_requests_session,
+    get_querystring,
 )
 from humbldata.core.utils.rate_limiter import (
     AsyncProviderRateLimiter,
     RateLimitExceeded,
 )
-import aiohttp
-import asyncio
-import atexit
-
-if TYPE_CHECKING:
-    pass
 
 logger = setup_logger("OpenBBAPIClient")
 
@@ -112,7 +109,7 @@ atexit.register(_atexit_close_session)
 class OpenBBAPIClient:
     """Asynchronous client to fetch data from the external OpenBB API."""
 
-    def __init__(self):
+    def __init__(self, request_timeout: int | None = 60):
         """Initialize the client with environment configuration."""
         self.env = Env()
         self.warnings: list[Warning_] = []
@@ -121,6 +118,11 @@ class OpenBBAPIClient:
         self.full_url: str | None = None
         self.raw_api_response: dict | list[dict] | None = None
         self.extra: dict = {}
+        self.request_timeout: int | None = request_timeout
+
+    def set_timeout(self, seconds: int | None) -> None:
+        """Set total request timeout in seconds for API calls."""
+        self.request_timeout = seconds if (seconds or 0) > 0 else None
 
     async def _get_base_url(self) -> str:
         """Determine the base API URL based on the environment."""
@@ -131,12 +133,11 @@ class OpenBBAPIClient:
                 msg = "OPENBB_API_PROD_URL is not set in the environment."
                 raise ValueError(msg)
             return f"{url.rstrip('/')}{api_suffix}"
-        else:
-            url = self.env.OPENBB_API_DEV_URL
-            if not url:
-                msg = "OPENBB_API_DEV_URL is not set in the environment."
-                raise ValueError(msg)
-            return f"{url.rstrip('/')}{api_suffix}"
+        url = self.env.OPENBB_API_DEV_URL
+        if not url:
+            msg = "OPENBB_API_DEV_URL is not set in the environment."
+            raise ValueError(msg)
+        return f"{url.rstrip('/')}{api_suffix}"
 
     def _translate_path(self, obb_path: str) -> str:
         """
@@ -273,14 +274,20 @@ class OpenBBAPIClient:
                 logger.info(msg)
 
                 # Use the shared connection-pooled ClientSession so that all
-                # concurrent requests reuse sockets.  Increase timeout to a
-                # more forgiving 30 seconds (API is occasionally slow under
-                # load).
+                # concurrent requests reuse sockets. Timeout is set per-client.
                 session = await _SharedSession.get()
+                # Derive timeout seconds
+                timeout_seconds: int = 60
+                if (
+                    isinstance(self.request_timeout, (int, float))
+                    and self.request_timeout
+                    and self.request_timeout > 0
+                ):
+                    timeout_seconds = int(self.request_timeout)
                 self.raw_api_response = await amake_request(
                     url=self.full_url,
                     method="GET",
-                    timeout=30,
+                    timeout=timeout_seconds,
                     session=session,
                 )
         except RateLimitExceeded as e:

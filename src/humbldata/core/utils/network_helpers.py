@@ -4,17 +4,10 @@ import asyncio
 import random
 import re
 import warnings
-import zlib
+from collections.abc import Awaitable, Callable
 from typing import (
     Any,
-    Awaitable,
-    Callable,
-    Dict,
-    List,
     Literal,
-    Optional,
-    Type,
-    Union,
 )
 
 import aiohttp
@@ -25,7 +18,7 @@ FILTER_QUERY_REGEX = r".*key.*|.*token.*|.*auth.*|(c$)"
 
 
 def obfuscate(
-    params: Union[CIMultiDict[str], MultiDict[str]],
+    params: CIMultiDict[str] | MultiDict[str],
 ) -> dict[str, Any]:
     """Obfuscate sensitive information in request parameters."""
     return {
@@ -87,7 +80,7 @@ class ClientResponse(aiohttp.ClientResponse):
             real_url=url,  # Using the obfuscated url for real_url as well
         )
 
-    async def json(self, **kwargs) -> Union[dict, list]:
+    async def json(self, **kwargs) -> dict | list:
         """Return the json response, ensuring content type is appropriate."""
         # Add content_type=None to allow parsing of non-application/json types if needed by API
         kwargs.setdefault("content_type", None)
@@ -97,7 +90,7 @@ class ClientResponse(aiohttp.ClientResponse):
 class ClientSession(aiohttp.ClientSession):
     """Custom ClientSession with default configurations and custom ClientResponse."""
 
-    _response_class: Type[ClientResponse] = (
+    _response_class: type[ClientResponse] = (
         ClientResponse  # Set default response class
     )
 
@@ -106,8 +99,8 @@ class ClientSession(aiohttp.ClientSession):
         kwargs.setdefault("connector", aiohttp.TCPConnector(ttl_dns_cache=300))
         kwargs.setdefault("response_class", self._response_class)
         kwargs.setdefault(
-            "auto_decompress", False
-        )  # Explicitly set based on provided code
+            "auto_decompress", True
+        )  # Enable automatic decompression to avoid timeout issues
         super().__init__(*args, **kwargs)
 
     def __del__(self, _warnings: Any = warnings) -> None:
@@ -132,14 +125,14 @@ class ClientSession(aiohttp.ClientSession):
             "POST", str(url), **kwargs
         )  # Ensure URL is string
 
-    async def get_json(self, url: str, **kwargs) -> Union[dict, list]:
+    async def get_json(self, url: str, **kwargs) -> dict | list:
         """Send GET request and return json."""
         response = await self.request(
             "GET", str(url), **kwargs
         )  # Ensure URL is string
         return await response.json()
 
-    async def get_one(self, url: str, **kwargs) -> Dict[str, Any]:
+    async def get_one(self, url: str, **kwargs) -> dict[str, Any]:
         """Send GET request and return first item in json if list."""
         response = await self.request(
             "GET", str(url), **kwargs
@@ -157,11 +150,12 @@ class ClientSession(aiohttp.ClientSession):
         method: str,
         url: str,
         *args,
-        raise_for_status: bool = False,
+        raise_for_status: bool
+        | None
+        | Callable[[ClientResponse], Awaitable[None]] = None,
         **kwargs,
     ) -> ClientResponse:
         """Send request with default headers and optional gzip/deflate handling."""
-
         headers = kwargs.pop("headers", CIMultiDict())
         headers.setdefault("Accept", "application/json")
         headers.setdefault("Accept-Encoding", "gzip, deflate")
@@ -173,28 +167,21 @@ class ClientSession(aiohttp.ClientSession):
             method, str(url), *args, **kwargs
         )  # Ensure URL is string
 
-        if raise_for_status:
+        if callable(raise_for_status):
+            # Our ClientResponse derives from aiohttp.ClientResponse, so cast is safe
+            client_response: ClientResponse = response  # type: ignore[assignment]
+            await raise_for_status(client_response)
+        elif raise_for_status:
             response.raise_for_status()
 
-        encoding = response.headers.get("Content-Encoding", "")
-        if encoding.lower() in ("gzip", "deflate") and not self.auto_decompress:
-            response_body = await response.read()
-            if response_body:  # Ensure body is not empty before decompressing
-                wbits = (
-                    16 + zlib.MAX_WBITS
-                    if encoding.lower() == "gzip"
-                    else -zlib.MAX_WBITS
-                )
-                # Use a new _body attribute as original _body might be protected or managed internally
-                response._body = zlib.decompress(response_body, wbits)  # type: ignore
-            else:
-                response._body = b""  # type: ignore
+        # Let aiohttp handle compression automatically by setting auto_decompress=True
+        # This avoids manual decompression that can cause timeouts
 
         return response  # type: ignore
 
 
 async def get_async_requests_session(**kwargs) -> ClientSession:
-    """Helper function to get an instance of ClientSession."""
+    """Return a configured ClientSession instance."""
     return ClientSession(**kwargs)
 
 
@@ -202,13 +189,12 @@ async def amake_request(
     url: str,
     method: Literal["GET", "POST"] = "GET",
     timeout: int = 10,
-    response_callback: Optional[
-        Callable[
-            [ClientResponse, ClientSession], Awaitable[Union[dict, List[dict]]]
-        ]
-    ] = None,
+    response_callback: Callable[
+        [ClientResponse, ClientSession], Awaitable[dict | list[dict]]
+    ]
+    | None = None,
     **kwargs,
-) -> Union[dict, List[dict], None]:
+) -> dict | list[dict] | None:
     """
     Abstract helper to make a single asynchronous request.
     """
@@ -253,16 +239,14 @@ async def amake_request(
 
 
 async def amake_requests(
-    urls: Union[str, List[str]],
-    response_callback: Optional[
-        Callable[
-            [ClientResponse, ClientSession], Awaitable[Union[dict, List[dict]]]
-        ]
-    ] = None,
+    urls: str | list[str],
+    response_callback: Callable[
+        [ClientResponse, ClientSession], Awaitable[dict | list[dict]]
+    ]
+    | None = None,
     **kwargs,
 ):
     """Make multiple requests asynchronously using a shared session."""
-
     # Pop 'session' to avoid passing it to individual amake_request calls if we create one here.
     # If a session is provided in kwargs, it will be used.
     session_from_kwargs = kwargs.pop("session", None)
@@ -333,7 +317,7 @@ async def amake_requests(
             await session.close()
 
 
-def get_querystring(items: dict, exclude: Optional[List[str]] = None) -> str:
+def get_querystring(items: dict, exclude: list[str] | None = None) -> str:
     """Turn a dictionary into a querystring, excluding specified keys.
 
     Parameters
