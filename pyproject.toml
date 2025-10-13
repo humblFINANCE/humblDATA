@@ -25,7 +25,6 @@ dependencies = [
     "limits>=5.2.0",
     "numpy>=2.2.5",
     "pandas>=2.2.3",
-    "investos",
     "scikit-learn>=1.7.2",
     # "aiobotocore>=2.24.2",
     # "cvxpy>=1.7.2",
@@ -33,6 +32,7 @@ dependencies = [
     # "dask-cloudprovider>=2025.9.0",
     # "requests>=2.32.5",
     # "statsmodels>=0.14.5",
+    "investos>=0.8.1",
 ]
 
 [build-system]
@@ -242,7 +242,4 @@ cmd = "coverage report"
 
 [[tool.poe.tasks.test.sequence]]
 cmd = "coverage xml"
-
-[tool.uv.sources]
-investos = { git = "https://github.com/jjfantini/investos.git" }
 
