@@ -1,0 +1,178 @@
+---
+description: Python numpy-style docstring documentation standards and requirements
+globs: *.py
+alwaysApply: false
+---
+# Python Numpy-Style Docstring Documentation Rules
+
+## Mandatory Documentation Process
+
+Before writing any docstring, you MUST follow this research process:
+
+### 1. Research Function Usage Across Codebase
+- Use `grep` to find all references to the function throughout the codebase
+- Examine how the function is imported and used in different modules
+- Understand the function's role in the broader system architecture
+- Identify all call sites and usage patterns
+
+### 2. Understand and Interpret Usage
+- Analyze the function's purpose within the context of its module and the overall system
+- Determine the function's relationship to other functions and classes
+- Understand the data flow and transformation the function performs
+- Identify any dependencies, side effects, or state changes
+
+## Required Docstring Structure
+
+All functions must follow this exact numpy-style docstring format:
+
+```python
+def function_name(param1: Type, param2: Type) -> ReturnType:
+    """One-line imperative description of what the function does.
+
+    This is the detailed description paragraph that explains the function's
+    purpose, context, and key behaviors. It should provide enough context
+    for developers to understand when and how to use this function.
+
+    Parameters
+    ----------
+    param1 : Type
+        Description of parameter 1, including any constraints, formats, or
+        special requirements. Be specific about expected values.
+    param2 : Type, optional
+        Description of parameter 2. If optional, explain the default behavior
+        and when it might be used. Default is None.
+
+    Returns
+    -------
+    ReturnType
+        Description of what is returned, including the structure, format,
+        and any special properties of the returned value.
+
+    Raises
+    ------
+    SpecificException
+        Description of when this exception is raised and why.
+    AnotherException
+        Description of another exception condition.
+
+    Notes
+    -----
+    This section provides detailed implementation + workflow information:
+
+    1. **Key Feature 1**: Explanation of important implementation details
+    2. **Key Feature 2**: Description of algorithms, strategies, or patterns used
+    3. **Key Feature 3**: Important behavioral notes or constraints
+    4. **Error Handling**: How errors are handled and what happens on failure
+
+    The function is designed to [specific design goals or use cases].
+
+    Examples
+    --------
+    >>> # Basic usage example
+    >>> result = function_name("example_param", optional_param="value")
+    >>> print(result)
+    expected_output
+    >>>
+    >>> # Advanced usage with different parameters
+    >>> complex_result = function_name(
+    ...     "param1",
+    ...     param2={"key": "value"},
+    ...     param3=42
+    ... )
+    >>> process_result(complex_result)
+
+    See Also
+    --------
+    related_function : Function that works with this one
+    helper_function : Utility function used internally
+    external_module.function : External function that calls this one
+    """
+```
+
+## Required Sections
+
+### 1. One-Line Summary (Required)
+- **Format**: Imperative mood, active voice
+- **Content**: What the function does, not what it is
+- **Example**: "Extract and process Interactive Brokers reports from API or cache."
+
+### 2. Detailed Description (Required)
+- **Content**: Context, purpose, and key behaviors
+- **Length**: 2-4 sentences explaining the function's role
+- **Focus**: When and how to use the function
+
+### 3. Parameters (Required)
+- **Format**: Type annotations with detailed descriptions
+- **Content**: Purpose, constraints, formats, default behaviors
+- **Optional Parameters**: Must explain default values and usage scenarios
+
+### 4. Returns (Required)
+- **Format**: Type annotation with detailed description
+- **Content**: Structure, format, special properties
+- **Complex Returns**: Break down tuple/list structures
+
+### 5. Raises (Required if function raises exceptions)
+- **Format**: Exception type with description
+- **Content**: When and why each exception is raised
+- **Specificity**: Use actual exception types, not generic "Exception"
+
+### 6. Notes (Required for complex functions)
+- **Content**: Implementation details, algorithms, strategies
+- **Format**: Numbered list of key features
+- **Focus**: How the function works internally
+- **Design Goals**: Explain the function's design philosophy
+
+### 7. Examples (Required)
+- **Format**: Python code blocks with `>>>` prompts
+- **Content**: Basic and advanced usage scenarios
+- **Realistic**: Use actual parameter values and expected outputs
+- **Multiple**: Show different use cases when applicable
+
+### 8. See Also (Required)
+- **Content**: Related functions and external usage
+- **Categories**:
+  - Functions used internally by this function
+  - Functions that call this function externally
+  - Related utility functions
+  - External modules or classes that use this function
+
+## Quality Standards
+
+### Research Requirements
+- **Codebase Analysis**: Must understand function usage across entire codebase
+- **Context Understanding**: Must interpret function's role in system architecture
+- **Dependency Mapping**: Must identify all related functions and modules
+- **Usage Patterns**: Must document common and advanced usage scenarios
+
+### Documentation Quality
+- **Completeness**: All parameters, returns, and exceptions documented
+- **Accuracy**: Information must match actual implementation
+- **Clarity**: Language should be clear and accessible to developers
+- **Examples**: Must be realistic and demonstrate actual usage patterns
+
+### Consistency
+- **Format**: Strict adherence to numpy docstring format
+- **Style**: Consistent language and terminology
+- **Structure**: All sections present and properly formatted
+- **Cross-References**: Consistent linking to related functions
+
+## Enforcement
+
+This rule applies to ALL Python files (`.py` extension) and must be followed for:
+- Public functions and methods
+- Private functions that are complex or have external usage
+- Class methods and static methods
+- Any function with more than 3 parameters or complex logic
+
+## Example of Perfect Documentation
+
+The docstring for `_extract_reports_engine` in [fetch_engine.py](mdc:codebases/Backend/FinaticBrokerFactoryPKG/src/finatic_broker_factory/brokers/interactive_brokers/helpers/fetch_engine.py) demonstrates the perfect implementation of these standards, including:
+
+- Comprehensive research of function usage across fetcher classes
+- Detailed parameter descriptions with type information
+- Complete return value documentation
+- Implementation notes explaining caching and filtering strategies
+- Realistic examples showing actual usage patterns
+- Comprehensive "See Also" section linking related functions
+
+This level of documentation quality should be the standard for all functions in the codebase.

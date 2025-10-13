@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from typing import Any, Literal
 
+import numpy as np
 import pandas as pd
 import polars as pl
 
@@ -105,11 +105,11 @@ class HumblCompassSimpleBacktest(SimpleBacktest):
       - Requires: either ``lag_months`` or an ``effective_start_calendar``.
     """
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         actual_returns: pd.DataFrame,
         compass_metric: pd.DataFrame | pl.DataFrame | pl.LazyFrame,
-        other_metrics: Mapping[str, pd.DataFrame] | None = None,
+        other_metrics: dict[str, pd.DataFrame] | None = None,
         *,
         regime_alignment: Literal[
             "month_attribution", "tradable_asof"
@@ -121,6 +121,56 @@ class HumblCompassSimpleBacktest(SimpleBacktest):
         carry_past_last_known: bool = False,
         **kwargs: Any,
     ) -> None:
+        """Initialize the HumblCompass backtest with regime alignment.
+
+        This prepares a daily regime metric from a monthly HumblCompass input
+        using either simple month attribution or a tradable-as-of alignment
+        that respects publication lag or an effective-start calendar.
+
+        Parameters
+        ----------
+        actual_returns : pandas.DataFrame
+            Daily realized returns indexed by trading-day ``DatetimeIndex``.
+            Columns are asset symbols. A ``cash`` column is optional.
+        compass_metric : pandas.DataFrame | polars.DataFrame | polars.LazyFrame
+            Monthly HumblCompass labels. Either per-asset columns or a single
+            ``humbl_regime`` column with a date/index representing month
+            starts.
+        other_metrics : dict[str, pandas.DataFrame], optional
+            Additional daily metric frames to include alongside
+            ``humblCOMPASS``. Must be aligned to trading days.
+        regime_alignment : {"month_attribution", "tradable_asof"}
+            Alignment mode. ``month_attribution`` forward-fills within the
+            month. ``tradable_asof`` assigns labels only when they become
+            known (no lookahead).
+        lag_months : int
+            Publication lag in months when using ``tradable_asof`` and no
+            effective-start calendar is provided. Default is 2.
+        effective_start_calendar : pandas.DataFrame | polars.DataFrame | None
+            Optional calendar with ``date_month_start`` and ``effective_start``
+            columns. Overrides ``lag_months`` when provided.
+        carry_past_last_known : bool
+            If True, allows forward-fill past the last fully-known month in
+            ``month_attribution`` mode. Default is False.
+        **kwargs : Any
+            Passed to the base strategy. Notable keys: ``cash_column_name``,
+            ``log_returns`` (defaults to True in the base class).
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        ValueError
+            If the monthly ``compass_metric`` cannot be coerced to a valid
+            schema with a date column.
+
+        See Also
+        --------
+        humbldata.core.backtesting.simple_backtest.SimpleBacktest
+            Base class providing regime bucket analytics.
+        """
         # Determine assets to expand regime for when needed
         cash_col = kwargs.get("cash_column_name", "cash")
         all_assets: list[str] = list(actual_returns.columns)
@@ -160,13 +210,199 @@ class HumblCompassSimpleBacktest(SimpleBacktest):
     def generate_hisotrical_performance_backtest(
         self, *args, **kwargs
     ) -> SimpleBacktestResult:
-        """Run the base regime analysis and return the result.
+        """Run regime analysis and augment with HumblCompass instance stats.
 
-        This intentionally returns the base ``SimpleBacktestResult`` to
-        avoid unnecessary object copying. The result type remains
-        compatible with any downstream handling.
+        This delegates to the base backtest to compute per-bucket performance
+        and then adds instance-aware statistics for ``humblCOMPASS`` such as
+        contiguous instance counts, average instance length, and drawdowns.
+
+        Parameters
+        ----------
+        *args
+            Positional arguments passed through to the base implementation.
+        **kwargs
+            Keyword arguments passed through to the base implementation.
+
+        Returns
+        -------
+        SimpleBacktestResult
+            Result with nested per-bucket metrics and a tidy ``summary``.
+
+        See Also
+        --------
+        humbldata.core.backtesting.simple_backtest.SimpleBacktest
+            Base computation of per-bucket performance metrics.
         """
-        return super().generate_hisotrical_performance_backtest(*args, **kwargs)
+        result = super().generate_hisotrical_performance_backtest(
+            *args, **kwargs
+        )
+
+        # Augment with instance-based stats for humblCOMPASS buckets
+        self._calculate_instance_stats(result)
+        return result
+
+    # -------------------------------------------------
+    # Internals - instance analytics
+    # -------------------------------------------------
+    def _calculate_instance_stats(self, result: SimpleBacktestResult) -> None:
+        """Compute instance-level statistics for HumblCompass buckets.
+
+        For each asset and regime bucket under ``humblCOMPASS``, compute the
+        number of contiguous instances, average instance length, average
+        per-instance max drawdown, and the worst per-instance drawdown.
+
+        Parameters
+        ----------
+        result : SimpleBacktestResult
+            Result whose nested metrics will be updated in place.
+
+        Returns
+        -------
+        None
+        """
+        metric_name = "humblCOMPASS"
+        if metric_name not in self.metrics:
+            return
+
+        metric_df = self.metrics[metric_name]
+        returns_df = self.actual_returns
+
+        nested = result.regime_metrics
+        assets = [a for a in nested if metric_name in nested.get(a, {})]
+
+        for asset in assets:
+            self._calculate_instance_stats_for_asset(
+                nested=nested,
+                asset=asset,
+                metric_name=metric_name,
+                metric_df=metric_df,
+                returns_df=returns_df,
+            )
+
+        # Rebuild the summary table to include the new fields
+        result.rebuild_summary()
+
+    def _calculate_instance_stats_for_asset(
+        self,
+        *,
+        nested: dict,
+        asset: str,
+        metric_name: str,
+        metric_df: pd.DataFrame,
+        returns_df: pd.DataFrame,
+    ) -> None:
+        """Compute instance statistics for one asset and update nested metrics.
+
+        Parameters
+        ----------
+        nested : dict
+            Nested regime metrics mapping to update in place.
+        asset : str
+            Asset symbol being processed.
+        metric_name : str
+            Metric key (expected ``"humblCOMPASS"`` here).
+        metric_df : pandas.DataFrame
+            Monthly HumblCompass labels for all assets.
+        returns_df : pandas.DataFrame
+            Daily returns used to compute instance drawdowns and counts.
+
+        Returns
+        -------
+        None
+        """
+        if asset not in metric_df.columns or asset not in returns_df.columns:
+            return
+
+        m_series = metric_df[asset]
+        common_idx = returns_df.index.intersection(m_series.index)
+        asset_returns = returns_df.loc[common_idx, asset].dropna()
+        asset_metric = m_series.loc[common_idx]
+
+        for bucket in nested[asset][metric_name]:
+            bucket_mask = asset_metric.astype(str) == bucket
+            if not bucket_mask.any():
+                nested[asset][metric_name][bucket].update(
+                    {
+                        "num_instances": 0.0,
+                        "avg_instance_length": None,
+                        "average_drawdown": None,
+                        "max_drawdown": None,
+                    }
+                )
+                continue
+
+            run_change = bucket_mask.ne(bucket_mask.shift(fill_value=False))
+            run_id = run_change.cumsum()
+            true_runs = run_id[bucket_mask]
+
+            instance_lengths: list[int] = []
+            instance_drawdowns: list[float] = []
+
+            for _, idx_vals in true_runs.groupby(true_runs):
+                sub_idx = idx_vals.index
+                sub_returns = asset_returns.reindex(sub_idx).dropna()
+                if sub_returns.empty:
+                    continue
+                instance_lengths.append(len(sub_returns))
+
+                if getattr(self, "log_returns", True):
+                    wealth = (sub_returns.cumsum()).apply(np.exp)
+                else:
+                    wealth = (1.0 + sub_returns).cumprod()
+                drawdown = (wealth / wealth.cummax()) - 1.0
+                instance_dd = (
+                    float(drawdown.min()) if not drawdown.empty else 0.0
+                )
+                instance_drawdowns.append(instance_dd)
+
+            if getattr(self, "log_returns", True):
+                bucket_idx = asset_metric.index[bucket_mask]
+                bucket_returns = asset_returns.reindex(bucket_idx).dropna()
+                if not bucket_returns.empty:
+                    sum_log = float(bucket_returns.sum())
+                    total_ret = float(np.exp(sum_log) - 1.0)
+                    ppy = self._infer_ppy(bucket_returns.index)  # type: ignore[arg-type]
+                    years_float = (
+                        float(len(bucket_returns)) / float(ppy)
+                        if ppy > 0
+                        else 0.0
+                    )
+                    ann_ret = (
+                        float(np.exp(sum_log / years_float) - 1.0)
+                        if years_float > 0
+                        else None
+                    )
+                    nested[asset][metric_name][bucket].update(
+                        {
+                            "total_return": total_ret,
+                            "cumulative_return": total_ret,
+                            "annualized_return": ann_ret,
+                        }
+                    )
+
+            num_instances = float(len(instance_lengths))
+            avg_len = (
+                float(pd.Series(instance_lengths).mean())
+                if instance_lengths
+                else None
+            )
+            avg_dd = (
+                float(pd.Series(instance_drawdowns).mean())
+                if instance_drawdowns
+                else None
+            )
+            worst_dd = (
+                float(min(instance_drawdowns)) if instance_drawdowns else None
+            )
+
+            nested[asset][metric_name][bucket].update(
+                {
+                    "num_instances": num_instances,
+                    "avg_instance_length": avg_len,
+                    "average_drawdown": avg_dd,
+                    "max_drawdown": worst_dd,
+                }
+            )
 
     # -------------------------------------------------
     # Internals - Polars alignment helpers
@@ -175,11 +411,29 @@ class HumblCompassSimpleBacktest(SimpleBacktest):
     def _coerce_to_polars(
         df_like: pd.DataFrame | pl.DataFrame | pl.LazyFrame,
     ) -> pl.DataFrame:
-        """Coerce pandas/Polars input to a Polars DataFrame with a date column.
+        """Coerce pandas/Polars input into a Polars frame with a date column.
 
-        Accepted schemas:
-        - Index is date-like OR a column in {"date", "date_month_start"}
-        - Values are either a single ``humbl_regime`` column or per-asset columns
+        Parameters
+        ----------
+        df_like : pandas.DataFrame | polars.DataFrame | polars.LazyFrame
+            Frame with either a date-like index or a date column.
+
+        Returns
+        -------
+        polars.DataFrame
+            Polars frame sorted by ``date`` with ``Datetime(us)`` type.
+
+        Raises
+        ------
+        ValueError
+            If a ``date`` or ``date_month_start`` column or index is not
+            present.
+
+        Notes
+        -----
+        - If the index comes from pandas, it is promoted to ``date``.
+        - ``date_month_start`` is normalized to ``date``.
+        - Time unit is forced to microseconds to avoid join mismatches.
         """
         if isinstance(df_like, pl.LazyFrame):
             out = df_like.collect()
@@ -220,10 +474,20 @@ class HumblCompassSimpleBacktest(SimpleBacktest):
     def _normalize_compass_schema(
         comp_pl: pl.DataFrame, assets: list[str]
     ) -> pl.DataFrame:
-        """Ensure the Polars frame has per-asset columns; expand if single column.
+        """Normalize monthly labels to per-asset columns for all assets.
 
-        If a single column named ``humbl_regime`` exists, replicate to each asset
-        column. Otherwise, assume provided columns already match assets.
+        Parameters
+        ----------
+        comp_pl : polars.DataFrame
+            Polars frame with ``date`` and either per-asset columns or a
+            single ``humbl_regime`` column.
+        assets : list[str]
+            Target asset universe for expansion and filtering.
+
+        Returns
+        -------
+        polars.DataFrame
+            Frame with ``date`` and per-asset label columns for ``assets``.
         """
         cols = [c for c in comp_pl.columns if c != "date"]
         if cols == ["humbl_regime"]:
@@ -264,7 +528,18 @@ class HumblCompassSimpleBacktest(SimpleBacktest):
     def _trading_index_to_polars(
         trading_index: pd.DatetimeIndex,
     ) -> pl.DataFrame:
-        # Keep exact dates from the trading calendar (not a range), ordered
+        """Convert a trading-day ``DatetimeIndex`` into a Polars date frame.
+
+        Parameters
+        ----------
+        trading_index : pandas.DatetimeIndex
+            Trading-day index to convert.
+
+        Returns
+        -------
+        polars.DataFrame
+            Polars frame with a single ``date`` column, typed ``Datetime``.
+        """
         trading_df = pd.DataFrame(
             {"date": pd.DatetimeIndex(trading_index).sort_values()}
         )
@@ -283,8 +558,19 @@ class HumblCompassSimpleBacktest(SimpleBacktest):
     ) -> pl.DataFrame:
         """Forward-attribute monthly labels to each trading day in-month.
 
-        Days strictly after the last fully-known month are masked to null unless
-        ``carry_past_last_known`` is True.
+        Parameters
+        ----------
+        comp_pl : polars.DataFrame
+            Monthly labels with a ``date`` month-start column.
+        trading_index : pandas.DatetimeIndex
+            Trading-day index to map to monthly labels.
+        carry_past_last_known : bool
+            If False, mask days beyond the end of the last fully-known month.
+
+        Returns
+        -------
+        polars.DataFrame
+            Daily-aligned labels with a ``date`` column and per-asset labels.
         """
         daily = self._trading_index_to_polars(trading_index)
         # asof join backward maps each day to the most recent month start
@@ -316,7 +602,25 @@ class HumblCompassSimpleBacktest(SimpleBacktest):
         lag_months: int,
         effective_calendar: pd.DataFrame | pl.DataFrame | pl.LazyFrame | None,
     ) -> pl.DataFrame:
-        """Assign labels only after they become knowable (causal alignment)."""
+        """Assign labels after they become knowable (causal alignment).
+
+        Parameters
+        ----------
+        comp_pl : polars.DataFrame
+            Monthly labels with a ``date`` month-start column.
+        trading_index : pandas.DatetimeIndex
+            Trading-day index to align.
+        lag_months : int
+            Publication lag to apply when ``effective_calendar`` is None.
+        effective_calendar : pandas.DataFrame | polars.DataFrame | None
+            Optional calendar with ``date_month_start`` and
+            ``effective_start`` columns.
+
+        Returns
+        -------
+        polars.DataFrame
+            Daily-aligned labels as of their effective start dates.
+        """
         base = comp_pl
 
         if effective_calendar is not None:
@@ -397,6 +701,18 @@ class HumblCompassSimpleBacktest(SimpleBacktest):
 
     @staticmethod
     def _polars_to_pandas_daily(df: pl.DataFrame) -> pd.DataFrame:
+        """Convert a Polars daily frame into a pandas DataFrame with index.
+
+        Parameters
+        ----------
+        df : polars.DataFrame
+            Polars frame with a ``date`` column and per-asset label columns.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Pandas DataFrame indexed by ``DatetimeIndex`` sorted ascending.
+        """
         pdf = df.to_pandas()
         pdf = pdf.set_index("date")
         # Ensure index type

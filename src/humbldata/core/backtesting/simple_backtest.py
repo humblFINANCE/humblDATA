@@ -64,6 +64,11 @@ class SimpleBacktestResult(BaseResult):
         """Return the nested regime metrics as a JSON-serializable dict."""
         return self.regime_metrics
 
+    # Public hook for subclasses to rebuild their summary after mutation
+    def rebuild_summary(self) -> None:
+        """Rebuild the tidy summary table from current ``regime_metrics``."""
+        self._summary = self._build_summary_dataframe()
+
     @property
     def summary(self) -> pd.DataFrame:  # type: ignore[override]
         """Return a tidy DataFrame summary of regime metrics.
@@ -104,6 +109,9 @@ class SimpleBacktestResult(BaseResult):
                         "symbol",
                         "metric",
                         "bucket",
+                        "num_instances",
+                        "avg_instance_length",
+                        "average_drawdown",
                         "total_return",
                         "annualized_return",
                         "annualized_excess_return",
@@ -128,6 +136,8 @@ class SimpleBacktestResult(BaseResult):
             "metric",
             "bucket",
             "num_periods",
+            "num_instances",
+            "avg_instance_length",
             "total_return",
             "cumulative_return",
             "annualized_return",
@@ -137,6 +147,7 @@ class SimpleBacktestResult(BaseResult):
             "excess_risk_annualized",
             "sharpe_ratio",
             "information_ratio",
+            "average_drawdown",
             "max_drawdown",
             "portfolio_hit_rate",
             "annual_turnover",
@@ -182,6 +193,10 @@ class SimpleBacktest(BaseStrategy):
         self.metrics: dict[str, pd.DataFrame] = {
             name: df.copy() for name, df in metrics.items()
         }
+
+        # Whether input returns are log returns. If True, wealth and
+        # compounding use exp(cumsum(log_returns)). Defaults to True.
+        self.log_returns: bool = bool(kwargs.get("log_returns", True))
 
         # Ensure indices are DatetimeIndex and aligned universe-wise (intersection)
         self._normalize_inputs()
@@ -406,8 +421,8 @@ class SimpleBacktest(BaseStrategy):
             return 4.0
         return 1.0
 
-    @staticmethod
     def _compute_stats(
+        self,
         returns: pd.Series,
         benchmark_returns: pd.Series,
         risk_free_returns: pd.Series,
@@ -444,27 +459,29 @@ class SimpleBacktest(BaseStrategy):
         excess = (returns - benchmark_returns).dropna()
         over_cash = (returns - risk_free_returns).dropna()
 
-        # Infer ppy and years from index
+        # Infer ppy and annualization based on trading days
         idx = cast("pd.DatetimeIndex", returns.index)
         ppy = SimpleBacktest._infer_ppy(idx)
 
-        # Cumulative return - use raw returns
-        cum_ret = float((1.0 + returns).prod() - 1.0)
-
-        # Annualized return - prefer time-based years_forecast like BaseResult
         n = len(returns)
-        if n >= 2 and isinstance(returns.index, pd.DatetimeIndex):
-            years = (returns.index[-1] - returns.index[0]) / pd.Timedelta(
-                days=365.25
-            )
-            years_float = float(years) if years is not pd.NaT else 0.0
-        else:
-            years_float = 0.0
+        years_float = float(n) / float(ppy) if ppy > 0 and n > 0 else 0.0
 
-        if years_float > 0:
-            ann_ret = float(((1.0 + cum_ret) ** (1.0 / years_float)) - 1.0)
+        # Cumulative and annualized return
+        if self.log_returns:
+            sum_log = float(returns.sum())
+            cum_ret = float(np.exp(sum_log) - 1.0)
+            ann_ret = (
+                float(np.exp(sum_log / years_float) - 1.0)
+                if years_float > 0
+                else float("nan")
+            )
         else:
-            ann_ret = float(((1.0 + cum_ret) ** (ppy / max(n, 1))) - 1.0)
+            cum_ret = float((1.0 + returns).prod() - 1.0)
+            ann_ret = (
+                float(((1.0 + cum_ret) ** (ppy / max(n, 1))) - 1.0)
+                if n > 0
+                else float("nan")
+            )
 
         # Annualized volatility (over cash as in BaseResult.risk_over_cash_annualized)
         vol = (
@@ -488,24 +505,42 @@ class SimpleBacktest(BaseStrategy):
             else float("nan")
         )
 
-        # Max drawdown on wealth curve using raw returns
-        wealth = (1.0 + returns).cumprod()
+        # Max drawdown on wealth curve
+        if self.log_returns:
+            wealth = np.exp(returns.cumsum())
+        else:
+            wealth = (1.0 + returns).cumprod()
         rolling_max = wealth.cummax()
         drawdown = (wealth / rolling_max) - 1.0
         max_dd = float(drawdown.min()) if not drawdown.empty else float("nan")
 
         # Annualized excess return (geometric like BaseResult when geometric=True)
-        total_benchmark = float((1.0 + benchmark_returns).prod() - 1.0)
-        if years_float > 0:
-            ann_bench = float(
-                ((1.0 + total_benchmark) ** (1.0 / years_float)) - 1.0
+        if self.log_returns:
+            sum_bench_log = float(benchmark_returns.sum())
+            total_benchmark = float(np.exp(sum_bench_log) - 1.0)
+            ann_bench = (
+                float(np.exp(sum_bench_log / years_float) - 1.0)
+                if years_float > 0
+                else float("nan")
+            )
+            # Log-excess annualization: use log domain difference
+            ann_excess = (
+                float(
+                    np.exp((float(returns.sum()) - sum_bench_log) / years_float)
+                    - 1.0
+                )
+                if years_float > 0
+                else float("nan")
             )
         else:
-            ann_bench = float(
-                ((1.0 + total_benchmark) ** (ppy / max(n, 1))) - 1.0
+            total_benchmark = float((1.0 + benchmark_returns).prod() - 1.0)
+            ann_bench = (
+                float(((1.0 + total_benchmark) ** (ppy / max(n, 1))) - 1.0)
+                if n > 0
+                else float("nan")
             )
-        # Match BaseResult default behavior (non-geometric): annualized_return - annualized_benchmark_return
-        ann_excess = ann_ret - ann_bench
+            # Match BaseResult default behavior (non-geometric)
+            ann_excess = ann_ret - ann_bench
 
         # Portfolio hit rate (proportion of positive raw returns)
         hit_rate = float((returns > 0).mean()) if n > 0 else float("nan")
