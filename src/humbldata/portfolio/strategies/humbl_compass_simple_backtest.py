@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping
 from typing import Any, Literal
 
 import numpy as np
@@ -11,6 +12,10 @@ import polars as pl
 from humbldata.core.backtesting.simple_backtest import (
     SimpleBacktest,
     SimpleBacktestResult,
+)
+from humbldata.core.standard_models.portfolio.strategies.regimes import (
+    HumblCompassPositionLogic,
+    coerce_humbl_compass_position_logic,
 )
 
 
@@ -119,6 +124,20 @@ class HumblCompassSimpleBacktest(SimpleBacktest):
             pd.DataFrame | pl.DataFrame | pl.LazyFrame | None
         ) = None,
         carry_past_last_known: bool = False,
+        humbl_compass_position_logic: (
+            Mapping[str, Mapping[str, list[str]]]
+            | HumblCompassPositionLogic
+            | None
+        ) = None,
+        allow_shorts: bool = False,
+        target_invested_fraction: float = 1.0,
+        allocation_fn: (
+            Callable[
+                [pd.Timestamp, set[str], set[str], pd.Index], dict[str, float]
+            ]
+            | None
+        ) = None,
+        unknown_asset_policy: Literal["error", "clip"] = "error",
         **kwargs: Any,
     ) -> None:
         """Initialize the HumblCompass backtest with regime alignment.
@@ -152,6 +171,27 @@ class HumblCompassSimpleBacktest(SimpleBacktest):
         carry_past_last_known : bool
             If True, allows forward-fill past the last fully-known month in
             ``month_attribution`` mode. Default is False.
+        humbl_compass_position_logic : Mapping[str, Mapping[str, list[str]]] | HumblRegimePositionMappings, optional
+            Mapping of regime name (e.g., ``"humblBOOM"``) to a dict with
+            ``{"long": [...], "short": [...]}`` asset lists. Used by
+            :meth:`generate_trade_list` to construct target weights per day.
+            If None, trade generation will remain flat.
+        allow_shorts : bool, optional
+            If True, the ``short`` lists in the mappings will be utilized. If
+            False (default), short allocations are ignored and set to zero.
+        target_invested_fraction : float, optional
+            Fraction of capital to invest on the long side when using the
+            default allocator (equal-weight). Residual is optionally allocated
+            to ``cash`` if present. Default is 1.0.
+        allocation_fn : Callable, optional
+            Custom allocator of signature
+            ``f(t, active_longs, active_shorts, holdings_index) -> {symbol: weight}``.
+            If provided, overrides the default equal-weight behavior. You can
+            implement long-only by returning zero weights for short symbols.
+        unknown_asset_policy : {"error", "clip"}, optional
+            Policy for symbols present in the mappings but absent from the
+            returns universe. ``"error"`` raises ValueError (default). ``"clip"``
+            silently drops unknown symbols from the mappings.
         **kwargs : Any
             Passed to the base strategy. Notable keys: ``cash_column_name``,
             ``log_returns`` (defaults to True in the base class).
@@ -204,6 +244,50 @@ class HumblCompassSimpleBacktest(SimpleBacktest):
             actual_returns=actual_returns, metrics=metrics, **kwargs
         )
 
+        # -------------------------
+        # Regime mapping validation
+        # -------------------------
+        self.allow_shorts: bool = bool(allow_shorts)
+        self.target_invested_fraction: float = float(target_invested_fraction)
+        self.allocation_fn = allocation_fn
+        self.unknown_asset_policy: Literal["error", "clip"] = (
+            unknown_asset_policy
+        )
+
+        self._humbl_compass_position_logic: HumblCompassPositionLogic | None = (
+            None
+        )
+        if humbl_compass_position_logic is not None:
+            if isinstance(
+                humbl_compass_position_logic, HumblCompassPositionLogic
+            ):
+                mappings = humbl_compass_position_logic
+            else:
+                raw_dict: dict[str, dict[str, list[str]]] = {
+                    str(k): {
+                        "long": list(v.get("long", [])),
+                        "short": list(v.get("short", [])),
+                    }
+                    for k, v in humbl_compass_position_logic.items()
+                }
+                mappings = coerce_humbl_compass_position_logic(raw_dict)
+
+            universe_set = set(all_assets)
+            if unknown_asset_policy == "clip":
+                mappings = mappings.clip_to_universe(universe_set)
+            else:
+                unknown = sorted(
+                    mappings.all_symbols().difference(universe_set)
+                )
+                if unknown:
+                    msg = (
+                        "Symbols in humbl_compass_position_logic are not present in actual_returns: "
+                        f"{unknown}"
+                    )
+                    raise ValueError(msg)
+
+            self._humbl_compass_position_logic = mappings
+
     # If we need to return a specialized result later, we can override the
     # public API method to wrap the parent result into our subclass. For now,
     # we keep the same behavior and type for maximum compatibility.
@@ -240,6 +324,171 @@ class HumblCompassSimpleBacktest(SimpleBacktest):
         # Augment with instance-based stats for humblCOMPASS buckets
         self._calculate_instance_stats(result)
         return result
+
+    # -----------------------------------------------
+    # Trading API - InvestOS-compatible
+    # -----------------------------------------------
+    def generate_trade_list(
+        self, holdings: pd.Series, t: pd.Timestamp
+    ) -> pd.Series:  # type: ignore[override]
+        """Generate absolute target weights from regime-to-positions mapping.
+
+        This implementation is compatible with InvestOS ``BacktestController``
+        expectations: it returns absolute target weights (not deltas). By
+        default, it constructs an equal-weight long-only portfolio across the
+        assets listed under the active regime for each asset symbol, allocating
+        any residual to the ``cash`` column if present.
+
+        Parameters
+        ----------
+        holdings
+            Current holdings Series indexed by symbols (including ``cash`` if
+            present). Only the index is used to define the output ordering.
+        t
+            Timestamp for which to generate target weights. If ``t`` is not
+            present in the regime metric index, the most recent prior date is
+            used (as-of behavior). If none exists, a zero vector is returned.
+
+        Returns
+        -------
+        pandas.Series
+            Absolute target weights aligned to ``holdings.index``.
+
+        Notes
+        -----
+        - If no ``humbl_compass_position_logic`` were provided at init, this
+          returns a zero vector (stay flat).
+        - Shorts are ignored unless ``allow_shorts`` is True.
+        - You may override sizing by providing ``allocation_fn`` at init.
+        """
+        # If no mappings provided, stay flat
+        if self._humbl_compass_position_logic is None:
+            return pd.Series(index=holdings.index, data=0.0, dtype=float)
+
+        metric_name = "humblCOMPASS"
+        if metric_name not in self.metrics:
+            return pd.Series(index=holdings.index, data=0.0, dtype=float)
+
+        regime_df = self.metrics[metric_name]
+        if regime_df.empty:
+            return pd.Series(index=holdings.index, data=0.0, dtype=float)
+
+        # As-of locate the regime row for timestamp t
+        if not isinstance(t, pd.Timestamp):
+            t = pd.Timestamp(t)
+        idx = regime_df.index
+        if t not in idx:
+            # find most recent date <= t (pad)
+            try:
+                asof_dt = idx.asof(t)  # type: ignore[attr-defined]
+            except Exception:
+                # Fallback for pandas without Index.asof
+                pos_arr = idx.get_indexer([t], method="pad")
+                pos = int(pos_arr[0]) if len(pos_arr) else -1
+                if pos < 0:
+                    return pd.Series(
+                        index=holdings.index, data=0.0, dtype=float
+                    )
+                asof_dt = idx[pos]
+            # Ensure asof_dt is a Timestamp, otherwise bail out
+            if not isinstance(asof_dt, pd.Timestamp):
+                return pd.Series(index=holdings.index, data=0.0, dtype=float)
+            if pd.isna(asof_dt.to_datetime64()):
+                return pd.Series(index=holdings.index, data=0.0, dtype=float)
+        else:
+            asof_dt = t
+
+        row = regime_df.loc[asof_dt]
+
+        # Asset-level rule: trade each asset only when ITS OWN regime label
+        # matches a configured regime in the position logic, and the asset is
+        # explicitly listed under that regime side.
+        idx_symbols_str = [str(s) for s in holdings.index]
+        cash_col = getattr(self, "cash_column_name", "cash")
+
+        logic = self._humbl_compass_position_logic
+        if logic is None:
+            return pd.Series(index=holdings.index, data=0.0, dtype=float)
+
+        active_longs: set[str] = set()
+        active_shorts: set[str] = set()
+
+        for symbol, regime_val in row.items():
+            sym = str(symbol)
+            if sym not in idx_symbols_str or sym == cash_col:
+                continue
+            regime_label = str(regime_val) if pd.notna(regime_val) else None
+            if not regime_label:
+                continue
+            if regime_label == "humblBOOM":
+                sides = logic.humblBOOM
+            elif regime_label == "humblBOUNCE":
+                sides = logic.humblBOUNCE
+            elif regime_label == "humblBLOAT":
+                sides = logic.humblBLOAT
+            elif regime_label == "humblBUST":
+                sides = logic.humblBUST
+            else:
+                continue
+
+            if sym in sides.long:
+                active_longs.add(sym)
+            if self.allow_shorts and (sym in sides.short):
+                active_shorts.add(sym)
+
+        # If no actives, we will generate trades to close positions (move to cash)
+
+        # Build target weights via custom allocator if provided
+        weights: dict[str, float] = {}
+        if self.allocation_fn is not None:
+            try:
+                alloc = self.allocation_fn(
+                    asof_dt, active_longs, active_shorts, holdings.index
+                )  # type: ignore[arg-type]
+            except Exception as exc:
+                msg = f"allocation_fn raised an exception: {exc!r}"
+                raise RuntimeError(msg) from exc
+            # Trust caller output but sanitize to holdings index
+            for sym in holdings.index:
+                sym_str = str(sym)
+                w = float(alloc.get(sym_str, 0.0))
+                weights[sym_str] = w
+        else:
+            # Default: equal-weight across configured positions; all other
+            # assets are set to zero weights (explicit close when inactive).
+            n_positions = len(active_longs) + (
+                len(active_shorts) if self.allow_shorts else 0
+            )
+            if n_positions > 0:
+                w_abs = float(self.target_invested_fraction) / float(
+                    n_positions
+                )
+                for s in active_longs:
+                    weights[s] = w_abs
+                if self.allow_shorts:
+                    for s in active_shorts:
+                        weights[s] = -w_abs
+            # Fill remaining symbols with 0
+            for s in idx_symbols_str:
+                weights.setdefault(s, 0.0)
+
+        # Allocate residual to cash if present
+        total_non_cash = float(
+            sum(w for sym, w in weights.items() if sym != cash_col)
+        )
+        if cash_col in holdings.index:
+            weights[cash_col] = float(1.0 - total_non_cash)
+
+        # Convert weights to currency trade vector to rebalance to targets
+        target_w = pd.Series(
+            data=[weights.get(str(s), 0.0) for s in holdings.index],
+            index=holdings.index,
+            dtype=float,
+        )
+        portfolio_value = float(holdings.sum())
+        target_holdings = target_w * portfolio_value
+        trades = target_holdings - holdings
+        return trades
 
     # -------------------------------------------------
     # Internals - instance analytics
