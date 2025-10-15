@@ -8,17 +8,40 @@ functions should be **DUMB** functions.
 
 from datetime import UTC, datetime, timedelta, timezone
 
+# Private Functions Used in toolbox_helpers.py functions =======================
+from typing import overload
+
 import polars as pl
 from dateutil.relativedelta import relativedelta
 
 from humbldata.core.standard_models.abstract.errors import HumblDataError
 
 
-# Private Functions Used in toolbox_helpers.py functions =======================
+@overload
+def _window_format(
+    window: str,
+    start_date: str | datetime | None = ...,
+    end_date: str | datetime | None = ...,
+    *,
+    _return_timedelta: bool = False,
+    _avg_trading_days: bool = ...,
+) -> str: ...
+@overload
+def _window_format(
+    window: str,
+    start_date: str | datetime | None = ...,
+    end_date: str | datetime | None = ...,
+    *,
+    _return_timedelta: bool = True,
+    _avg_trading_days: bool = ...,
+) -> timedelta: ...
+
+
 def _window_format(
     window: str,
     start_date: str | datetime | None = None,
     end_date: str | datetime | None = None,
+    *,
     _return_timedelta: bool = True,
     _avg_trading_days: bool = False,
 ) -> str | timedelta:
@@ -96,8 +119,7 @@ def _window_format(
 
     # Return the formatted window string
     if not _return_timedelta:
-        out = num + window_part
-
+        out: str = num + window_part
     elif _return_timedelta:
         num = int(num)
         if not _avg_trading_days:
@@ -127,6 +149,8 @@ def _window_format(
         # Conversion to datetime object, to get days
         then = end_date - out
         out = end_date - then
+    return out
+    return out
     return out
 
 
