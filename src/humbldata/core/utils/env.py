@@ -109,6 +109,11 @@ class Env(metaclass=SingletonMeta):
         """Redis URL."""
         return self._environ.get("REDIS_URL", None)
 
+    @property
+    def NIXTLA_API_KEY(self) -> str | None:
+        """NixTla API Key."""
+        return self._environ.get("NIXTLA_API_KEY", None)
+
     @staticmethod
     def str2bool(value: str | bool) -> bool:
         """Match a value to its boolean correspondent.
