@@ -80,22 +80,34 @@ class Fundamental:
 
         Parameters
         ----------
-        country : str
-            The country or group of countries to analyze
-        recommendations : bool, optional
-            Whether to include investment recommendations based on the HUMBL regime
-        chart : bool, optional
-            Whether to return a chart object
-        template : str, optional
-            The template/theme to use for the plotly figure
-        z_score : str, optional
-            The time window for z-score calculation. The z-score is calcualted
-            for the CLI and CPI data to show the deviation/depth from the mean.
+        country : Literal
+            The country or group of countries to collect humblCOMPASS data for.
+        cli_start_date : Optional[str]
+            The adjusted start date for CLI data collection (YYYY-MM-DD).
+        cpi_start_date : Optional[str]
+            The adjusted start date for CPI data collection (YYYY-MM-DD).
+        z_score : Optional[str]
+            The time window for z-score calculation (e.g., "1 year", "18 months").
+        chart : bool
+            Whether to return a chart object.
+        template : Literal
+            The template/theme to use for the plotly figure.
+        recommendations : bool
+            Whether to include investment recommendations based on the HUMBL regime.
+        timegpt_enable : bool
+            If True, append h-step TimeGPT forecasts for CLI and CPI.
+        timegpt_h : int
+            Number of future steps to forecast (monthly steps).
+        timegpt_freq : Optional[str]
+            Optional frequency override (e.g., '1mo'). If None, infer automatically.
+        timegpt_model : Optional[str]
+            Optional Nixtla model identifier to pass through (default: "timegpt-1").
 
         Returns
         -------
         HumblObject
-            The HumblObject containing the transformed data and metadata
+            The HumblObject containing the transformed data and metadata.
+
         """
         # Convert kwargs to query params and instantiate fetcher.
         command_params = HumblCompassQueryParams(**kwargs)

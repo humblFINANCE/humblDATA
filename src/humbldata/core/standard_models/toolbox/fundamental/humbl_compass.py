@@ -32,6 +32,9 @@ from humbldata.core.standard_models.openbbapi.EconomyConsumerPriceIndexQueryPara
     EconomyConsumerPriceIndexQueryParams,
 )
 from humbldata.core.standard_models.toolbox import ToolboxQueryParams
+from humbldata.core.standard_models.toolbox.fundamental.humbl_compass_helpers import (
+    timepgt_humbl_compass_engine,
+)
 from humbldata.core.utils.cache import (
     CustomPickleSerializer,
     LogCacheHitPlugin,
@@ -56,7 +59,17 @@ logger = setup_logger("HumblCompassFetcher", level=env.LOGGER_LEVEL)
 # Custom cache key builder (mimics previous logic)
 def humbl_compass_key_builder(func, self, *args, **kwargs):
     """Build cache key for HumblCompass data."""
-    return build_cache_key(self, command_param_fields=["country", "z_score"])
+    return build_cache_key(
+        self,
+        command_param_fields=[
+            "country",
+            "z_score",
+            "timegpt_enable",
+            "timegpt_h",
+            "timegpt_freq",
+            "timegpt_model",
+        ],
+    )
 
 
 HUMBLCOMPASS_QUERY_DESCRIPTIONS = {
@@ -156,16 +169,26 @@ class HumblCompassQueryParams(QueryParams):
     ----------
     country : Literal
         The country or group of countries to collect humblCOMPASS data for.
-    cli_start_date : str
-        The adjusted start date for CLI data collection.
-    cpi_start_date : str
-        The adjusted start date for CPI data collection.
+    cli_start_date : Optional[str]
+        The adjusted start date for CLI data collection (YYYY-MM-DD).
+    cpi_start_date : Optional[str]
+        The adjusted start date for CPI data collection (YYYY-MM-DD).
     z_score : Optional[str]
         The time window for z-score calculation (e.g., "1 year", "18 months").
     chart : bool
         Whether to return a chart object.
     template : Literal
         The template/theme to use for the plotly figure.
+    recommendations : bool
+        Whether to include investment recommendations based on the HUMBL regime.
+    timegpt_enable : bool
+        If True, append h-step TimeGPT forecasts for CLI and CPI.
+    timegpt_h : int
+        Number of future steps to forecast (monthly steps).
+    timegpt_freq : Optional[str]
+        Optional frequency override (e.g., '1mo'). If None, infer automatically.
+    timegpt_model : Optional[str]
+        Optional Nixtla model identifier to pass through (default: "timegpt-1").
     """
 
     country: Literal[
@@ -240,6 +263,28 @@ class HumblCompassQueryParams(QueryParams):
         default=False,
         title="Investment Recommendations",
         description="Whether to include investment recommendations based on the HUMBL regime.",
+    )
+    # TimeGPT controls
+    timegpt_enable: bool = Field(
+        default=False,
+        title="Enable TimeGPT Forecast",
+        description="If True, append h-step TimeGPT forecasts for CLI and CPI.",
+    )
+    timegpt_h: int = Field(
+        default=3,
+        title="TimeGPT Horizon",
+        description="Number of future steps to forecast (monthly steps).",
+        ge=1,
+    )
+    timegpt_freq: str | None = Field(
+        default=None,
+        title="TimeGPT Frequency",
+        description="Optional frequency override (e.g., '1mo'). If None, infer.",
+    )
+    timegpt_model: str | None = Field(
+        default="timegpt-1",
+        title="TimeGPT Model",
+        description="Optional Nixtla model identifier to pass through.",
     )
 
 
@@ -510,7 +555,8 @@ class HumblCompassData(Data):
     """
     Data model for the humbl_compass command, a Pandera.Polars Model.
 
-    This Data model is used to validate data in the `.transform_data()` method of the `HumblCompassFetcher` class.
+    This Data model is used to validate data in the `.transform_data()` method
+    of the `HumblCompassFetcher` class.
     """
 
     date_month_start: pl.Date = pa.Field(
@@ -560,6 +606,12 @@ class HumblCompassData(Data):
         title="HUMBL Regime",
         description=HUMBLCOMPASS_DATA_DESCRIPTIONS["humbl_regime"],
     )
+    is_forecast: pl.Boolean | None = pa.Field(
+        default=None,
+        title="Forecast Flag",
+        description="True for rows appended by TimeGPT forecast.",
+        nullable=True,
+    )
 
 
 class HumblCompassFetcher:
@@ -593,7 +645,8 @@ class HumblCompassFetcher:
     fetch_data()
         Execute TET Pattern.
     backtest(**kwargs)
-        Execute backtest calculations on the compass data using additional parameters.
+        Execute backtest calculations on the compass data using additional
+        parameters.
 
     Returns
     -------
@@ -789,6 +842,16 @@ class HumblCompassFetcher:
                 ]
             )
         )
+        # TimeGPT forecast append
+        if self.command_params.timegpt_enable:
+            combined_data = timepgt_humbl_compass_engine(
+                combined_data,
+                country=self.command_params.country,
+                h=self.command_params.timegpt_h,
+                freq=self.command_params.timegpt_freq,
+                env=env,
+                model=self.command_params.timegpt_model,
+            )
 
         # Calculate 3-month deltas with adaptive shift based on data frequency
         transformed_data = combined_data.with_columns(
@@ -851,7 +914,8 @@ class HumblCompassFetcher:
             ]
         )
 
-        # Calculate z-scores only if self.z_score_months is greater than 0 and membership is not humblPEON
+        # Calculate z-scores only if self.z_score_months is greater than 0 and
+        # membership is not humblPEON
         if (
             self.z_score_months >= 3
             and self.context_params.membership != "humblPEON"
@@ -894,6 +958,7 @@ class HumblCompassFetcher:
             pl.col("cli").round(2),
             pl.col("cli_3m_delta").round(2),
             pl.col("humbl_regime"),
+            pl.col("is_forecast").fill_null(False),
         ]
 
         if (
@@ -910,12 +975,12 @@ class HumblCompassFetcher:
         transformed_data = transformed_data.select(columns_to_select)
 
         # Validate the data using HumblCompassData and collect result BEFORE serialization.
-        raw_data = (
-            transformed_data.collect().drop_nulls()
-        )  # <-- keep raw data for backtest
+        raw_data = transformed_data.drop_nulls().collect()
         self._raw_transformed_df = raw_data  # store raw transformed data
 
-        self.transformed_data = HumblCompassData(raw_data).lazy()
+        # Validate against schema, then convert to LazyFrame for downstream
+        HumblCompassData(raw_data)
+        self.transformed_data = raw_data.lazy()
 
         # Generate chart if requested
         self.chart = None
@@ -975,7 +1040,8 @@ class HumblCompassFetcher:
         Execute TET Pattern.
 
         This method executes the query transformation, data fetching and
-        transformation process by first calling `transform_query` to prepare the query parameters, then
+        transformation process by first calling `transform_query` to prepare the
+        query parameters, then
         extracting the raw data using `extract_data` method, and finally
         transforming the raw data using `transform_data` method.
 
@@ -991,12 +1057,9 @@ class HumblCompassFetcher:
         logger.debug("Running .transform_data()")
         self.transform_data()
 
-        # Initialize warnings list if it doesn't exist
-        if not hasattr(self.context_params, "warnings"):
-            self.context_params.warnings = []
-
-        # Combine warnings from both sources
-        all_warnings = self.context_params.warnings + self.warnings
+        # Combine warnings from both sources without mutating context_params type
+        existing_warnings = getattr(self.context_params, "warnings", [])
+        all_warnings = existing_warnings + self.warnings
 
         # Create HumblObject with raw data in extra for backtest
         result = HumblObject(

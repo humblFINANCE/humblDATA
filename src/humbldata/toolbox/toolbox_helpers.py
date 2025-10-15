@@ -6,10 +6,10 @@ context. Most of the helpers will be mathematical transformations of data. These
 functions should be **DUMB** functions.
 """
 
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 # Private Functions Used in toolbox_helpers.py functions =======================
-from typing import overload
+from typing import Literal, overload
 
 import polars as pl
 from dateutil.relativedelta import relativedelta
@@ -23,18 +23,31 @@ def _window_format(
     start_date: str | datetime | None = ...,
     end_date: str | datetime | None = ...,
     *,
-    _return_timedelta: bool = False,
+    _return_timedelta: Literal[False],
     _avg_trading_days: bool = ...,
 ) -> str: ...
+
+
 @overload
 def _window_format(
     window: str,
     start_date: str | datetime | None = ...,
     end_date: str | datetime | None = ...,
     *,
-    _return_timedelta: bool = True,
+    _return_timedelta: Literal[True] = ...,
     _avg_trading_days: bool = ...,
 ) -> timedelta: ...
+
+
+@overload
+def _window_format(
+    window: str,
+    start_date: str | datetime | None = ...,
+    end_date: str | datetime | None = ...,
+    *,
+    _return_timedelta: bool = ...,
+    _avg_trading_days: bool = ...,
+) -> str | timedelta: ...
 
 
 def _window_format(
@@ -119,7 +132,7 @@ def _window_format(
 
     # Return the formatted window string
     if not _return_timedelta:
-        out: str = num + window_part
+        out = num + window_part
     elif _return_timedelta:
         num = int(num)
         if not _avg_trading_days:
@@ -149,8 +162,6 @@ def _window_format(
         # Conversion to datetime object, to get days
         then = end_date - out
         out = end_date - then
-    return out
-    return out
     return out
 
 
