@@ -211,8 +211,7 @@ def _calc_humbl_for_date(
     **kwargs,
 ):
     """Calculate Mandelbrot Channel for a single date."""
-    # Only include data up to the target date, this prevents look-ahead bias
-    filtered_data = data.filter(pl.col("date") <= date)
+    filtered_data = _filter_historical_window(data, date, window)
 
     return calc_humbl_channel(
         data=filtered_data,
@@ -223,6 +222,20 @@ def _calc_humbl_for_date(
         rv_grouped_mean=rv_grouped_mean,
         yesterday_close=yesterday_close,
         **kwargs,
+    )
+
+
+def _filter_historical_window(
+    data: pl.DataFrame | pl.LazyFrame,
+    date,
+    window: str,
+) -> pl.LazyFrame:
+    """Return rows up to date for symbols with at least one full window."""
+    window_days = _window_format(window, _return_timedelta=True)
+
+    return data.lazy().filter(
+        (pl.col("date") <= date)
+        & ((pl.col("date").min().over("symbol") + window_days) <= pl.lit(date))
     )
 
 
@@ -384,7 +397,7 @@ async def _acalc_humbl_channel_historical_engine(  # noqa: PLR0913
     tasks = [
         asyncio.create_task(
             acalc_humbl_channel(
-                data=data.filter(pl.col("date") <= date),
+                data=_filter_historical_window(data, date, window),
                 window=window,
                 rv_adjustment=rv_adjustment,
                 rv_method=rv_method,

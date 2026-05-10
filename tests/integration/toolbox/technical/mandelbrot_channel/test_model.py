@@ -1,3 +1,5 @@
+import datetime as dt
+
 import polars as pl
 import pytest
 from _pytest.fixtures import FixtureRequest
@@ -178,3 +180,49 @@ def test_humbl_channel_historical_integration(
             "close_price",
             "top_price",
         ]
+
+
+@pytest.mark.integration
+def test_humbl_channel_historical_ignores_symbols_without_full_window():
+    """Do not include null historical rows for later-starting symbols."""
+    data = (
+        pl.read_parquet("tests/test_data/test_data.parquet")
+        .filter(pl.col("symbol").is_in(["PCT", "AAPL"]))
+        .filter(
+            pl.col("date").is_between(
+                dt.date(2020, 6, 1), dt.date(2020, 9, 1)
+            )
+        )
+    )
+
+    mandelbrot_historical = calc_humbl_channel_historical(
+        data,
+        window="1m",
+        rv_adjustment=True,
+        rv_method="std",
+        rv_grouped_mean=False,
+        rs_method="RS",
+        live_price=False,
+    ).collect()
+
+    pct_min_date = (
+        mandelbrot_historical.filter(pl.col("symbol") == "PCT")
+        .select(pl.col("date").min())
+        .item()
+    )
+    pct_start_date = (
+        data.filter(pl.col("symbol") == "PCT")
+        .select(pl.col("date").min())
+        .item()
+    )
+
+    assert pct_min_date is not None
+    assert pct_min_date >= pct_start_date + dt.timedelta(days=30)
+
+    for column in ["bottom_price", "close_price", "top_price"]:
+        assert mandelbrot_historical.select(
+            pl.col(column).null_count()
+        ).item() == 0
+        assert mandelbrot_historical.select(
+            pl.col(column).is_nan().sum()
+        ).item() == 0
