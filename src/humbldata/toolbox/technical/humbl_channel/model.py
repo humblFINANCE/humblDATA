@@ -198,7 +198,7 @@ def calc_humbl_channel(  # noqa: PLR0913
     return out
 
 
-def _calc_humbl_for_date(
+def _calc_humbl_for_date(  # noqa: PLR0913
     date,
     data,
     window,
@@ -208,11 +208,16 @@ def _calc_humbl_for_date(
     rv_grouped_mean,
     yesterday_close,
     use_live_price=None,
+    active_symbols=None,
     **kwargs,
 ):
     """Calculate Mandelbrot Channel for a single date."""
     # Only include data up to the target date, this prevents look-ahead bias
     filtered_data = data.filter(pl.col("date") <= date)
+    if active_symbols is not None:
+        filtered_data = filtered_data.filter(
+            pl.col("symbol").is_in(active_symbols)
+        )
 
     return calc_humbl_channel(
         data=filtered_data,
@@ -224,6 +229,87 @@ def _calc_humbl_for_date(
         yesterday_close=yesterday_close,
         **kwargs,
     )
+
+
+def _raise_historical_window_error(start_date, end_date) -> None:
+    msg = (
+        "You set <historical=True> \n"
+        "        This calculation needs *at least* one window of data. \n"
+        f"        The (start date + window) is: {start_date} "
+        f"and the dataset ended: {end_date}. \n"
+        "        Please adjust dates accordingly."
+    )
+    raise HumblDataError(msg)
+
+
+def _historical_date_groups(
+    data: pl.DataFrame | pl.LazyFrame, window_days
+) -> tuple[pl.LazyFrame, list[tuple[object, tuple[str, ...] | None]]]:
+    """Return dates with symbols that have enough history on each date."""
+    data = data.lazy()
+    schema = data.collect_schema().names()
+
+    if "symbol" not in schema:
+        start_date = data.select(pl.col("date")).min().collect().row(0)[0]
+        start_date = start_date + window_days
+        end_date = data.select("date").max().collect().row(0)[0]
+
+        if start_date >= end_date:
+            _raise_historical_window_error(start_date, end_date)
+
+        dates = (
+            data.select(pl.col("date"))
+            .filter(pl.col("date") >= start_date)
+            .unique()
+            .sort("date")
+            .collect()
+            .to_series()
+        )
+        return data, [(date, None) for date in dates]
+
+    symbol_ranges = (
+        data.group_by("symbol")
+        .agg(
+            pl.col("date").min().alias("start_date"),
+            pl.col("date").max().alias("end_date"),
+        )
+        .collect()
+    )
+    symbol_start_dates = symbol_ranges.with_columns(
+        (pl.col("start_date") + window_days).alias("calculation_start_date")
+    ).filter(pl.col("calculation_start_date") < pl.col("end_date"))
+
+    date_symbols = (
+        data.select("date", "symbol")
+        .join(
+            symbol_start_dates.select(
+                "symbol", "calculation_start_date"
+            ).lazy(),
+            on="symbol",
+            how="inner",
+        )
+        .filter(pl.col("date") >= pl.col("calculation_start_date"))
+        .group_by("date")
+        .agg(pl.col("symbol").unique().alias("active_symbols"))
+        .sort("date")
+        .collect()
+    )
+
+    if date_symbols.is_empty():
+        start_date = symbol_ranges["start_date"].min() + window_days
+        end_date = symbol_ranges["end_date"].max()
+        _raise_historical_window_error(start_date, end_date)
+
+    date_groups = [
+        (date, tuple(active_symbols))
+        for date, active_symbols in date_symbols.iter_rows()
+    ]
+
+    return data, date_groups
+
+
+def _run_historical_calc(calc_func, date, active_symbols):
+    return calc_func(date, active_symbols=active_symbols)
 
 
 def calc_humbl_channel_historical_concurrent(
@@ -253,28 +339,8 @@ def calc_humbl_channel_historical_concurrent(
     Other parameters are the same as calc_humbl_channel_historical.
     """
     window_days = _window_format(window, _return_timedelta=True)
-    start_date = data.lazy().select(pl.col("date")).min().collect().row(0)[0]
-    start_date = start_date + window_days
-    end_date = data.lazy().select("date").max().collect().row(0)[0]
+    data, date_groups = _historical_date_groups(data, window_days)
 
-    if start_date >= end_date:
-        msg = f"You set <historical=True> \n\
-        This calculation needs *at least* one window of data. \n\
-        The (start date + window) is: {start_date} and the dataset ended: {end_date}. \n\
-        Please adjust dates accordingly."
-        raise HumblDataError(msg)
-
-    dates = (
-        data.lazy()
-        .select(pl.col("date"))
-        .filter(pl.col("date") >= start_date)
-        .unique()
-        .sort("date")
-        .collect()
-        .to_series()
-    )
-
-    # Prepare the partial function with all arguments except the date
     calc_func = partial(
         _calc_humbl_for_date,
         data=data,
@@ -295,7 +361,10 @@ def calc_humbl_channel_historical_concurrent(
     )
     # Use concurrent.futures to calculate in parallel
     with executor_class(max_workers=max_workers) as executor:
-        futures = [executor.submit(calc_func, date) for date in dates]
+        futures = [
+            executor.submit(calc_func, date, active_symbols=active_symbols)
+            for date, active_symbols in date_groups
+        ]
         results = [
             future.result()
             for future in concurrent.futures.as_completed(futures)
@@ -304,7 +373,7 @@ def calc_humbl_channel_historical_concurrent(
     # Combine results
     out = pl.concat(results, how="vertical").sort(["symbol", "date"])
 
-    return out.lazy()
+    return out.lazy() if isinstance(out, pl.DataFrame) else out
 
 
 async def acalc_humbl_channel(  # noqa: PLR0913
@@ -360,31 +429,19 @@ async def _acalc_humbl_channel_historical_engine(  # noqa: PLR0913
     `calc_humbl_channel_historical()`.
     """
     window_days = _window_format(window, _return_timedelta=True)
-    start_date = data.lazy().select(pl.col("date")).min().collect().row(0)[0]
-    start_date = start_date + window_days
-    end_date = data.lazy().select("date").max().collect().row(0)[0]
-
-    if start_date >= end_date:
-        msg = f"You set <historical=True> \n\
-        This calculation needs *at least* one window of data. \n\
-        The (start date + window) is: {start_date} and the dataset ended: {end_date}. \n\
-        Please adjust dates accordingly."
-        raise HumblDataError(msg)
-
-    dates = (
-        data.lazy()
-        .select(pl.col("date"))
-        .filter(pl.col("date") >= start_date)
-        .unique()
-        .sort("date")
-        .collect()
-        .to_series()
-    )
+    data, date_groups = _historical_date_groups(data, window_days)
 
     tasks = [
         asyncio.create_task(
             acalc_humbl_channel(
-                data=data.filter(pl.col("date") <= date),
+                data=(
+                    data.filter(pl.col("date") <= date)
+                    if active_symbols is None
+                    else data.filter(
+                        (pl.col("date") <= date)
+                        & pl.col("symbol").is_in(active_symbols)
+                    )
+                ),
                 window=window,
                 rv_adjustment=rv_adjustment,
                 rv_method=rv_method,
@@ -394,7 +451,7 @@ async def _acalc_humbl_channel_historical_engine(  # noqa: PLR0913
                 **kwargs,
             )
         )
-        for date in dates
+        for date, active_symbols in date_groups
     ]
 
     lazyframes = await asyncio.gather(*tasks)
@@ -476,28 +533,8 @@ def calc_humbl_channel_historical_mp(
     Other parameters are the same as calc_humbl_channel_historical.
     """
     window_days = _window_format(window, _return_timedelta=True)
-    start_date = data.lazy().select(pl.col("date")).min().collect().row(0)[0]
-    start_date = start_date + window_days
-    end_date = data.lazy().select("date").max().collect().row(0)[0]
+    data, date_groups = _historical_date_groups(data, window_days)
 
-    if start_date >= end_date:
-        msg = f"You set <historical=True> \n\
-        This calculation needs *at least* one window of data. \n\
-        The (start date + window) is: {start_date} and the dataset ended: {end_date}. \n\
-        Please adjust dates accordingly."
-        raise HumblDataError(msg)
-
-    dates = (
-        data.lazy()
-        .select(pl.col("date"))
-        .filter(pl.col("date") >= start_date)
-        .unique()
-        .sort("date")
-        .collect()
-        .to_series()
-    )
-
-    # Prepare the partial function with all arguments except the date
     calc_func = partial(
         _calc_humbl_for_date,
         data=data,
@@ -512,9 +549,13 @@ def calc_humbl_channel_historical_mp(
 
     # Use multiprocessing to calculate in parallel
     with multiprocessing.Pool(processes=n_processes) as pool:
-        results = pool.map(calc_func, dates)
+        calc_args = [
+            (calc_func, date, active_symbols)
+            for date, active_symbols in date_groups
+        ]
+        results = pool.starmap(_run_historical_calc, calc_args)
 
     # Combine results
     out = pl.concat(results, how="vertical").sort(["symbol", "date"])
 
-    return out.lazy()
+    return out.lazy() if isinstance(out, pl.DataFrame) else out

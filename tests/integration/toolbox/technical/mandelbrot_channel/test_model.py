@@ -1,3 +1,5 @@
+import datetime as dt
+
 import polars as pl
 import pytest
 from _pytest.fixtures import FixtureRequest
@@ -33,6 +35,70 @@ def equity_historical(request: FixtureRequest):
     elif request.param == "lazyframe_multiple_symbols":
         return pl.LazyFrame(data)
     return None
+
+
+def _synthetic_equity_rows(
+    symbol: str, start: dt.date, rows: int, base_price: float
+) -> pl.DataFrame:
+    return pl.DataFrame(
+        {
+            "date": pl.date_range(
+                start=start,
+                end=start + dt.timedelta(days=rows - 1),
+                interval="1d",
+                eager=True,
+            ),
+            "symbol": [symbol] * rows,
+            "open": [base_price + (idx * 0.1) for idx in range(rows)],
+            "high": [base_price + (idx * 0.1) + 0.5 for idx in range(rows)],
+            "low": [base_price + (idx * 0.1) - 0.5 for idx in range(rows)],
+            "close": [base_price + (idx * 0.1) for idx in range(rows)],
+            "volume": [1000 + idx for idx in range(rows)],
+        }
+    )
+
+
+@pytest.mark.integration
+def test_humbl_channel_historical_uses_each_symbols_own_start_date():
+    """Mixed symbols should match each symbol calculated independently."""
+    equity_data = pl.concat(
+        [
+            _synthetic_equity_rows("AAPL", dt.date(2020, 1, 1), 90, 100),
+            _synthetic_equity_rows("PCT", dt.date(2020, 2, 15), 50, 10),
+        ]
+    )
+
+    pct_only = calc_humbl_channel_historical(
+        equity_data.filter(pl.col("symbol") == "PCT"),
+        window="1m",
+        rv_adjustment=True,
+        rv_method="std",
+        rv_grouped_mean=False,
+        rs_method="RS",
+    ).collect()
+    combined = calc_humbl_channel_historical(
+        equity_data,
+        window="1m",
+        rv_adjustment=True,
+        rv_method="std",
+        rv_grouped_mean=False,
+        rs_method="RS",
+    ).collect()
+    combined_pct = combined.filter(pl.col("symbol") == "PCT")
+    price_cols = ["bottom_price", "close_price", "top_price"]
+
+    assert combined_pct.equals(pct_only)
+    assert (
+        combined.select(
+            pl.any_horizontal(
+                *[
+                    pl.col(col).is_null() | pl.col(col).is_nan()
+                    for col in price_cols
+                ]
+            ).sum()
+        ).item()
+        == 0
+    )
 
 
 @pytest.mark.integration()
