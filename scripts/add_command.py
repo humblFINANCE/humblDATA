@@ -1,8 +1,6 @@
-import os
 import re
-import textwrap
 from pathlib import Path
-from typing import List, Tuple
+from typing import Tuple
 
 
 def prompt_user() -> Tuple[str, str, str, bool, bool]:
@@ -355,7 +353,6 @@ def generate_category_controller(
         # Check if imports section exists
         docstring_end = content.find('"""', content.find('"""') + 3) + 3
         first_import = content.find("from", docstring_end)
-        import_section_end = content.find("\n\nclass", first_import)
 
         # Add new import if not present
         import_line = f"from humbldata.core.standard_models.{context}.{category}.{command} import {clean_name(command, case='PascalCase')}QueryParams"
@@ -371,24 +368,7 @@ def generate_category_controller(
         # Add new method if not present
         method_def = f"    def {clean_name(command, case='snake_case')}(self, **kwargs: {clean_name(command, case='PascalCase')}QueryParams):"
         if method_def not in content:
-            # Find last method in class
-            last_method_end = content.rfind("\n\n    def")
-            if last_method_end == -1:  # No methods found
-                last_method_end = content.find(
-                    "self.context_params = context_params"
-                ) + len("self.context_params = context_params")
-
-            # Find the end of the last method
-            next_method_start = content.find("\n    def", last_method_end + 1)
-            if next_method_start == -1:
-                method_insert_point = len(content)
-            else:
-                method_insert_point = next_method_start
-
-            # Add new method
-            new_method = f'''
-
-    def {clean_name(command, case="snake_case")}(self, **kwargs: {clean_name(command, case="PascalCase")}QueryParams):
+            new_method = f'''    def {clean_name(command, case="snake_case")}(self, **kwargs: {clean_name(command, case="PascalCase")}QueryParams):
         """
         Execute the {clean_name(command, case="PascalCase")} command.
 
@@ -419,33 +399,26 @@ def generate_category_controller(
             msg = f"Failed to calculate {clean_name(command, case="PascalCase")}: {{e!s}}"
             raise HumblDataError(msg) from e'''
 
-            content = (
-                content[:method_insert_point]
-                + new_method
-                + content[method_insert_point:]
-            )
+            content = f"{content.rstrip()}\n\n{new_method}\n"
 
         # Update docstring to include new method if not present
         class_doc_start = content.find('"""', content.find("class"))
-        class_doc_end = content.find('"""', class_doc_start + 3) + 3
+        class_doc_end = content.find('"""', class_doc_start + 3)
 
         methods_section = content.find(
             "    Methods", class_doc_start, class_doc_end
         )
         if methods_section != -1:
-            methods_end = content.find("\n\n", methods_section)
-            if methods_end == -1:
-                methods_end = class_doc_end - 4  # Account for closing quotes
-
             new_method_doc = f"""
     {clean_name(command, case="snake_case")}(**kwargs: {clean_name(command, case="PascalCase")}QueryParams)
         Execute the {clean_name(command, case="PascalCase")} command."""
 
             if new_method_doc not in content:
                 content = (
-                    content[:methods_end]
+                    content[:class_doc_end].rstrip()
                     + new_method_doc
-                    + content[methods_end:]
+                    + "\n"
+                    + content[class_doc_end:]
                 )
 
         # Write updated content back to file
