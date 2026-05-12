@@ -212,12 +212,7 @@ def _calc_humbl_for_date(  # noqa: PLR0913
     **kwargs,
 ):
     """Calculate Mandelbrot Channel for a single date."""
-    # Only include data up to the target date, this prevents look-ahead bias
-    filtered_data = data.filter(pl.col("date") <= date)
-    if active_symbols is not None:
-        filtered_data = filtered_data.filter(
-            pl.col("symbol").is_in(active_symbols)
-        )
+    filtered_data = _filter_for_date_and_symbols(data, date, active_symbols)
 
     return calc_humbl_channel(
         data=filtered_data,
@@ -231,7 +226,20 @@ def _calc_humbl_for_date(  # noqa: PLR0913
     )
 
 
+def _filter_for_date_and_symbols(data, date, active_symbols=None):
+    """Filter historical rows to a target date and optional active symbols."""
+    # Only include data up to the target date, this prevents look-ahead bias
+    filtered_data = data.filter(pl.col("date") <= date)
+    if active_symbols is not None:
+        filtered_data = filtered_data.filter(
+            pl.col("symbol").is_in(active_symbols)
+        )
+
+    return filtered_data
+
+
 def _raise_historical_window_error(start_date, end_date) -> None:
+    """Raise a consistent error when no historical date can be calculated."""
     msg = (
         "You set <historical=True> \n"
         "        This calculation needs *at least* one window of data. \n"
@@ -309,6 +317,7 @@ def _historical_date_groups(
 
 
 def _run_historical_calc(calc_func, date, active_symbols):
+    """Run a picklable historical calculation for multiprocessing workers."""
     return calc_func(date, active_symbols=active_symbols)
 
 
@@ -328,8 +337,8 @@ def calc_humbl_channel_historical_concurrent(
     """
     Calculate the Humbl Channel historically using concurrent.futures.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     max_workers : int, optional
         Maximum number of workers to use. If None, it uses the default for ProcessPoolExecutor
         or ThreadPoolExecutor (usually the number of processors on the machine, multiplied by 5).
@@ -434,14 +443,7 @@ async def _acalc_humbl_channel_historical_engine(  # noqa: PLR0913
     tasks = [
         asyncio.create_task(
             acalc_humbl_channel(
-                data=(
-                    data.filter(pl.col("date") <= date)
-                    if active_symbols is None
-                    else data.filter(
-                        (pl.col("date") <= date)
-                        & pl.col("symbol").is_in(active_symbols)
-                    )
-                ),
+                data=_filter_for_date_and_symbols(data, date, active_symbols),
                 window=window,
                 rv_adjustment=rv_adjustment,
                 rv_method=rv_method,
@@ -461,8 +463,6 @@ async def _acalc_humbl_channel_historical_engine(  # noqa: PLR0913
         .rename({"recent_price": "close_price"})
         .collect_async()
     )
-
-    # out = await pl.collect_all_async(lazyframes)
 
     return out.lazy()
 
@@ -525,8 +525,8 @@ def calc_humbl_channel_historical_mp(
     """
     Calculate the Humbl Channel historically using multiprocessing.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     n_processes : int, optional
         Number of processes to use. If None, it uses all available cores.
 
