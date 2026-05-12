@@ -1,771 +1,396 @@
-import os
+"""Create boilerplate for humbldata contexts, categories, and commands."""
+
+from __future__ import annotations
+
+import argparse
 import re
-import textwrap
+import sys
 from pathlib import Path
-from typing import List, Tuple
+from typing import TYPE_CHECKING
 
-
-def prompt_user() -> Tuple[str, str, str, bool, bool]:
-    """
-    Prompt the user for input to create a new command.
-
-    Returns
-    -------
-    Tuple[str, str, str, bool, bool]
-        A tuple containing:
-        - context: The context name (lowercase)
-        - category: The category name (lowercase)
-        - command: The command name (lowercase)
-        - add_view: Boolean indicating whether to add a view.py file
-        - add_helpers: Boolean indicating whether to add a helpers.py file
-
-    """
-    context = input("Enter the context name: ").lower()
-    category = input(
-        "Enter the category name (use '/' for sub-categories): "
-    ).lower()
-    command = input("Enter the command name: ").lower()
-    add_view = (
-        input("Do you want to add a view.py file? (y/n): ").lower() == "y"
-    )
-    add_helpers = (
-        input("Do you want to add a helpers.py file? (y/n): ").lower() == "y"
-    )
-    return context, category, command, add_view, add_helpers
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 
 def get_project_root() -> Path:
+    """Return the project root containing ``src/humbldata``."""
     current_path = Path.cwd()
     while current_path != current_path.parent:
         if (current_path / "src" / "humbldata").exists():
             return current_path
         current_path = current_path.parent
-    raise FileNotFoundError(
-        "Could not find project root containing src/humbldata"
-    )
+    msg = "Could not find project root containing src/humbldata"
+    raise FileNotFoundError(msg)
 
 
-def create_directory(path: Path) -> None:
+def clean_name(name: str, case: str = "snake_case") -> str:
     """
-    Create a directory and its parent directories if they don't exist.
-
-    Parameters
-    ----------
-    path : Path
-        The path of the directory to create.
-
-    """
-    path.mkdir(parents=True, exist_ok=True)
-
-
-def write_file(path: Path, content: str) -> None:
-    """
-    Write content to a file, creating the file if it doesn't exist.
-
-    Parameters
-    ----------
-    path : Path
-        The path of the file to write.
-    content : str
-        The content to write to the file.
-
-    """
-    with path.open("w") as file:
-        file.write(content)
-
-
-def clean_name(name: str, case: str = "camelCase") -> str:
-    """
-    Clean and format a name to follow the specified convention.
+    Normalize a human-facing name into a Python identifier style.
 
     Parameters
     ----------
     name : str
-        The name to clean and format.
+        The raw name supplied by a user.
     case : str
-        The case of formatting to apply. Can be "camelCase", "snake_case", or "PascalCase".
-        Defaults to "camelCase".
-
-    Returns
-    -------
-    str
-        The cleaned and formatted name.
+        One of ``snake_case``, ``camelCase``, or ``PascalCase``.
     """
-    # Replace any non-alphanumeric characters (except underscores) with spaces
-    name = re.sub(r"[^\w\s]", " ", name)
-    # Replace underscores with spaces
-    name = name.replace("_", " ")
-    # Split the name into words
-    words = name.split()
-
-    if case.lower() == "camelcase":
-        return words[0].lower() + "".join(
-            word.capitalize() for word in words[1:]
-        )
-    elif case.lower() == "snake_case":
-        return "_".join(word.lower() for word in words)
-    elif case.lower() == "pascalcase":
-        return "".join(word.capitalize() for word in words)
-    else:
-        msg = (
-            "Invalid case. Must be 'camelCase', 'snake_case', or 'PascalCase'."
-        )
+    words = re.findall(r"[A-Za-z0-9]+", name)
+    if not words:
+        msg = f"Invalid empty name: {name!r}"
         raise ValueError(msg)
 
-
-def generate_context_files(project_root: Path, context: str) -> None:
-    """
-    Generate the context files.
-
-    Parameters
-    ----------
-    project_root : Path
-        The root path of the project.
-    context : str
-        The context name.
-    """
-    file_path = project_root / "src" / "humbldata" / context / "__init__.py"
-    if not file_path.exists():
-        content = f'''
-"""
-**Context: {clean_name(context, case="PascalCase")}**.
-
-A category to group in the `{clean_name(context)}()`
-
-"""
-
-'''
-        write_file(file_path, content)
-
-    # Create __init__.py in the context directory if it doesn't exist
-    init_file_path = file_path.parent / "__init__.py"
-    if not init_file_path.exists():
-        write_file(init_file_path, "")
+    if case.lower() == "snake_case":
+        return "_".join(word.lower() for word in words)
+    if case.lower() == "camelcase":
+        first, *rest = words
+        return first.lower() + "".join(word.capitalize() for word in rest)
+    if case.lower() == "pascalcase":
+        return "".join(word.capitalize() for word in words)
+    msg = "Invalid case. Must be 'snake_case', 'camelCase', or 'PascalCase'."
+    raise ValueError(msg)
 
 
-def generate_command_files(
-    project_root: Path, context: str, category: str, command: str
-) -> None:
-    """
-    Generate the command files.
-
-    Parameters
-    ----------
-    project_root : Path
-        The root path of the project.
-    context : str
-        The context name.
-    category : str
-        The category name.
-    command : str
-        The command name.
-    """
-    file_path = (
-        project_root
-        / "src"
-        / "humbldata"
-        / context
-        / category
-        / command
-        / "model.py"
-    )
-    content = f'''
-"""
-**Context: {clean_name(context, case="PascalCase")} || Category: {clean_name(category, case="PascalCase")} || Command: {clean_name(command, case="snake_case")}**.
-
-The {clean_name(command, case="snake_case")} Command Module. This is typically
-used in the `.transform_data()` method of the `{clean_name(command, case="PascalCase")}Fetcher` class.
-"""
-
-def {clean_name(command, case="snake_case")}():
-    """
-    Context: {clean_name(context, case="PascalCase")} || Category: {clean_name(category, case="PascalCase")} ||| **Command: {clean_name(command, case="snake_case")}**.
-
-    Execute the {clean_name(command, case="snake_case")} command.
-
-    Parameters
-    ----------
-
-    Returns
-    -------
-    """
-    pass
-'''
-    write_file(file_path, content)
-
-    # Create __init__.py in the category directory
-    init_file_path = file_path.parent / "__init__.py"
-    write_file(init_file_path, "")
+def category_parts(category: str) -> list[str]:
+    """Return normalized category path parts."""
+    return [clean_name(part) for part in category.split("/") if part.strip()]
 
 
-def generate_context_controller(
-    project_root: Path, context: str, category: str
-) -> None:
-    """
-    Generate the context controller file.
-
-    Parameters
-    ----------
-    project_root : Path
-        The root path of the project.
-    context : str
-        The context name.
-    category : str
-        The category name.
-    """
-    file_path = (
-        project_root
-        / "src"
-        / "humbldata"
-        / context
-        / f"{context}_controller.py"
-    )
-
-    if file_path.exists():
-        # If the file exists, we'll update it instead of overwriting
-        with file_path.open("r") as f:
-            content = f.read()
-
-        # Check if the category is already imported
-        import_line = f"from humbldata.{context.lower()}.{category.lower()}.{category.lower()}_controller import {clean_name(category, case='PascalCase')}"
-        if import_line not in content:
-            # Add the import below the docstring
-            docstring_end = content.index('"""', content.index('"""') + 3) + 3
-            content = (
-                content[:docstring_end]
-                + "\n"
-                + import_line
-                + "\n"
-                + content[docstring_end:]
-            )
-
-        # Check if the category property already exists
-        property_def = f"@property\n    def {category.lower()}(self):"
-        if property_def not in content:
-            # Add the property
-            content += f'''
-    {property_def}
-        """
-        The {category.lower()} submodule of the {clean_name(context, case="PascalCase")} controller.
-
-        Access to all the {clean_name(category, case="PascalCase")} indicators. When the {clean_name(context, case="PascalCase")} class is
-        instantiated the parameters are initialized with the {clean_name(context, case="PascalCase")}QueryParams
-        class, which hold all the fields needed for the context_params, like the
-        symbol, interval, start_date, and end_date.
-        """
-        return {clean_name(category, case="PascalCase")}(context_params=self)
-'''
-
-        # Write the updated content back to the file
-        write_file(file_path, content)
-    else:
-        # If the file doesn't exist, create it with the original content
-        content = f'''
-"""
-**Context: {clean_name(context, case="PascalCase")}**.
-
-The {clean_name(context, case="PascalCase")} Controller Module.
-"""
-
-from humbldata.core.standard_models.{context.lower()} import {clean_name(context, case="PascalCase")}QueryParams
-from humbldata.{context.lower()}.{category.lower()}.{category.lower()}_controller import {clean_name(category, case="PascalCase")}
+def category_name(category: str) -> str:
+    """Return the normalized slash-separated category path."""
+    parts = category_parts(category)
+    if not parts:
+        msg = "Category is required"
+        raise ValueError(msg)
+    return "/".join(parts)
 
 
-class {clean_name(context, case="PascalCase")}({clean_name(context, case="PascalCase")}QueryParams):
-    """
-    A top-level {clean_name(context, case="PascalCase")} controller for data analysis tools in `humblDATA`.
+def class_name(*names: str) -> str:
+    """Return a PascalCase class name from one or more names."""
+    return "".join(clean_name(name, case="PascalCase") for name in names)
 
-    This module serves as the primary controller, routing user-specified
-    {clean_name(context, case="PascalCase")}QueryParams as core arguments that are used to fetch time series
-    data.
 
-    The `{clean_name(context)}` controller also gives access to all sub-modules and their
-    functions.
+def write_file_if_missing(path: Path, content: str) -> None:
+    """Write a new text file without overwriting existing user code."""
+    if path.exists():
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content.strip() + "\n")
 
-    It is designed to facilitate the collection of data across various types such as
-    stocks, options, or alternative time series by requiring minimal input from the user.
 
-    Submodules
-    ----------
-    The `{clean_name(context, case="PascalCase")}` controller is composed of the following submodules:
+def ensure_init(path: Path) -> None:
+    """Ensure a Python package initializer exists."""
+    write_file_if_missing(path / "__init__.py", '"""Generated package."""\n')
 
-    - `{category.lower()}`:
 
-    Parameters
-    ----------
-    # Add your {clean_name(category, case="PascalCase")}QueryParams parameters here
+def write_init_model_if_missing(path: Path, content: str) -> None:
+    """Write a package model, replacing only the generated placeholder."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists() and path.read_text() != '"""Generated package."""\n':
+        return
+    path.write_text(content.strip() + "\n")
 
-    Parameter Notes
-    -----
-    The parameters are the `{clean_name(context, case="PascalCase")}QueryParams`. They are used
-    for data collection further down the pipeline in other commands.
-    Intended to execute operations on core data sets. This approach enables
-    composable and standardized querying while accommodating data-specific
-    collection logic.
-    """
+
+def package_path(project_root: Path, *parts: str) -> Path:
+    """Return a path under ``src/humbldata``."""
+    return project_root / "src" / "humbldata" / Path(*parts)
+
+
+def standard_model_path(project_root: Path, *parts: str) -> Path:
+    """Return a path under ``src/humbldata/core/standard_models``."""
+    return package_path(project_root, "core", "standard_models", *parts)
+
+
+def create_context(project_root: Path, context: str) -> None:
+    """Create a top-level context package and standard model."""
+    context = clean_name(context)
+    context_class = class_name(context)
+    context_package = package_path(project_root, context)
+    ensure_init(context_package)
+
+    write_file_if_missing(
+        context_package / f"{context}_controller.py",
+        f'''
+"""{context_class} context controller."""
+
+from humbldata.core.standard_models.{context} import {context_class}QueryParams
+
+
+class {context_class}({context_class}QueryParams):
+    """Top-level controller for the {context} context."""
 
     def __init__(self, *args, **kwargs):
-        """
-        Initialize the {clean_name(context, case="PascalCase")} module.
-
-        This method does not take any parameters and does not return anything.
-        """
+        """Initialize the {context_class} controller."""
         super().__init__(*args, **kwargs)
-
-    @property
-    def {category.lower()}(self):
-        """
-        The {category.lower()} submodule of the {clean_name(context, case="PascalCase")} controller.
-
-        Access to all the {clean_name(category, case="PascalCase")} indicators. When the {clean_name(context, case="PascalCase")} class is
-        instantiated the parameters are initialized with the {clean_name(context, case="PascalCase")}QueryParams
-        class, which hold all the fields needed for the context_params, like the
-        symbol, interval, start_date, and end_date.
-        """
-        return {clean_name(category, case="PascalCase")}(context_params=self)
-'''
-        write_file(file_path, content.strip())
-
-    # Create __init__.py in the context directory if it doesn't exist
-    init_file_path = file_path.parent / "__init__.py"
-    if not init_file_path.exists():
-        write_file(init_file_path, "")
-
-
-def generate_category_controller(
-    project_root: Path, context: str, category: str, command: str
-) -> None:
-    """
-    Generate or update the category controller file.
-    """
-    file_path = (
-        project_root
-        / "src"
-        / "humbldata"
-        / context
-        / category
-        / f"{category}_controller.py"
+''',
     )
 
-    # If file exists, update it
-    if file_path.exists():
-        with file_path.open("r") as f:
-            content = f.read()
+    model_package = standard_model_path(project_root, context)
+    write_init_model_if_missing(
+        model_package / "__init__.py",
+        f'''
+"""{context_class} context standard models."""
 
-        # Check if imports section exists
-        docstring_end = content.find('"""', content.find('"""') + 3) + 3
-        first_import = content.find("from", docstring_end)
-        import_section_end = content.find("\n\nclass", first_import)
+from humbldata.core.standard_models.abstract.data import Data
+from humbldata.core.standard_models.abstract.query_params import QueryParams
 
-        # Add new import if not present
-        import_line = f"from humbldata.core.standard_models.{context}.{category}.{command} import {clean_name(command, case='PascalCase')}QueryParams"
-        if import_line not in content:
-            # Insert after first import
-            content = (
-                content[:first_import]
-                + import_line
-                + "\n"
-                + content[first_import:]
-            )
 
-        # Add new method if not present
-        method_def = f"    def {clean_name(command, case='snake_case')}(self, **kwargs: {clean_name(command, case='PascalCase')}QueryParams):"
-        if method_def not in content:
-            # Find last method in class
-            last_method_end = content.rfind("\n\n    def")
-            if last_method_end == -1:  # No methods found
-                last_method_end = content.find(
-                    "self.context_params = context_params"
-                ) + len("self.context_params = context_params")
+class {context_class}QueryParams(QueryParams):
+    """Query parameters for the {context} context."""
 
-            # Find the end of the last method
-            next_method_start = content.find("\n    def", last_method_end + 1)
-            if next_method_start == -1:
-                method_insert_point = len(content)
-            else:
-                method_insert_point = next_method_start
+    pass
 
-            # Add new method
-            new_method = f'''
 
-    def {clean_name(command, case="snake_case")}(self, **kwargs: {clean_name(command, case="PascalCase")}QueryParams):
-        """
-        Execute the {clean_name(command, case="PascalCase")} command.
+class {context_class}Data(Data):
+    """Data model for the {context} context."""
 
-        Parameters
-        ----------
-        **kwargs : {clean_name(command, case="PascalCase")}QueryParams
-            The command-specific parameters.
-        """
-        try:
-            logger.debug(
-                "Initializing {clean_name(command, case="PascalCase")} calculation with params: %s",
-                kwargs,
-            )
+    pass
+''',
+    )
 
-            from humbldata.core.standard_models.{context}.{category}.{command} import {clean_name(command, case="PascalCase")}Fetcher
 
-            # Instantiate the Fetcher with the query parameters
-            fetcher = {clean_name(command, case="PascalCase")}Fetcher(
-                context_params=self.context_params,
-                command_params=kwargs,
-            )
+def update_context_controller(
+    project_root: Path, context: str, category: str
+) -> None:
+    """Expose a category from an existing context controller."""
+    context = clean_name(context)
+    category = category_name(category)
+    category_attr = clean_name(category.split("/")[-1])
+    category_class = class_name(category_attr)
+    controller_path = package_path(
+        project_root, context, f"{context}_controller.py"
+    )
+    if not controller_path.exists():
+        create_context(project_root, context)
 
-            logger.debug("Fetching {clean_name(command, case="PascalCase")} data")
-            return fetcher.fetch_data()
+    content = controller_path.read_text()
+    import_line = (
+        f"from humbldata.{context}.{category.replace('/', '.')}"
+        f".{category_attr}_controller import {category_class}"
+    )
+    if import_line not in content:
+        lines = content.splitlines()
+        insert_at = 0
+        for index, line in enumerate(lines):
+            if line.startswith(("from ", "import ")):
+                insert_at = index + 1
+        lines.insert(insert_at, import_line)
+        content = "\n".join(lines) + "\n"
 
-        except Exception as e:
-            logger.exception("Error calculating {clean_name(command, case="PascalCase")}")
-            msg = f"Failed to calculate {clean_name(command, case="PascalCase")}: {{e!s}}"
-            raise HumblDataError(msg) from e'''
+    method_signature = f"    def {category_attr}(self):"
+    if method_signature not in content:
+        content = (
+            content.rstrip()
+            + f'''
 
-            content = (
-                content[:method_insert_point]
-                + new_method
-                + content[method_insert_point:]
-            )
-
-        # Update docstring to include new method if not present
-        class_doc_start = content.find('"""', content.find("class"))
-        class_doc_end = content.find('"""', class_doc_start + 3) + 3
-
-        methods_section = content.find(
-            "    Methods", class_doc_start, class_doc_end
+    @property
+    def {category_attr}(self):
+        """Return the {category_attr} category controller."""
+        return {category_class}(context_params=self)
+'''
         )
-        if methods_section != -1:
-            methods_end = content.find("\n\n", methods_section)
-            if methods_end == -1:
-                methods_end = class_doc_end - 4  # Account for closing quotes
+    controller_path.write_text(content)
 
-            new_method_doc = f"""
-    {clean_name(command, case="snake_case")}(**kwargs: {clean_name(command, case="PascalCase")}QueryParams)
-        Execute the {clean_name(command, case="PascalCase")} command."""
 
-            if new_method_doc not in content:
-                content = (
-                    content[:methods_end]
-                    + new_method_doc
-                    + content[methods_end:]
-                )
+def create_category(project_root: Path, context: str, category: str) -> None:
+    """Create a category package under an existing or new context."""
+    context = clean_name(context)
+    category = category_name(category)
+    category_attr = clean_name(category.split("/")[-1])
+    category_class = class_name(category_attr)
+    context_class = class_name(context)
 
-        # Write updated content back to file
-        write_file(file_path, content)
-    else:
-        # Create new file with initial content
-        content = f'''
-"""Context: {clean_name(context, case="PascalCase")} || **Category: {clean_name(category, case="PascalCase")}**.
+    create_context(project_root, context)
 
-A controller to manage and compile all of the {clean_name(category, case="PascalCase")} models
-available in the `{clean_name(context)}` context. This will be passed as a
-`@property` to the `{clean_name(context)}()` class, giving access to the
-{clean_name(category, case="PascalCase")} module and its functions.
-"""
-from humbldata.core.standard_models.{context} import {clean_name(context, case="PascalCase")}QueryParams
-from humbldata.core.standard_models.{context}.{category}.{command} import {clean_name(command, case="PascalCase")}QueryParams
+    category_package = package_path(project_root, context, *category.split("/"))
+    ensure_init(category_package)
+    write_file_if_missing(
+        category_package / f"{category_attr}_controller.py",
+        f'''
+"""{context_class} {category_class} category controller."""
+
+from humbldata.core.standard_models.{context} import {context_class}QueryParams
 from humbldata.core.standard_models.abstract.errors import HumblDataError
 from humbldata.core.utils.logger import setup_logger
 
 logger = setup_logger(__name__)
 
 
-class {clean_name(category, case="PascalCase")}:
-    """
-    Module for all {clean_name(category, case="PascalCase")} analysis.
+class {category_class}:
+    """Controller for commands in the {category} category."""
 
-    Attributes
-    ----------
-    context_params : {clean_name(context, case="PascalCase")}QueryParams
-        The standard query parameters for {clean_name(context)} data.
-
-    Methods
-    -------
-    {clean_name(command, case="snake_case")}(**kwargs: {clean_name(command, case="PascalCase")}QueryParams)
-        Execute the {clean_name(command, case="PascalCase")} command.
-    """
-
-    def __init__(self, context_params: {clean_name(context, case="PascalCase")}QueryParams):
+    def __init__(self, context_params: {context_class}QueryParams):
+        """Store inherited context parameters."""
         self.context_params = context_params
+''',
+    )
+    ensure_init(
+        standard_model_path(project_root, context, *category.split("/"))
+    )
+    update_context_controller(project_root, context, category)
 
-    def {clean_name(command, case="snake_case")}(self, **kwargs: {clean_name(command, case="PascalCase")}QueryParams):
-        """
-        Execute the {clean_name(command, case="PascalCase")} command.
 
-        Parameters
-        ----------
-        **kwargs : {clean_name(command, case="PascalCase")}QueryParams
-            The command-specific parameters.
-        """
+def update_category_controller(
+    project_root: Path, context: str, category: str, command: str
+) -> None:
+    """Expose a command from a category controller."""
+    context = clean_name(context)
+    category = category_name(category)
+    command = clean_name(command)
+    category_attr = clean_name(category.split("/")[-1])
+    command_class = class_name(command)
+    controller_path = package_path(
+        project_root,
+        context,
+        *category.split("/"),
+        f"{category_attr}_controller.py",
+    )
+    if not controller_path.exists():
+        create_category(project_root, context, category)
+
+    content = controller_path.read_text()
+    import_line = (
+        f"from humbldata.core.standard_models.{context}."
+        f"{category.replace('/', '.')}.{command} import "
+        f"{command_class}Fetcher, {command_class}QueryParams"
+    )
+    if import_line not in content:
+        lines = content.splitlines()
+        insert_at = 0
+        for index, line in enumerate(lines):
+            if line.startswith(("from ", "import ")):
+                insert_at = index + 1
+        lines.insert(insert_at, import_line)
+        content = "\n".join(lines) + "\n"
+
+    method_signature = f"    def {command}(self, **kwargs:"
+    if method_signature not in content:
+        content = (
+            content.rstrip()
+            + f'''
+
+    def {command}(self, **kwargs: {command_class}QueryParams):
+        """Execute the {command} command."""
         try:
-            logger.debug(
-                "Initializing {clean_name(command, case="PascalCase")} calculation with params: %s",
-                kwargs,
-            )
-
-            from humbldata.core.standard_models.{context}.{category}.{command} import {clean_name(command, case="PascalCase")}Fetcher
-
-            # Instantiate the Fetcher with the query parameters
-            fetcher = {clean_name(command, case="PascalCase")}Fetcher(
+            fetcher = {command_class}Fetcher(
                 context_params=self.context_params,
                 command_params=kwargs,
             )
-
-            logger.debug("Fetching {clean_name(command, case="PascalCase")} data")
             return fetcher.fetch_data()
-
-        except Exception as e:
-            logger.exception("Error calculating {clean_name(command, case="PascalCase")}")
-            msg = f"Failed to calculate {clean_name(command, case="PascalCase")}: {{e!s}}"
-            raise HumblDataError(msg) from e
+        except Exception as exc:
+            logger.exception("Error calculating {command}")
+            raise HumblDataError(
+                f"Failed to calculate {command}: {{exc!s}}"
+            ) from exc
 '''
-        write_file(file_path, content)
-
-    # Create __init__.py in the category directory if it doesn't exist
-    init_file_path = file_path.parent / "__init__.py"
-    if not init_file_path.exists():
-        write_file(init_file_path, "")
+        )
+    controller_path.write_text(content)
 
 
-def generate_standard_model(
-    project_root: Path, context: str, category: str, command: str
+def create_command(  # noqa: PLR0913
+    project_root: Path,
+    context: str,
+    category: str,
+    command: str,
+    *,
+    add_helpers: bool = False,
+    add_view: bool = False,
 ) -> None:
-    """
-    Generate the model files for both context and command.
+    """Create command logic and standard model boilerplate."""
+    context = clean_name(context)
+    category = category_name(category)
+    command = clean_name(command)
+    command_class = class_name(command)
+    context_class = class_name(context)
 
-    Parameters
-    ----------
-    project_root : Path
-        The root path of the project.
-    context : str
-        The context name.
-    category : str
-        The category name.
-    command : str
-        The command name.
-    """
-    # Generate context standard model
-    context_file_path = (
-        project_root
-        / "src"
-        / "humbldata"
-        / "core"
-        / "standard_models"
-        / context
-        / "__init__.py"
+    create_category(project_root, context, category)
+
+    command_package = package_path(
+        project_root, context, *category.split("/"), command
     )
-    if not context_file_path.exists():
-        context_content = f'''
-"""
-Context: {clean_name(context, case="PascalCase")} || **Category: {clean_name(category, case="PascalCase")}**.
-
-This module defines the QueryParams and Data classes for the {clean_name(context, case="PascalCase")} context.
-"""
-
-from pydantic import Field, field_validator
-
-from humbldata.core.standard_models.abstract.data import Data
-from humbldata.core.standard_models.abstract.query_params import QueryParams
+    ensure_init(command_package)
+    write_file_if_missing(
+        command_package / "model.py",
+        f'''
+"""{command_class} command logic."""
 
 
-class {clean_name(context, case="PascalCase")}QueryParams(QueryParams):
-    """
-    Query parameters for the {clean_name(context, case="PascalCase")}Controller.
-
-    This class defines the query parameters used by the {clean_name(context, case="PascalCase")}Controller.
-
-    Parameters
-    ----------
-    example_field1 : str
-        An example field.
-    example_field2 : int | None
-        Another example field.
-    """
-
-    example_field1: str = Field(
-        default="default_value",
-        title="Example Field 1",
-        description="Description for example field 1",
-    )
-    example_field2: int | None = Field(
-        default=None,
-        title="Example Field 2",
-        description="Description for example field 2",
-    )
-
-    @field_validator("example_field1")
-    @classmethod
-    def validate_example_field1(cls, v: str) -> str:
-        return v.upper()
-
-
-class {clean_name(context, case="PascalCase")}Data(Data):
-    """
-    The Data for the {clean_name(context, case="PascalCase")}Controller.
-    """
-
-    # Add your data model fields here
+def {command}():
+    """Execute the {command} command."""
     pass
-'''
-        write_file(context_file_path, context_content)
-
-    # Generate command standard model
-    command_file_path = (
-        project_root
-        / "src"
-        / "humbldata"
-        / "core"
-        / "standard_models"
-        / context
-        / category
-        / f"{command}.py"
+''',
     )
-    command_content = f'''
-"""
-{clean_name(command, case="PascalCase")} Standard Model.
+    if add_helpers:
+        write_file_if_missing(
+            command_package / "helpers.py",
+            f'''
+"""{command_class} command helpers."""
 
-Context: {clean_name(context, case="PascalCase")} || Category: {clean_name(category, case="PascalCase")} || Command: {clean_name(command, case="snake_case")}.
 
-This module is used to define the QueryParams and Data model for the
-{clean_name(command, case="PascalCase")} command.
-"""
+def helper_function():
+    """Return a placeholder helper result."""
+    return "Helper function result"
+''',
+        )
+    if add_view:
+        write_file_if_missing(
+            command_package / "view.py",
+            f'''
+"""{command_class} command views."""
 
-from typing import Literal, TypeVar
-
-import pandera.polars as pa
 import polars as pl
-from pydantic import Field, field_validator
+
+
+def generate_plots(data: pl.LazyFrame):
+    """Generate plots for {command} data."""
+    return []
+''',
+        )
+
+    standard_model = standard_model_path(
+        project_root, context, *category.split("/"), f"{command}.py"
+    )
+    write_file_if_missing(
+        standard_model,
+        f'''
+"""{command_class} standard model."""
+
+from typing import TypeVar
+
+import polars as pl
 
 from humbldata.core.standard_models.abstract.data import Data
 from humbldata.core.standard_models.abstract.humblobject import HumblObject
 from humbldata.core.standard_models.abstract.query_params import QueryParams
-from humbldata.core.standard_models.{context} import {clean_name(context, case="PascalCase")}QueryParams
-from humbldata.core.utils.core_helpers import serialize_lazyframe_to_ipc
+from humbldata.core.standard_models.{context} import {context_class}QueryParams
 from humbldata.core.utils.env import Env
 from humbldata.core.utils.logger import log_start_end, setup_logger
 
 env = Env()
-Q = TypeVar("Q", bound={clean_name(context, case="PascalCase")}QueryParams)
-logger = setup_logger("{clean_name(command, case="PascalCase")}Fetcher", level=env.LOGGER_LEVEL)
-
-{clean_name(command, case="PascalCase").upper()}_QUERY_DESCRIPTIONS = {{
-    "example_field1": "Description for example field 1",
-    "example_field2": "Description for example field 2",
-}}
+Q = TypeVar("Q", bound={context_class}QueryParams)
+logger = setup_logger("{command_class}Fetcher", level=env.LOGGER_LEVEL)
 
 
-class {clean_name(command, case="PascalCase")}QueryParams(QueryParams):
-    """
-    QueryParams model for the {clean_name(command, case="PascalCase")} command, a Pydantic v2 model.
+class {command_class}QueryParams(QueryParams):
+    """Query parameters for the {command} command."""
 
-    Parameters
-    ----------
-    example_field1 : str
-        An example field.
-    example_field2 : bool
-        Another example field.
-    """
-
-    example_field1: str = Field(
-        default="default_value",
-        title="Example Field 1",
-        description={clean_name(command, case="PascalCase").upper()}_QUERY_DESCRIPTIONS.get("example_field1", ""),
-    )
-    example_field2: bool = Field(
-        default=True,
-        title="Example Field 2",
-        description={clean_name(command, case="PascalCase").upper()}_QUERY_DESCRIPTIONS.get("example_field2", ""),
-    )
-
-    @field_validator("example_field1")
-    @classmethod
-    def validate_example_field1(cls, v: str) -> str:
-        return v.upper()
+    pass
 
 
-class {clean_name(command, case="PascalCase")}Data(Data):
-    """
-    Data model for the {clean_name(command, case="snake_case")} command, a Pandera.Polars Model.
+class {command_class}Data(Data):
+    """Data model for the {command} command."""
 
-    This Data model is used to validate data in the `.transform_data()` method of the `{clean_name(command, case="PascalCase")}Fetcher` class.
-    """
-
-    example_column: pl.Date = Field(
-        default=None,
-        title="Example Column",
-        description="Description for example column",
-    )
+    pass
 
 
-class {clean_name(command, case="PascalCase")}Fetcher:
-    """
-    Fetcher for the {clean_name(command, case="PascalCase")} command.
-
-    Parameters
-    ----------
-    context_params : {clean_name(context, case="PascalCase")}QueryParams
-        The context parameters for the {clean_name(context, case="PascalCase")} query.
-    command_params : {clean_name(command, case="PascalCase")}QueryParams
-        The command-specific parameters for the {clean_name(command, case="PascalCase")} query.
-
-    Attributes
-    ----------
-    context_params : {clean_name(context, case="PascalCase")}QueryParams
-        Stores the context parameters passed during initialization.
-    command_params : {clean_name(command, case="PascalCase")}QueryParams
-        Stores the command-specific parameters passed during initialization.
-    data : pl.DataFrame
-        The raw data extracted from the data provider, before transformation.
-    warnings : List[Warning_]
-        List of warnings generated during data processing.
-    extra : dict
-        Additional metadata or results from data processing.
-    chart : Optional[Chart]
-        Optional chart object for visualization.
-
-    Methods
-    -------
-    transform_query()
-        Transform the command-specific parameters into a query.
-    extract_data()
-        Extracts the data from the provider and returns it as a Polars DataFrame.
-    transform_data()
-        Transforms the command-specific data according to the {clean_name(command, case="PascalCase")} logic.
-    fetch_data()
-        Execute TET Pattern.
-
-    Returns
-    -------
-    HumblObject
-        results : {clean_name(command, case="PascalCase")}Data
-            Serializable results.
-        provider : Literal['fmp', 'intrinio', 'polygon', 'tiingo', 'yfinance']
-            Provider name.
-        warnings : List[Warning_]
-            List of warnings from both context and command.
-        chart : Optional[Chart]
-            Chart object.
-        context_params : {clean_name(context, case="PascalCase")}QueryParams
-            Context-specific parameters.
-        command_params : {clean_name(command, case="PascalCase")}QueryParams
-            Command-specific parameters.
-        extra : dict
-            Additional metadata or results.
-    """
+class {command_class}Fetcher:
+    """Fetcher for the {command} command."""
 
     def __init__(
         self,
-        context_params: {clean_name(context, case="PascalCase")}QueryParams,
-        command_params: {clean_name(command, case="PascalCase")}QueryParams,
+        context_params: {context_class}QueryParams,
+        command_params: {command_class}QueryParams | dict | None = None,
     ):
-        """
-        Initialize the {clean_name(command, case="PascalCase")}Fetcher with context and command parameters.
-
-        Parameters
-        ----------
-        context_params : {clean_name(context, case="PascalCase")}QueryParams
-            The context parameters for the {clean_name(context, case="PascalCase")} query.
-        command_params : {clean_name(command, case="PascalCase")}QueryParams
-            The command-specific parameters for the {clean_name(command, case="PascalCase")} query.
-        """
+        """Initialize the fetcher with context and command parameters."""
         self.context_params = context_params
         self.command_params = command_params
         self.warnings = []
@@ -773,327 +398,121 @@ class {clean_name(command, case="PascalCase")}Fetcher:
         self.chart = None
 
     def transform_query(self):
-        """
-        Transform the command-specific parameters into a query.
-
-        If command_params is not provided, it initializes a default {clean_name(command, case="PascalCase")}QueryParams object.
-        """
-        if not self.command_params:
-            self.command_params = {clean_name(command, case="PascalCase")}QueryParams()
-        else:
-            self.command_params = {clean_name(command, case="PascalCase")}QueryParams(**self.command_params)
+        """Normalize command query parameters."""
+        if self.command_params is None:
+            self.command_params = {command_class}QueryParams()
+        elif isinstance(self.command_params, dict):
+            self.command_params = {command_class}QueryParams(
+                **self.command_params
+            )
+        return self
 
     def extract_data(self):
-        """
-        Extract the data from the provider and returns it as a Polars DataFrame.
-
-        Returns
-        -------
-        pl.DataFrame
-            The extracted data as a Polars DataFrame.
-        """
-        # Implement data extraction logic here
+        """Extract raw data for the command."""
         self.data = pl.DataFrame()
         return self
 
     def transform_data(self):
-        """
-        Transform the command-specific data according to the {clean_name(command, case="snake_case")} logic.
-
-        Returns
-        -------
-        pl.DataFrame
-            The transformed data as a Polars DataFrame
-        """
-        # Implement data transformation logic here
-        self.transformed_data = {clean_name(command, case="PascalCase")}Data(self.data)
-        self.transformed_data = serialize_lazyframe_to_ipc(self.transformed_data)
+        """Transform raw data for the command."""
+        self.transformed_data = self.data
         return self
 
     @log_start_end(logger=logger)
     def fetch_data(self):
-        """
-        Execute TET Pattern.
-
-        This method executes the query transformation, data fetching and
-        transformation process by first calling `transform_query` to prepare the query parameters, then
-        extracting the raw data using `extract_data` method, and finally
-        transforming the raw data using `transform_data` method.
-
-        Returns
-        -------
-        HumblObject
-            The HumblObject containing the transformed data and metadata.
-        """
-        logger.debug("Running .transform_query()")
+        """Execute the transform, extract, transform pattern."""
         self.transform_query()
-        logger.debug("Running .extract_data()")
         self.extract_data()
-        logger.debug("Running .transform_data()")
         self.transform_data()
 
-        # Initialize warnings list if it doesn't exist
-        if not hasattr(self.context_params, "warnings"):
-            self.context_params.warnings = []
-
-        # Initialize fetcher warnings if they don't exist
-        if not hasattr(self, "warnings"):
-            self.warnings = []
-
-        # Initialize extra dict if it doesn't exist
-        if not hasattr(self, "extra"):
-            self.extra = {{}}
-
-        # Combine warnings from both sources
-        all_warnings = self.context_params.warnings + self.warnings
-
+        context_warnings = getattr(self.context_params, "warnings", [])
         return HumblObject(
             results=self.transformed_data,
-            provider=self.context_params.provider,
-            warnings=all_warnings,  # Use combined warnings
+            provider=getattr(self.context_params, "provider", None),
+            warnings=context_warnings + self.warnings,
             chart=self.chart,
             context_params=self.context_params,
             command_params=self.command_params,
-            extra=self.extra,  # pipe in extra from transform_data()
+            extra=self.extra,
         )
-'''
-    write_file(command_file_path, command_content)
-
-    # Create __init__.py in the category directory if it doesn't exist
-    init_file_path = command_file_path.parent / "__init__.py"
-    if not init_file_path.exists():
-        write_file(init_file_path, "")
-
-
-def generate_helpers(
-    project_root: Path, context: str, category: str, command: str
-) -> None:
-    """
-    Generate the helpers.py file for the command.
-
-    Parameters
-    ----------
-    project_root : Path
-        The root path of the project.
-    context : str
-        The context name.
-    category : str
-        The category name.
-    command : str
-        The command name.
-    """
-    helpers_file_path = (
-        project_root
-        / "src"
-        / "humbldata"
-        / context
-        / category
-        / command
-        / "helpers.py"
+''',
     )
-    helpers_content = f'''
-"""
-**Context: {clean_name(context, case="PascalCase")} || Category: {clean_name(category, case="PascalCase")} || Command: {clean_name(command, case="snake_case")}**.
-
-The {clean_name(command, case="PascalCase")} Helpers Module.
-"""
-
-def helper_function():
-    return "Helper function result"
-'''
-    write_file(helpers_file_path, helpers_content)
-
-    # Create __init__.py in the command directory
-    init_file_path = helpers_file_path.parent / "__init__.py"
-    write_file(init_file_path, "")
+    update_category_controller(project_root, context, category, command)
 
 
-def generate_view(
-    project_root: Path, context: str, category: str, command: str
-) -> None:
-    """
-    Generate the view.py file for the command.
+def prompt_missing(value: str | None, label: str) -> str:
+    """Prompt only when a CLI argument was omitted."""
+    if value:
+        return value
+    return input(f"Enter the {label}: ")
 
-    Parameters
-    ----------
-    project_root : Path
-        The root path of the project.
-    context : str
-        The context name.
-    category : str
-        The category name.
-    command : str
-        The command name.
-    """
-    view_file_path = (
-        project_root
-        / "src"
-        / "humbldata"
-        / context
-        / category
-        / command
-        / "view.py"
+
+def build_parser() -> argparse.ArgumentParser:
+    """Build the ``poe create`` command parser."""
+    parser = argparse.ArgumentParser(
+        prog="poe create",
+        description="Create humbldata boilerplate.",
     )
-    view_content = f'''
-"""
-**Context: {clean_name(context, case="PascalCase")} || Category: {clean_name(category, case="PascalCase")} || Command: {clean_name(command, case="snake_case")}**.
+    subparsers = parser.add_subparsers(dest="kind")
 
-The {clean_name(command, case="PascalCase")} View Module.
-"""
-
-from typing import List
-
-import plotly.graph_objs as go
-import polars as pl
-
-from humbldata.core.standard_models.abstract.chart import Chart, ChartTemplate
-
-
-def create_example_plot(
-    data: pl.DataFrame,
-    template: ChartTemplate = ChartTemplate.plotly,
-) -> go.Figure:
-    """
-    Generate an example plot from the provided data.
-
-    Parameters
-    ----------
-    data : pl.DataFrame
-        The dataframe containing the data to be plotted.
-    template : ChartTemplate
-        The template to be used for styling the plot.
-
-    Returns
-    -------
-    go.Figure
-        A plotly figure object representing the example plot.
-    """
-    fig = go.Figure()
-    fig.add_trace(
-        go.Scatter(
-            x=data.select("x_column").to_series(),
-            y=data.select("y_column").to_series(),
-            name="Example Data",
-            line=dict(color="blue"),
-        )
+    context_parser = subparsers.add_parser(
+        "context", help="Create a new top-level context module"
     )
-    fig.update_layout(
-        title="Example Plot",
-        xaxis_title="X Axis",
-        yaxis_title="Y Axis",
-        template=template,
+    context_parser.add_argument("context", nargs="?")
+
+    category_parser = subparsers.add_parser(
+        "category", help="Create a category module within a context"
     )
-    return fig
+    category_parser.add_argument("context", nargs="?")
+    category_parser.add_argument("category", nargs="?")
+
+    command_parser = subparsers.add_parser(
+        "command", help="Create a command module within a category"
+    )
+    command_parser.add_argument("context", nargs="?")
+    command_parser.add_argument("category", nargs="?")
+    command_parser.add_argument("command", nargs="?")
+    command_parser.add_argument(
+        "--helpers",
+        action="store_true",
+        help="Also create a helpers.py boilerplate file",
+    )
+    command_parser.add_argument(
+        "--view",
+        action="store_true",
+        help="Also create a view.py boilerplate file",
+    )
+    return parser
 
 
-def generate_plots(
-    data: pl.LazyFrame,
-    template: ChartTemplate = ChartTemplate.plotly,
-) -> List[Chart]:
-    """
-    Context: {clean_name(context, case="PascalCase")} || Category: {clean_name(category, case="PascalCase")} || Command: {clean_name(command, case="snake_case")} || **Function: generate_plots()**.
-
-    Generate plots from the given dataframe.
-
-    Parameters
-    ----------
-    data : pl.LazyFrame
-        The LazyFrame containing the data to be plotted.
-    template : ChartTemplate
-        The template/theme to use for the plotly figure.
-
-    Returns
-    -------
-    List[Chart]
-        A list of Chart objects, each representing a plot.
-    """
-    collected_data = data.collect()
-    plot = create_example_plot(collected_data, template)
-    return [Chart(content=plot.to_plotly_json(), fig=plot)]
-'''
-    write_file(view_file_path, view_content)
-
-    # Create __init__.py in the command directory
-    init_file_path = view_file_path.parent / "__init__.py"
-    write_file(init_file_path, "")
-
-
-def main() -> None:
-    """
-    Orchestrate the creation of new command files & directories.
-
-    This function ties together all the helper functions to create a new command.
-    This is to be used with `poethepoet` to create a new command.
-
-    """
+def main(argv: Sequence[str] | None = None) -> None:
+    """Run the boilerplate generator CLI."""
+    parser = build_parser()
+    args = parser.parse_args(argv)
     project_root = get_project_root()
-    context, category, command, add_view, add_helpers = prompt_user()
 
-    command = clean_name(command, case="snake_case")
-
-    # Split category into sub-categories
-    categories = category.split("/")
-
-    # Create directories
-    create_directory(
-        project_root
-        / "src"
-        / "humbldata"
-        / "core"
-        / "standard_models"
-        / context
-    )
-    current_path = (
-        project_root
-        / "src"
-        / "humbldata"
-        / "core"
-        / "standard_models"
-        / context
-    )
-    for cat in categories:
-        current_path = current_path / cat
-        create_directory(current_path)
-
-    create_directory(project_root / "src" / "humbldata" / context)
-    current_path = project_root / "src" / "humbldata" / context
-    for cat in categories:
-        current_path = current_path / cat
-        create_directory(current_path)
-    create_directory(current_path / command)
-
-    # Generate files
-    generate_context_files(project_root, context)
-    generate_command_files(project_root, context, category, command)
-    generate_context_controller(project_root, context, category)
-
-    # Generate category controllers for each level
-    current_category = ""
-    for cat in categories:
-        current_category = (
-            f"{current_category}/{cat}" if current_category else cat
+    if args.kind == "context":
+        create_context(project_root, prompt_missing(args.context, "context"))
+    elif args.kind == "category":
+        create_category(
+            project_root,
+            prompt_missing(args.context, "context"),
+            prompt_missing(args.category, "category"),
         )
-        generate_category_controller(
-            project_root, context, current_category, command
+    elif args.kind == "command":
+        create_command(
+            project_root,
+            prompt_missing(args.context, "context"),
+            prompt_missing(args.category, "category"),
+            prompt_missing(args.command, "command"),
+            add_helpers=args.helpers,
+            add_view=args.view,
         )
+    else:
+        parser.print_help()
+        raise SystemExit(2)
 
-    generate_standard_model(project_root, context, category, command)
-
-    if add_view:
-        generate_view(project_root, context, category, command)
-    if add_helpers:
-        generate_helpers(project_root, context, category, command)
-
-    print("Files generated successfully!")
+    sys.stdout.write("Files generated successfully!\n")
 
 
 if __name__ == "__main__":
-    main()
-
-
-if __name__ == "__main__":
-    main()
-
-
-if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])

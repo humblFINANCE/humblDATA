@@ -171,7 +171,11 @@ max-complexity = 10
 
 [tool.poe.tasks.add_command]
 script = "scripts.add_command:main"
-help = "Generate boilerplate code for a new command"
+help = "Generate boilerplate code for a new command (alias for create)"
+
+[tool.poe.tasks.create]
+script = "scripts.add_command:main"
+help = "Create context, category, or command boilerplate"
 
 [tool.poe.tasks.docs]
 help = "Generate this package's docs using mkdocs"
@@ -233,4 +237,3 @@ cmd = "coverage report"
 
 [[tool.poe.tasks.test.sequence]]
 cmd = "coverage xml"
-
