@@ -1172,7 +1172,7 @@ requires-dist = [
     { name = "aiohttp", specifier = ">=3.11.18" },
     { name = "coloredlogs", specifier = ">=15.0.1" },
     { name = "dotenv", specifier = ">=0.9.9" },
-    { name = "limits", marker = "python_full_version < '3.10'", specifier = ">=4.0,<5.2" },
+    { name = "limits", marker = "python_full_version < '3.10'", specifier = ">=4.0,<4.3" },
     { name = "limits", marker = "python_full_version >= '3.10'", specifier = ">=5.2.0" },
     { name = "multidict", specifier = ">=6.4.3" },
     { name = "numpy", marker = "python_full_version < '3.10'", specifier = ">=2.0.0,<2.1" },
