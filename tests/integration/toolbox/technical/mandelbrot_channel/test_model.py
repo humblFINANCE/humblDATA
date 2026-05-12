@@ -1,3 +1,7 @@
+"""Integration tests for Humbl Channel model calculations."""
+
+import datetime as dt
+
 import polars as pl
 import pytest
 from _pytest.fixtures import FixtureRequest
@@ -25,17 +29,81 @@ def equity_historical(request: FixtureRequest):
     if request.param == "dataframe_single_symbol":
         data = data.filter(pl.col("symbol") == "AAPL")
         return data
-    elif request.param == "lazyframe_single_symbol":
+    if request.param == "lazyframe_single_symbol":
         data = data.filter(pl.col("symbol") == "AAPL")
         return pl.LazyFrame(data)
-    elif request.param == "dataframe_multiple_symbols":
+    if request.param == "dataframe_multiple_symbols":
         return data
-    elif request.param == "lazyframe_multiple_symbols":
+    if request.param == "lazyframe_multiple_symbols":
         return pl.LazyFrame(data)
     return None
 
 
-@pytest.mark.integration()
+def _synthetic_equity_rows(
+    symbol: str, start: dt.date, rows: int, base_price: float
+) -> pl.DataFrame:
+    return pl.DataFrame(
+        {
+            "date": pl.date_range(
+                start=start,
+                end=start + dt.timedelta(days=rows - 1),
+                interval="1d",
+                eager=True,
+            ),
+            "symbol": [symbol] * rows,
+            "open": [base_price + (idx * 0.1) for idx in range(rows)],
+            "high": [base_price + (idx * 0.1) + 0.5 for idx in range(rows)],
+            "low": [base_price + (idx * 0.1) - 0.5 for idx in range(rows)],
+            "close": [base_price + (idx * 0.1) for idx in range(rows)],
+            "volume": [1000 + idx for idx in range(rows)],
+        }
+    )
+
+
+@pytest.mark.integration
+def test_humbl_channel_historical_uses_each_symbols_own_start_date():
+    """Mixed symbols should match each symbol calculated independently."""
+    equity_data = pl.concat(
+        [
+            _synthetic_equity_rows("AAPL", dt.date(2020, 1, 1), 90, 100),
+            _synthetic_equity_rows("PCT", dt.date(2020, 2, 15), 50, 10),
+        ]
+    )
+
+    pct_only = calc_humbl_channel_historical(
+        equity_data.filter(pl.col("symbol") == "PCT"),
+        window="1m",
+        rv_adjustment=True,
+        rv_method="std",
+        rv_grouped_mean=False,
+        rs_method="RS",
+    ).collect()
+    combined = calc_humbl_channel_historical(
+        equity_data,
+        window="1m",
+        rv_adjustment=True,
+        rv_method="std",
+        rv_grouped_mean=False,
+        rs_method="RS",
+    ).collect()
+    combined_pct = combined.filter(pl.col("symbol") == "PCT")
+    price_cols = ["bottom_price", "close_price", "top_price"]
+
+    assert combined_pct.equals(pct_only)
+    assert (
+        combined.select(
+            pl.any_horizontal(
+                *[
+                    pl.col(col).is_null() | pl.col(col).is_nan()
+                    for col in price_cols
+                ]
+            ).sum()
+        ).item()
+        == 0
+    )
+
+
+@pytest.mark.integration
 def test_humbl_channel_integration(equity_historical, request: FixtureRequest):
     """Testing the composed function of `calc_humbl_channel()`."""
     current_param = request.node.callspec.params.get("equity_historical")
@@ -91,7 +159,7 @@ def test_humbl_channel_integration(equity_historical, request: FixtureRequest):
     ]
 
 
-@pytest.mark.integration()
+@pytest.mark.integration
 def test_humbl_channel_historical_integration(
     equity_historical, request: FixtureRequest
 ):
@@ -117,8 +185,8 @@ def test_humbl_channel_historical_integration(
         )
         expected_aapl_top_and_bottom = (
             "AAPL",
-            pytest.approx(32.17, rel=1e-3),
-            pytest.approx(36.96, rel=1e-3),
+            pytest.approx(33.36, rel=1e-3),
+            pytest.approx(35.68, rel=1e-3),
         )
         pct_top_and_bottom_mean = (
             mandelbrot_historical.group_by("symbol")
@@ -127,8 +195,8 @@ def test_humbl_channel_historical_integration(
         )
         expected_pct_top_and_bottom = (
             "PCT",
-            pytest.approx(9.55, rel=1e-3),
-            pytest.approx(12.00, rel=1e-3),
+            pytest.approx(9.44, rel=1e-3),
+            pytest.approx(12.27, rel=1e-3),
         )
         google_top_and_bottom_mean = (
             mandelbrot_historical.group_by("symbol")
@@ -137,8 +205,8 @@ def test_humbl_channel_historical_integration(
         )
         expected_google_top_and_bottom = (
             "GOOGL",
-            pytest.approx(40.72, rel=1e-3),
-            pytest.approx(43.00, rel=1e-3),
+            pytest.approx(40.04, rel=1e-3),
+            pytest.approx(43.72, rel=1e-3),
         )
         amd_top_and_bottom_mean = (
             mandelbrot_historical.group_by("symbol")
@@ -147,8 +215,8 @@ def test_humbl_channel_historical_integration(
         )
         expected_amd_top_and_bottom = (
             "AMD",
-            pytest.approx(23.65, rel=1e-3),
-            pytest.approx(27.26, rel=1e-3),
+            pytest.approx(23.76, rel=1e-3),
+            pytest.approx(27.08, rel=1e-3),
         )
 
         assert google_top_and_bottom_mean == expected_google_top_and_bottom
@@ -165,8 +233,8 @@ def test_humbl_channel_historical_integration(
         )
         expected_aapl_top_and_bottom = (
             "AAPL",
-            pytest.approx(33.43, rel=1e-3),
-            pytest.approx(35.75, rel=1e-3),
+            pytest.approx(33.36, rel=1e-3),
+            pytest.approx(35.68, rel=1e-3),
         )
 
         assert aapl_top_and_bottom_mean == expected_aapl_top_and_bottom
