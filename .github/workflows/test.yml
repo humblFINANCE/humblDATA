@@ -5,15 +5,26 @@ on:
     branches:
       - main
       - master
+      - develop
+      - dev
+      - dev/**
+  pull_request:
+    branches:
+      - main
+      - master
+      - develop
+      - dev
+      - dev/**
 
 jobs:
   build:
-    if: "contains(github.event.head_commit.message, 'bump(release)') == false"
-    name: Run tests
+    if: github.event_name != 'push' || !contains(github.event.head_commit.message, 'bump(release)')
+    name: Run tests on Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        python-version: [3.11.7]
+        python-version: ["3.9", "3.10", "3.11"]
 
     steps:
       - uses: actions/checkout@v4
@@ -21,12 +32,13 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install Poetry
-        run: pip install poetry pytest-md pytest-emoji
-      - name: Install dependencies with Poetry
-        run: poetry install --with=test
-      - uses: pavelzw/pytest-action@v2
+      - name: Install Nox
+        run: python -m pip install --upgrade pip nox
+      - name: Run pytest with Nox
+        uses: pavelzw/pytest-action@v2
         with:
           emoji: true
           verbose: false
           job-summary: true
+          report-title: Python ${{ matrix.python-version }} tests
+          custom-pytest: nox --non-interactive --session tests-${{ matrix.python-version }} --
