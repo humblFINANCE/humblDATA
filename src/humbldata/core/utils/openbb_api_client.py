@@ -312,7 +312,7 @@ class OpenBBAPIClient:
             warnings.warn(error_message, HumblDataWarning, stacklevel=2)
         # Handle non-dict/list response
         elif (
-            not isinstance(self.raw_api_response, dict | list)
+            not isinstance(self.raw_api_response, (dict, list))
             and not error_message
         ):
             error_message = f"API response for {self.obb_path} from {self.full_url} was not a dictionary or list as expected. Type: {type(self.raw_api_response)}."

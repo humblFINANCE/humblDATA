@@ -144,7 +144,7 @@ def calc_humbl_channel(  # noqa: PLR0913
         data2 = data1
 
     # Step 3: Calculate Log Mean series for the window bins
-    if isinstance(data2, pl.DataFrame | pl.LazyFrame):
+    if isinstance(data2, (pl.DataFrame, pl.LazyFrame)):
         data3 = mean(data2)
     else:
         msg = "A series was passed to `mean()` calculation. Please provide a DataFrame or LazyFrame."

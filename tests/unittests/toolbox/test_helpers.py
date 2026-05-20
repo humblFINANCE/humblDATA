@@ -310,7 +310,7 @@ def test_detrend(
             _detrend_value_col=_detrend_value_col,
             _sort=_sort,
         )
-        if isinstance(data, pl.DataFrame | pl.LazyFrame):
+        if isinstance(data, (pl.DataFrame, pl.LazyFrame)):
             assert "detrended_log_returns" in result.columns
         elif isinstance(data, pl.Series):
             assert pytest.approx(result.to_list(), abs=0.01) == [
