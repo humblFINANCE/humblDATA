@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "jenningsFantini", email = "jenningsfantini+github@gmail.com" }
 ]
-requires-python = ">=3.11,<3.13"
+requires-python = ">=3.9,<3.13"
 
 dependencies = [
     "polars>=1.29.0",
@@ -22,9 +22,12 @@ dependencies = [
     "aiohttp>=3.11.18",
     "dotenv>=0.9.9",
     "aiocache>=0.12.3",
-    "limits>=5.2.0",
-    "numpy>=2.2.5",
+    "limits>=4.0.0,<4.1.0; python_version < '3.10'",
+    "limits>=5.2.0; python_version >= '3.10'",
+    "numpy>=2.0.2,<2.1; python_version < '3.10'",
+    "numpy>=2.2.5; python_version >= '3.10'",
     "pandas>=2.2.3",
+    "typer>=0.15.3",
 ]
 
 [build-system]
@@ -52,6 +55,7 @@ test = [
     "poethepoet>=0.20.0",
     "pre-commit>=3.3.1",
     "pytest-clarity>=1.0.1",
+    "nox>=2025.5.1",
     "pytest>=7.3.1",
     "pytest-mock>=3.10.0",
     "pytest-xdist>=3.2.1",
@@ -153,7 +157,7 @@ select = ["A", "ASYNC", "B", "BLE", "C4", "C90", "D", "DTZ", "E", "EM", "ERA", "
 ignore = ["E501", "PGH001", "RET504", "S101"]
 unfixable = ["ERA001", "F401", "F841", "T201", "T203"]
 src = ["src", "tests"]
-target-version = "py311"
+target-version = "py39"
 
 [tool.ruff.flake8-tidy-imports]
 ban-relative-imports = "all"
@@ -233,4 +237,3 @@ cmd = "coverage report"
 
 [[tool.poe.tasks.test.sequence]]
 cmd = "coverage xml"
-

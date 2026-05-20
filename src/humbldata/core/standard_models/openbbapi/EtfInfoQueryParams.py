@@ -22,7 +22,7 @@ class EtfInfoQueryParams(QueryParams):
     @field_validator("symbol", mode="before")
     @classmethod
     def ensure_list_or_str(cls, v):
-        if isinstance(v, list | str):
+        if isinstance(v, (list, str)):
             return v
         msg = "symbol must be a str or list of str"
         raise TypeError(msg)

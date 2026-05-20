@@ -6,7 +6,7 @@ context. Most of the helpers will be mathematical transformations of data. These
 functions should be **DUMB** functions.
 """
 
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 
 import polars as pl
 from dateutil.relativedelta import relativedelta
@@ -122,7 +122,7 @@ def _window_format(
             end_date = datetime.utcnow()
         if isinstance(end_date, str):
             end_date = datetime.strptime(end_date, "%Y-%m-%d").replace(
-                tzinfo=UTC
+                tzinfo=timezone.utc
             )
         # Conversion to datetime object, to get days
         then = end_date - out
@@ -214,7 +214,7 @@ def _cumsum_check(
     """
     from numpy import isclose
 
-    if isinstance(data, pl.DataFrame | pl.LazyFrame):
+    if isinstance(data, (pl.DataFrame, pl.LazyFrame)):
         # Ensure data is a DataFrame for processing
         if isinstance(data, pl.LazyFrame):
             data = data.collect()
@@ -440,7 +440,7 @@ def log_returns(
         if _drop_nulls:
             out = out.drop_nulls()
     # Calculation for Polars DataFrame or LazyFrame
-    elif isinstance(data, pl.DataFrame | pl.LazyFrame):
+    elif isinstance(data, (pl.DataFrame, pl.LazyFrame)):
         sort_cols = _set_sort_cols(data, "symbol", "date")
         over_cols = _set_over_cols(
             data, "symbol"
@@ -524,7 +524,7 @@ def detrend(
     that doesn't need to be grouped, because the sorting has already aligned
     the rows for subtraction
     """
-    if isinstance(data, pl.DataFrame | pl.LazyFrame):
+    if isinstance(data, (pl.DataFrame, pl.LazyFrame)):
         sort_cols = _set_sort_cols(data, "symbol", "date")
         if _sort and sort_cols:
             data = data.sort(sort_cols)
@@ -534,7 +534,7 @@ def detrend(
             msg = "Data must contain 'symbol' and 'date' columns for sorting."
             raise HumblDataError(msg)
 
-    if isinstance(data, pl.DataFrame | pl.LazyFrame):
+    if isinstance(data, (pl.DataFrame, pl.LazyFrame)):
         col_names = data.collect_schema().names()
         if _detrend_value_col not in col_names or _detrend_col not in col_names:
             msg = f"Both {_detrend_value_col} and {_detrend_col} must be columns in the data."
@@ -605,7 +605,7 @@ def cum_sum(
     end of each series being 0, meaning the trend (the mean over the
     window_index) was successfully removed from the data.
     """
-    if isinstance(data, pl.DataFrame | pl.LazyFrame):
+    if isinstance(data, (pl.DataFrame, pl.LazyFrame)):
         sort_cols = _set_sort_cols(data, "symbol", "date")
         if _sort and sort_cols:
             data = data.sort(sort_cols)
@@ -669,7 +669,7 @@ def std(
     """
     if isinstance(data, pl.Series):
         out = data.std()
-    elif isinstance(data, pl.DataFrame | pl.LazyFrame):
+    elif isinstance(data, (pl.DataFrame, pl.LazyFrame)):
         sort_cols = _set_sort_cols(data, "symbol", "date")
         over_cols = _set_over_cols(data, "symbol", "window_index")
         if _sort and sort_cols:
@@ -788,7 +788,7 @@ def range_(
     if isinstance(data, pl.Series):
         out = data.max() - data.min()
 
-    if isinstance(data, pl.LazyFrame | pl.DataFrame):
+    if isinstance(data, (pl.LazyFrame, pl.DataFrame)):
         sort_cols = _set_sort_cols(data, "symbol", "date")
         over_cols = _set_over_cols(data, "symbol", "window_index")
         if _sort and sort_cols:
