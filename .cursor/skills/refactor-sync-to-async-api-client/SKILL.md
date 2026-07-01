@@ -1,7 +1,6 @@
 ---
+name: refactor-sync-to-async-api-client
 description: This rule describes how to refactor a function from obb usage to API Client logic.
-globs:
-alwaysApply: false
 ---
 
 

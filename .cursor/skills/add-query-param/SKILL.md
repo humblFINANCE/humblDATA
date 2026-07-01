@@ -1,7 +1,6 @@
 ---
+name: add-query-param
 description: This rule describes how to add a new QueryParam feild to a function.
-globs:
-alwaysApply: false
 ---
 
 # Adding Query Parameters
