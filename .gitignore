@@ -64,3 +64,6 @@ __pycache__/
 # Micromamba
 ./menv
 menv
+
+# Redis local dump
+dump.rdb
