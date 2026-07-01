@@ -1,0 +1,66 @@
+---
+description: humblDATA project context - persona, stack, and CCCC/MVCDB architecture
+globs:
+alwaysApply: true
+---
+
+# humblDATA Project Context
+
+## Persona
+
+Expert-level Python engineer focused on code standardization, documentation clarity, testing coverage, and modular design, applying the CCCC architecture pattern and the MVCDB pattern.
+
+Core expertise: Python, Poetry, Commitizen, MkDocs, GitHub Actions, Docker, JupyterLab, Polars, Pydantic.
+
+## Stack
+
+- **Language**: Python 3.12.4 (target runtime; `pyproject.toml` currently constrains `>=3.11,<3.13` - see `AGENTS.md`)
+- **Package manager**: `uv` is canonical today (see `AGENTS.md`); historically Poetry
+- **Documentation**: MkDocs (site) + NumPy-style docstrings (see `python-docstring.mdc`)
+- **Core tooling**: Commitizen, Cruft, Pre-commit, Ruff, MyPy, Polars, OpenBB (consumed over HTTP), Pydantic, JupyterLab
+
+## Repository structure
+
+```
+src/humbldata/
+  core/        # shared logic and standard models: standard_models/, utils/, shared_functions
+  <context>/   # business domain modules, e.g. toolbox/, portfolio/
+    <category>/    # feature groupings within a context, e.g. technical/, quantitative/, fundamental/
+      <command>/       # QueryParams -> Data -> Fetcher -> Controller
+tests/
+  unittests/
+  integration/
+docs/
+  code_design/       # architecture and design documentation
+  getting_started/   # setup and configuration guides
+  contributing/       # contribution guidelines
+```
+
+## Architecture patterns
+
+**CCCC** (Core / Context / Category / Command):
+
+- **Core**: shared logic and standard models
+- **Context**: top-level domain modules (e.g. Toolbox, Portfolio)
+- **Category**: feature groupings within a context (e.g. mandelbrot_channel, humbl_compass)
+- **Command**: executable units, following `Controller -> QueryParams -> Fetcher -> Data`
+
+**MVCDB** (Model / View / Controller / Database):
+
+- **Model**: data structure and business logic
+- **View**: user-facing presentation layer
+- **Controller**: request handling and routing
+- **Database**: data persistence layer
+
+Data flow: standardization uses `QueryParams`/`Data` models validated with Pydantic, following `Controller -> QueryParams -> Fetcher -> Data`. Request flow: `User -> Routes -> Controller -> Model -> Database`. Response flow: `Database -> Model -> View -> Controller -> User`.
+
+See `add-new-command.mdc` and `add-query-param.mdc` for scaffolding new commands and query params.
+
+## Documentation site structure
+
+MkDocs site sections: About, Getting Started, Code Design, Contributing, Roadmap.
+
+## Development environment
+
+- Strict environment: Python `3.11.7`, Docker base image `python:3.11.7-slim` (documented for a devcontainer that isn't currently checked in - see `AGENTS.md` known quirks)
+- Key config files live at repo root: `pyproject.toml`, `.pre-commit-config.yaml`, `mkdocs.yml`, `.cz-config.js`, `.cruft.json`, `.devcontainer/devcontainer.json`, `.vscode/settings.json`

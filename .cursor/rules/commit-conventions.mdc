@@ -1,0 +1,40 @@
+---
+description: Conventional Commits format required for every commit in this repo
+globs:
+alwaysApply: true
+---
+
+# Commit Conventions
+
+This repo uses standard [Conventional Commits](https://www.conventionalcommits.org) - **no gitmoji, no custom emoji prefixes**. This is non-negotiable.
+
+## Format
+
+```
+<type>(<scope>): <subject>
+```
+
+## Allowed types
+
+| Type | Use when |
+|---|---|
+| `feat` | New user-visible feature |
+| `fix` | Bug fix |
+| `chore` | Maintenance that doesn't fit elsewhere (deps, tooling, config) |
+| `refactor` | Internal restructure, no behavior change |
+| `docs` | Documentation only |
+| `perf` | Performance improvement |
+| `style` | Formatting/whitespace only |
+| `build` | Build system, packaging |
+| `ci` | CI/CD pipeline only |
+| `test` | Tests only |
+| `revert` | Reverts a previous commit |
+
+Breaking changes: append `!` after the type/scope (e.g. `feat(api)!: ...`) or add a `BREAKING CHANGE:` footer.
+
+## Rules
+
+- Only use the types above - do not invent new ones (e.g. no `hotfix`, `WIP`, `boom`, `dep-add`, `dep-rm`).
+- Subject in the imperative mood, no trailing period.
+- Scope is optional but encouraged - reuse an existing scope from `git log --oneline -50` when one fits.
+- Never add gitmoji/emoji prefixes when authoring a commit by hand, even though this repo's Commitizen config (`cz_gitmoji` in `.cz-config.js`) auto-generates a gitmoji-prefixed `bump(release): ...` commit during `cz bump` / the CI `bump.yml` workflow - that one is machine-generated, not hand-authored, and is the only exception.
