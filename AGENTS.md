@@ -16,6 +16,8 @@ Data flows: `humblDATA` (library) -> `humblAPI` (HTTP service) -> `humblFINANCE`
 
 **Important**: bumping a version here does NOT automatically update humblAPI. humblAPI pins `humbldata>=1.22.1` in its `pyproject.toml` - after publishing a new release here, go bump that pin in humblAPI and redeploy.
 
+**OpenBB API hosting**: `humbldata` does not use the `openbb` Python package - it calls a self-hosted OpenBB Platform API instance over HTTP via `core/utils/openbb_api_client.py`. In production that instance runs on **DigitalOcean App Platform** (`openbbapi-y9f49.ondigitalocean.app`), fronted by Cloudflare under the custom domain `https://data.humblfinance.io` (`OPENBB_API_PROD_URL`). Locally, point `OPENBB_API_DEV_URL` at your own running OpenBB Platform instance (default `http://127.0.0.1:6900`).
+
 ## Stack
 
 - **Language**: Python `>=3.11,<3.13`
@@ -69,7 +71,7 @@ Environment variables load from a root `.env` (no `.env.example` is committed - 
 |---|---|
 | `ENVIRONMENT` | `development` (default) or `production` |
 | `OBB_PAT`, `OBB_LOGGED_IN` | OpenBB Personal Access Token / login flag |
-| `OPENBB_API_PROD_URL`, `OPENBB_API_DEV_URL`, `OPENBB_API_PREFIX` | OpenBB API base URLs (default prefix `/api/v1`) |
+| `OPENBB_API_PROD_URL`, `OPENBB_API_DEV_URL`, `OPENBB_API_PREFIX` | OpenBB API base URLs (default prefix `/api/v1`). Prod = self-hosted OpenBB Platform on DigitalOcean App Platform, at `https://data.humblfinance.io` |
 | `ALPACA_API_KEY`, `ALPACA_API_SECRET` | Alpaca |
 | `REDIS_URL`, `REDIS_REST_API_URL`, `REDIS_API_TOKEN`, `REDIS_REST_API_READ_ONLY_TOKEN` | Redis / Upstash |
 | `NIXTLA_API_KEY` | TimeGPT |
