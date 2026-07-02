@@ -211,7 +211,7 @@ There are __4__ pre-made github actions that are used with this package. Some ac
         - `POETRY_HTTP_BASIC__PASSWORD`: This is a secret used for authentication with the private package repository.
         - `POETRY_PYPI_TOKEN_PYPI`: This is a secret used for authentication with PyPi, if the package is being published there.
 ??? abstract "4. `test.yml`"
-    This workflow is responsible for testing the project. It is triggered on push events to the main and master branches, and on pull requests.
+    This workflow is responsible for testing the project. It is triggered on push events to the `develop` and `main` branches, and on pull requests.
 
     The workflow runs on an Ubuntu-latest environment and uses the specified Python version.
 

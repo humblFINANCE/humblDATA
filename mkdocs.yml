@@ -4,7 +4,7 @@ site_url: "https://humblfinance.github.io/humbldata/"
 repo_name: humbldata
 site_dir: "site"
 copyright: Copyright &copy; 2024 Jennings Fantini
-edit_uri: edit/master/docs/
+edit_uri: edit/main/docs/
 site_author: Jennings Fantini
 
 watch:
