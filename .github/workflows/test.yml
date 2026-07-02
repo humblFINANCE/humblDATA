@@ -3,9 +3,8 @@ name: Run Python tests
 on:
   push:
     branches:
-      - main
-      - master
       - develop
+      - main
   pull_request:
 
 jobs:
@@ -33,7 +32,7 @@ jobs:
       # Non-blocking for now: this workflow previously used Poetry against a
       # pyproject.toml that has used uv/hatchling for a long time (no
       # poetry.lock has existed in this repo - see AGENTS.md), and only ran
-      # on push to main/master, never on pull_request. In practice that
+      # on push to develop/main, never on pull_request. In practice that
       # means this test suite has not gated any change in a long time, and
       # ~70 pre-existing failures/errors (numeric assertions, stale
       # doctests, fixtures) accumulated silently. Fixing all of it is a

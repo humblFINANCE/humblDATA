@@ -81,8 +81,8 @@ Environment variables load from a root `.env` (no `.env.example` is committed - 
 
 There is no manual "deploy" step - releases and docs publish automatically from CI:
 
-1. Push commits to `main`/`master` (gitmoji conventional commits, see below) -> `.github/workflows/test.yml` runs Poetry-based pytest.
-2. `.github/workflows/bump.yml` runs Commitizen, bumps `version` in `pyproject.toml`, updates `CHANGELOG.md`, tags `v$version`, and creates a GitHub release. Skips if the triggering commit message already contains `bump(release)`.
+1. Push commits to `develop` (integration) or `main` (release; gitmoji conventional commits, see below) -> `.github/workflows/test.yml` runs pytest on push to both branches.
+2. `.github/workflows/bump.yml` runs Commitizen on push to `main` only, bumps `version` in `pyproject.toml`, updates `CHANGELOG.md`, tags `v$version`, and creates a GitHub release. Skips if the triggering commit message already contains `bump(release)`.
 3. That tag push triggers, in parallel:
    - `.github/workflows/publish.yml` - `uv build` + `uv publish` to PyPI (`POETRY_PYPI_TOKEN_PYPI` secret). Also triggers on push to a `release` branch.
    - `.github/workflows/docs.yml` - `uv run mkdocs gh-deploy --force` to GitHub Pages.
