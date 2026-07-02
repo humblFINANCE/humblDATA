@@ -90,41 +90,24 @@ class HumblCompassPositionSideList(BaseModel):
 
     @model_validator(mode="after")
     def _no_dupes_and_no_overlap(self) -> HumblCompassPositionSideList:
+        # Raise plain ValueError, not pydantic.ValidationError: Pydantic v2's
+        # ValidationError is constructed internally via
+        # `pydantic_core.ValidationError.from_exception_data(...)`, not this
+        # public-looking (list[dict], model) signature. Model validators are
+        # expected to raise ValueError/AssertionError/TypeError, which
+        # Pydantic automatically wraps into a proper ValidationError for the
+        # caller.
         long_set: set[str] = set(self.long)
         short_set: set[str] = set(self.short)
         if len(long_set) != len(self.long):  # duplicates in long
-            raise ValidationError(
-                [
-                    {
-                        "loc": ("long",),
-                        "msg": "Duplicate symbols in long list",
-                        "type": "value_error",
-                    }
-                ],
-                type(self),
-            )
+            msg = "Duplicate symbols in long list"
+            raise ValueError(msg)
         if len(short_set) != len(self.short):  # duplicates in short
-            raise ValidationError(
-                [
-                    {
-                        "loc": ("short",),
-                        "msg": "Duplicate symbols in short list",
-                        "type": "value_error",
-                    }
-                ],
-                type(self),
-            )
+            msg = "Duplicate symbols in short list"
+            raise ValueError(msg)
         if long_set.intersection(short_set):
-            raise ValidationError(
-                [
-                    {
-                        "loc": ("long", "short"),
-                        "msg": "Long and short lists must be disjoint",
-                        "type": "value_error",
-                    }
-                ],
-                type(self),
-            )
+            msg = "Long and short lists must be disjoint"
+            raise ValueError(msg)
         return self
 
 
@@ -186,8 +169,8 @@ class HumblCompassPositionLogic(BaseModel):
     ...     humblBOOM=HumblCompassPositionSideList(long=["SPY", "QQQ"], short=["TLT"]),
     ...     humblBUST=HumblCompassPositionSideList(long=["TLT", "GLD"], short=["SPY"]),
     ... )
-    >>> logic.all_symbols()
-    {'SPY', 'QQQ', 'TLT', 'GLD'}
+    >>> sorted(logic.all_symbols())
+    ['GLD', 'QQQ', 'SPY', 'TLT']
     >>>
     >>> # Clip to available universe
     >>> available = {"SPY", "TLT", "GLD"}
@@ -249,18 +232,23 @@ class HumblCompassPositionLogic(BaseModel):
 
         Examples
         --------
-        >>> mappings = HumblRegimePositionMappings(
+        The example below predates this model's current field structure
+        (``humblBOOM``/``humblBOUNCE``/``humblBLOAT``/``humblBUST``, see
+        `HumblCompassPositionLogic`'s own docstring for a runnable example)
+        and is illustrative only - not asserted as a doctest.
+
+        >>> mappings = HumblRegimePositionMappings(  # doctest: +SKIP
         ...     regimes={
         ...         "regime_a": RegimeSideLists(long=["SPY", "TLT"]),
         ...         "regime_b": RegimeSideLists(short=["GLD"], long=["SPY"])
         ...     }
         ... )
-        >>> mappings.all_symbols()
+        >>> mappings.all_symbols()  # doctest: +SKIP
         {'SPY', 'TLT', 'GLD'}
         >>>
         >>> # Empty mappings return empty set
-        >>> empty = HumblRegimePositionMappings()
-        >>> empty.all_symbols()
+        >>> empty = HumblRegimePositionMappings()  # doctest: +SKIP
+        >>> empty.all_symbols()  # doctest: +SKIP
         set()
 
         See Also
@@ -327,8 +315,12 @@ class HumblCompassPositionLogic(BaseModel):
 
         Examples
         --------
+        The example below predates this model's current field structure
+        (``humblBOOM``/``humblBOUNCE``/``humblBLOAT``/``humblBUST``) and is
+        illustrative only - not asserted as a doctest.
+
         >>> # Create mappings with symbols that may not all be available
-        >>> mappings = HumblRegimePositionMappings(
+        >>> mappings = HumblRegimePositionMappings(  # doctest: +SKIP
         ...     regimes={
         ...         "risk_on": RegimeSideLists(
         ...             long=["SPY", "QQQ", "ARKK"],
@@ -339,14 +331,14 @@ class HumblCompassPositionLogic(BaseModel):
         >>>
         >>> # Clip to available universe (ARKK not available)
         >>> available = {"SPY", "QQQ", "TLT", "GLD"}
-        >>> clipped = mappings.clip_to_universe(available)
-        >>> clipped.regimes["risk_on"].long
+        >>> clipped = mappings.clip_to_universe(available)  # doctest: +SKIP
+        >>> clipped.regimes["risk_on"].long  # doctest: +SKIP
         ['SPY', 'QQQ']
-        >>> clipped.regimes["risk_on"].short
+        >>> clipped.regimes["risk_on"].short  # doctest: +SKIP
         ['TLT']
         >>>
         >>> # Original is unchanged
-        >>> mappings.regimes["risk_on"].long
+        >>> mappings.regimes["risk_on"].long  # doctest: +SKIP
         ['SPY', 'QQQ', 'ARKK']
 
         See Also
@@ -438,13 +430,13 @@ def coerce_humbl_compass_position_logic(
 
     Examples
     --------
-    >>> # Coerce a raw dictionary
+    >>> # Coerce a raw dictionary keyed by the four HumblCompass regimes
     >>> raw_config = {
-    ...     "bullish": {"long": ["SPY", "QQQ"], "short": ["TLT"]},
-    ...     "bearish": {"long": ["TLT"], "short": ["SPY"]}
+    ...     "humblBOOM": {"long": ["SPY", "QQQ"], "short": ["TLT"]},
+    ...     "humblBUST": {"long": ["TLT"], "short": ["SPY"]}
     ... }
     >>> mappings = coerce_humbl_compass_position_logic(raw_config)
-    >>> mappings.regimes["bullish"].long
+    >>> mappings.humblBOOM.long
     ['SPY', 'QQQ']
     >>>
     >>> # Pass-through existing model
@@ -453,7 +445,7 @@ def coerce_humbl_compass_position_logic(
     True
     >>>
     >>> # Invalid dict raises ValidationError
-    >>> invalid = {"regime": {"long": ["A", "A"]}}  # duplicate
+    >>> invalid = {"humblBOOM": {"long": ["A", "A"]}}  # duplicate
     >>> try:
     ...     coerce_humbl_compass_position_logic(invalid)
     ... except ValidationError:
@@ -462,10 +454,10 @@ def coerce_humbl_compass_position_logic(
 
     See Also
     --------
-    HumblRegimePositionMappings : Target model class
-    RegimeSideLists : Component model for individual regimes
+    HumblCompassPositionLogic : Target model class
+    HumblCompassPositionSideList : Component model for individual regimes
     humbldata.portfolio.strategies.humbl_compass_simple_backtest.HumblCompassSimpleBacktest : Primary consumer of this function
-    create_example_humbl_compass_position_logic : Factory for standard configurations
+    create_example_position_logic : Factory for standard configurations
     """
     if isinstance(obj, HumblCompassPositionLogic):
         return obj
@@ -546,16 +538,16 @@ def create_example_position_logic() -> HumblCompassPositionLogic:
     >>> logic.humblBOOM.short
     ['TLT', 'GLD', 'VIX']
     >>>
-    >>> # Check all available regimes
-    >>> ["humblBOOM", "humblBLOAT", "humblBUST", "humblBOUNCE"]
+    >>> # Available regimes: humblBOOM, humblBLOAT, humblBUST, humblBOUNCE
     >>>
     >>> # Get all symbols for data fetching
-    >>> logic.all_symbols()
-    {'SPY', 'QQQ', 'XLY', 'IWM', 'TLT', 'GLD', 'VIX', 'XLP', 'XLU', ...}
+    >>> sorted(logic.all_symbols())
+    ['BIL', 'GLD', 'IWM', 'QQQ', 'SPY', 'TLT', 'VIX', 'XLB', 'XLE', 'XLF', 'XLI', 'XLP', 'XLU', 'XLY']
     >>>
-    >>> # Use directly in backtest
+    >>> # Use directly in backtest (illustrative - returns_df/compass_monthly
+    >>> # are placeholders for real DataFrames, not asserted as a doctest)
     >>> from humbldata.portfolio.strategies.humbl_compass_simple_backtest import HumblCompassSimpleBacktest
-    >>> backtest = HumblCompassSimpleBacktest(
+    >>> backtest = HumblCompassSimpleBacktest(  # doctest: +SKIP
     ...     actual_returns=returns_df,
     ...     compass_metric=compass_monthly,
     ...     humbl_compass_position_logic=create_example_position_logic(),
@@ -564,7 +556,7 @@ def create_example_position_logic() -> HumblCompassPositionLogic:
 
     See Also
     --------
-    HumblRegimePositionMappings : Model class for regime mappings
+    HumblCompassPositionLogic : Model class for regime mappings
     coerce_humbl_compass_position_logic : Construct from custom dicts
     humbldata.portfolio.strategies.humbl_compass_simple_backtest.HumblCompassSimpleBacktest : Consumer strategy
     """

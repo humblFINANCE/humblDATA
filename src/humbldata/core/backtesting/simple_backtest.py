@@ -171,12 +171,16 @@ class SimpleBacktest(BaseStrategy):
 
     Examples
     --------
+    The example below is illustrative pseudocode (not asserted as a
+    doctest): `actual_returns`/`metrics` and the resulting values are
+    placeholders, not runnable in isolation.
+
     >>> # actual_returns: DataFrame [dates x assets]
     >>> # metrics: {"humblCOMPASS": df1, "humblMOMENTUM": df2}
-    >>> strat = SimpleBacktest(actual_returns=actual_returns, metrics=metrics)
-    >>> result = strat.generate_hisotrical_performance_backtest()
-    >>> nested = result.to_dict()
-    >>> nested["SPY"]["humblCOMPASS"]["humblBOOM"]
+    >>> strat = SimpleBacktest(actual_returns=actual_returns, metrics=metrics)  # doctest: +SKIP
+    >>> result = strat.generate_hisotrical_performance_backtest()  # doctest: +SKIP
+    >>> nested = result.to_dict()  # doctest: +SKIP
+    >>> nested["SPY"]["humblCOMPASS"]["humblBOOM"]  # doctest: +SKIP
     {'cumulative_return': 0.12, 'annualized_return': 0.10, 'max_drawdown': -0.05, 'annualized_volatility': 0.16, 'sharpe_ratio': 0.62}
     """
 

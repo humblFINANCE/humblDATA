@@ -16,7 +16,7 @@ Data flows: `humblDATA` (library) -> `humblAPI` (HTTP service) -> `humblFINANCE`
 
 **Important**: bumping a version here does NOT automatically update humblAPI. humblAPI pins `humbldata>=1.22.1` in its `pyproject.toml` - after publishing a new release here, go bump that pin in humblAPI and redeploy.
 
-**OpenBB API hosting**: `humbldata` does not use the `openbb` Python package - it calls a self-hosted OpenBB Platform API instance over HTTP via `core/utils/openbb_api_client.py`. In production that instance runs on **DigitalOcean App Platform** (`openbbapi-y9f49.ondigitalocean.app`), fronted by Cloudflare under the custom domain `https://data.humblfinance.io` (`OPENBB_API_PROD_URL`). Locally, point `OPENBB_API_DEV_URL` at your own running OpenBB Platform instance (default `http://127.0.0.1:6900`).
+**OpenBB API hosting**: `humbldata` does not use the `openbb` Python package - it calls a self-hosted OpenBB Platform API instance over HTTP via `core/utils/openbb_api_client.py`. In production that instance runs on **DigitalOcean App Platform** (`openbbapi-y9f49.ondigitalocean.app`), fronted by Cloudflare under the custom domain `https://data.humblfinance.io` (`OPENBB_API_PROD_URL`). By default `OPENBB_API_DEV_URL` also points at this same prod instance - there is no local OpenBB in the default dev stack. If you're running the full ecosystem via `humblWORKSPACE`, use `pixi run dev:local-openbb` to run OpenBB locally (Docker, port `6900`, via [jjfantini/openbbAPI](https://github.com/jjfantini/openbbAPI)) instead - only needed when testing an OpenBB version bump or provider credentials.
 
 ## Stack
 
