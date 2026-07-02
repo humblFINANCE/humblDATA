@@ -26,6 +26,12 @@ dependencies = [
     "numpy>=2.2.5",
     "pandas>=2.2.3",
     "scikit-learn>=1.7.2",
+    # nixtla -> utilsforecast pulls in dask.dataframe, which emits a
+    # FutureWarning (escalated to an error by this repo's strict pytest
+    # `filterwarnings`) when dask-expr isn't installed. dask itself is an
+    # optional/commented dependency below, but dask-expr is required
+    # regardless of how dask gets pulled in transitively.
+    "dask-expr>=1.1.21",
     # "aiobotocore>=2.24.2",
     # "cvxpy>=1.7.2",
     # "dask>=2025.9.0",
@@ -146,7 +152,12 @@ warn_required_dynamic_aliases = true
 warn_untyped_fields = true
 
 [tool.pytest.ini_options]  # https://docs.pytest.org/en/latest/reference/reference.html#ini-options-ref
-addopts = "--color=yes --doctest-modules --exitfirst --failed-first --strict-config --strict-markers --verbosity=2 --junitxml=reports/pytest.xml" # removed --typeguard-packages=humbldata
+# portfolio/strategies/*.py (buy_close_sell_open.py, humbl_channel_single_long.py)
+# require `lumibot`, which isn't a project dependency (adding it pulls in a
+# large, conflicting dependency tree, including a forced polars
+# major-version bump) - ignore this directory during collection until
+# lumibot support is scoped as its own optional extra.
+addopts = "--color=yes --doctest-modules --exitfirst --failed-first --strict-config --strict-markers --verbosity=2 --junitxml=reports/pytest.xml --ignore=src/humbldata/portfolio/strategies --import-mode=importlib" # removed --typeguard-packages=humbldata
 filterwarnings = ["error", "ignore::DeprecationWarning", "ignore::polars.exceptions.PerformanceWarning"]
 testpaths = ["src", "tests"]
 xfail_strict = true
