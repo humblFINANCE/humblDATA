@@ -40,8 +40,12 @@ def setup_logger(name: str, level: int = logging.INFO) -> logging.Logger:
 
     Examples
     --------
+    The log line below is illustrative only (not asserted as a doctest):
+    `coloredlogs` writes to stderr with ANSI styling and a real timestamp,
+    so exact stdout matching isn't viable here.
+
     >>> logger = setup_logger("my_logger", logging.DEBUG)
-    >>> logger.debug("This is a debug message")
+    >>> logger.debug("This is a debug message")  # doctest: +SKIP
     2023-05-20 10:30:45,123 - my_logger - DEBUG - This is a debug message
     """
     logger = logging.getLogger(name)
@@ -116,20 +120,25 @@ def log_start_end(
 
     Examples
     --------
+    The start/end log lines below are illustrative only (not asserted as a
+    doctest): `coloredlogs` writes to stderr with ANSI styling and a
+    variable timestamp/duration, so exact stdout matching isn't viable here.
+
     >>> @log_start_end
     ... def example_function():
     ...     print("This is an example function")
     ...
-    >>> example_function()
+    >>> example_function()  # doctest: +SKIP
     START: example_function (sync)
     This is an example function
     END: example_function (sync) - Total time: 0.0001s
 
+    >>> custom_logger = setup_logger("custom_logger")
     >>> @log_start_end(logger=custom_logger)
     ... async def async_example():
     ...     await asyncio.sleep(1)
     ...
-    >>> asyncio.run(async_example())
+    >>> asyncio.run(async_example())  # doctest: +SKIP
     START: async_example (async)
     END: async_example (async) - Total time: 1.0012s
     """

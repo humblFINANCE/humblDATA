@@ -154,7 +154,7 @@ class OpenBBAPIClient:
 
         Examples
         --------
-        >>> client = OpenBBAPIClient(env)
+        >>> client = OpenBBAPIClient()
         >>> client._translate_path('equity.price.historical')
         '/equity/price/historical'
         >>> client._translate_path('crypto.ohlcv')
