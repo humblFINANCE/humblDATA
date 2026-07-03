@@ -98,3 +98,12 @@ Gitmoji conventional commits (`.cz-config.js` / `.pre-commit-config.yaml` runs `
 - `poetry.lock` does not exist; `uv.lock` is canonical, but `test.yml` CI and pre-commit's `poetry-check` still assume Poetry.
 - `.devcontainer/` and a `Dockerfile` are referenced in docs but not present in the repo.
 - `src/humbldata/cli.py` exists but has no `[project.scripts]` entry point - it is not installed as a CLI.
+
+## Cursor Cloud specific instructions
+
+The startup update script already runs `uv sync --all-groups` here, so deps are installed. Notes:
+
+- **`.env` is required but not committed.** A minimal dev `.env` at the repo root is enough: `ENVIRONMENT=development`, `OPENBB_API_DEV_URL`/`OPENBB_API_PROD_URL=https://data.humblfinance.io`, `OPENBB_API_PREFIX=/api/v1`, `REDIS_URL=redis://localhost:6379`. All `Env` properties have safe defaults, so `import humbldata` works without it, but integration/data paths call the hosted OpenBB API (`data.humblfinance.io`) and need network.
+- **Use `--all-groups`, not plain `uv sync`.** The test/lint tooling (pytest-asyncio, ruff, mypy, pre-commit, safety) lives in non-default dependency groups; plain `uv sync` omits them and pytest then fails collection with `'asyncio' not found in markers` under `--strict-markers`.
+- **The test suite has ~70 pre-existing failures that CI tolerates** (`test.yml` marks `poe test` `continue-on-error: true`). Notably: some files do `from src.humbldata...` (breaks under `--import-mode=importlib`), and several assertions/doctests are stale (e.g. plotly `heatmapgl` deprecation). Don't assume a red suite is your fault - run a targeted subset (e.g. `uv run pytest tests/test_import.py`) to sanity-check the harness.
+- Lint tooling runs via `uv run ruff check ...` and `uv run mypy ...`; `poe lint` also runs `pre-commit` (downloads hook envs on first run) and `safety`.
